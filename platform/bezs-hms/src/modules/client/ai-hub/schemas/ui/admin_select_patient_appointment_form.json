@@ -1,0 +1,54 @@
+{
+  "id": "admin-select-patient-appt-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "admin-select-patient-appt-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "get_encounter_for_appointment" },
+        "submitLabel": { "literalString": "Next →" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "appt-form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Step 2: Select Appointment" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "appt-form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": {
+                "literalString": "Select a completed appointment for this patient. The encounter is resolved automatically."
+              },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "appt-divider", "type": "Divider", "properties": {} },
+          {
+            "id": "appointment_select",
+            "type": "DynamicSelect",
+            "properties": {
+              "label": { "literalString": "Appointment" },
+              "placeholder": { "literalString": "Filter appointments…" },
+              "items": "$patient_appointments.data",
+              "display": {
+                "label": { "template": "{start | datetime}" },
+                "description": { "path": "appointment_type_display" },
+                "tags": [{ "path": "status" }]
+              },
+              "emits": [
+                { "key": "appointment_id", "path": "id" }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

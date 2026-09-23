@@ -1,0 +1,311 @@
+{
+  "id": "patient-contact-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "patient-contact-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "add_patient_contact" },
+        "submitLabel": { "literalString": "Add Contact" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Add Emergency Contact" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Add a next-of-kin, guardian, or emergency contact for this patient." },
+              "usageHint": "caption"
+            }
+          },
+          {
+            "id": "divider-top",
+            "type": "Divider",
+            "properties": {}
+          },
+          {
+            "id": "section-name",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Contact Name" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "name_use",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Name Use (optional)" },
+              "placeholder": { "literalString": "Search name use…" },
+              "items": "$name_use_concepts.concepts",
+              "valueType": { "literalString": "code" }
+            }
+          },
+          {
+            "id": "name_text",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Full Name (display, optional)" },
+              "placeholder": { "literalString": "e.g. Dr. Jane Smith" },
+              "textFieldType": "shortText"
+            }
+          },
+          {
+            "id": "contact-given-family-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "name_given",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Given Name" },
+                    "placeholder": { "literalString": "First name" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "name_family",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Family Name" },
+                    "placeholder": { "literalString": "Last name" },
+                    "textFieldType": "shortText"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "contact-prefix-suffix-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "name_prefix",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Prefix (optional)" },
+                    "placeholder": { "literalString": "e.g. Dr., Mr." },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "name_suffix",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Suffix (optional)" },
+                    "placeholder": { "literalString": "e.g. Jr., MD" },
+                    "textFieldType": "shortText"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "gender",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Gender (optional)" },
+              "placeholder": { "literalString": "Search gender…" },
+              "items": "$gender_concepts.concepts",
+              "valueType": { "literalString": "code" }
+            }
+          },
+          {
+            "id": "divider-address",
+            "type": "Divider",
+            "properties": {}
+          },
+          {
+            "id": "section-address",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Contact Address (optional)" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "contact-address-use-type-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "address_use",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Address Use" },
+                    "placeholder": { "literalString": "Search address use…" },
+                    "items": "$address_use_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "address_type",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Address Type" },
+                    "placeholder": { "literalString": "Search address type…" },
+                    "items": "$address_type_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "address_text",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Full Address (display, optional)" },
+              "placeholder": { "literalString": "e.g. 456 Oak Ave, Springfield, IL 62701" },
+              "textFieldType": "shortText"
+            }
+          },
+          {
+            "id": "address_line",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Street Address" },
+              "placeholder": { "literalString": "e.g. 456 Oak Avenue" },
+              "textFieldType": "shortText"
+            }
+          },
+          {
+            "id": "contact-city-state-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "address_city",
+                  "type": "TextField",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "City" },
+                    "placeholder": { "literalString": "City" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "address_state",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "State" },
+                    "placeholder": { "literalString": "State" },
+                    "textFieldType": "shortText"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "contact-postal-country-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "address_postal_code",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Postal Code" },
+                    "placeholder": { "literalString": "ZIP / Postal code" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "address_country",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Country" },
+                    "placeholder": { "literalString": "Country" },
+                    "textFieldType": "shortText"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "address_district",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "District / County (optional)" },
+              "placeholder": { "literalString": "e.g. Sangamon County" },
+              "textFieldType": "shortText"
+            }
+          },
+          {
+            "id": "divider-org",
+            "type": "Divider",
+            "properties": {}
+          },
+          {
+            "id": "section-org",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Responsible Organization (optional)" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "contact-org-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "organization",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Organization Reference" },
+                    "placeholder": { "literalString": "e.g. Organization/100" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "organization_display",
+                  "type": "TextField",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "Organization Name (optional)" },
+                    "placeholder": { "literalString": "e.g. St. Mary's Hospital" },
+                    "textFieldType": "shortText"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

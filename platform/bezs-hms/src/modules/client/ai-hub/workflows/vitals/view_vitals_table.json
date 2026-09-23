@@ -1,0 +1,83 @@
+{
+  "id": "view_vitals_table",
+  "name": "Vitals Records Table",
+  "description": "Displays a full server-side paginated and filterable table of all vitals records for a given patient, with export support.",
+  "version": "1.0.0",
+  "tags": ["vitals", "table", "data", "wearable", "healthcare"],
+  "llm_hints": {
+    "intent_examples": [
+      "Show vitals table",
+      "List all vitals records",
+      "View vitals data",
+      "Show all health records",
+      "Browse vitals history",
+      "Export vitals data"
+    ],
+    "when_to_use": [
+      "User wants to browse, search, or export a tabular list of vitals records",
+      "User wants to see all vitals fields in a table format",
+      "User wants to filter vitals by date range",
+      "User wants to export vitals data"
+    ],
+    "when_not_to_use": [
+      "User wants charts or trend visualisations — use view_vitals_dashboard instead",
+      "User wants to record or create new vitals entries"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": false
+  },
+  "introduction": "Here are the vitals records for this patient.",
+  "completion": {
+    "message": "Vitals table closed.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "resolve_current_patient",
+      "name": "Resolve Patient",
+      "step_type": "context",
+      "description": "Silently fetches the current patient record to extract patient_id for use in subsequent steps.",
+      "context_resolver": {
+        "tool_name": "get_my_patient_profile",
+        "url": "$fhir_gql_url/patients/me",
+        "method": "GET",
+        "timeout_ms": 5000
+      },
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "field": "id"
+          }
+        }
+      }
+    },
+    {
+      "sequence_number": 2,
+      "id": "view_vitals_table",
+      "name": "Vitals Records Table",
+      "step_type": "view",
+      "description": "Renders a full server-side paginated table of all vitals records with date filters and export.",
+      "context_resolver": {
+        "context_key": "vitals",
+        "tool_name": "list_vitals",
+        "url": "$fhir_gql_url/api/v1/vitals/?patient_id=$patient_id&limit=20&offset=0",
+        "method": "GET",
+        "timeout_ms": 10000
+      },
+      "ui": {
+        "schema": "vitals_table",
+        "mode": "view",
+        "prefill": false,
+        "editable": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,198 @@
+{
+  "id": "provenance-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "provenance-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_provenance" },
+        "submitLabel": { "literalString": "Record Provenance" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "prov-form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Record Provenance" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "prov-form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Document the origin, activity, and responsible agent for a FHIR resource. Provides a complete audit trail." },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "prov-divider-top", "type": "Divider", "properties": {} },
+          {
+            "id": "prov-section-target",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Target Resource" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "prov-target-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "target_resource_type",
+                  "type": "TextField",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "Resource Type" },
+                    "placeholder": { "literalString": "Condition, Encounter, Observation…" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "target_resource_id",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Resource ID" },
+                    "placeholder": { "literalString": "120001" },
+                    "textFieldType": "shortText"
+                  }
+                }
+              ]
+            }
+          },
+          { "id": "prov-divider-activity", "type": "Divider", "properties": {} },
+          {
+            "id": "prov-section-activity",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Activity" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "activity_code",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Activity (optional)" },
+              "placeholder": { "literalString": "Select activity…" },
+              "items": "$activity_concepts.concepts",
+              "valueType": { "literalString": "code" }
+            }
+          },
+          {
+            "id": "activity_system",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Activity System (optional)" },
+              "placeholder": { "literalString": "http://terminology.hl7.org/CodeSystem/v3-DataOperation" },
+              "textFieldType": "shortText"
+            }
+          },
+          { "id": "prov-divider-agent", "type": "Divider", "properties": {} },
+          {
+            "id": "prov-section-agent",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Agent" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "agent",
+            "type": "DataSelect",
+            "properties": {
+              "label": { "literalString": "Agent Practitioner (optional)" },
+              "placeholder": { "literalString": "Search practitioner…" },
+              "items": "$booking_practitioners.data",
+              "labelPath": "practitioner_detail.name.text",
+              "emits": [
+                { "key": "ref_id", "path": "practitioner_ref_id" }
+              ]
+            }
+          },
+          {
+            "id": "agent_type_code",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Agent Type (optional)" },
+              "placeholder": { "literalString": "author" },
+              "textFieldType": "shortText"
+            }
+          },
+          { "id": "prov-divider-entity", "type": "Divider", "properties": {} },
+          {
+            "id": "prov-section-entity",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Entity" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "prov-entity-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "entity_role",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Entity Role (optional)" },
+                    "placeholder": { "literalString": "source, derivation" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "entity_reference",
+                  "type": "TextField",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "Entity Reference (optional)" },
+                    "placeholder": { "literalString": "QuestionnaireResponse/qr-001" },
+                    "textFieldType": "shortText"
+                  }
+                }
+              ]
+            }
+          },
+          { "id": "prov-divider-meta", "type": "Divider", "properties": {} },
+          {
+            "id": "prov-section-meta",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Metadata" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "recorded",
+            "type": "DateTimeInput",
+            "properties": {
+              "label": { "literalString": "Recorded (optional)" },
+              "enableDate": true,
+              "enableTime": true
+            }
+          },
+          {
+            "id": "note",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Note (optional)" },
+              "placeholder": { "literalString": "Additional audit notes" },
+              "textFieldType": "longText"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "id": "create_document_reference",
+  "name": "Create Document Reference",
+  "description": "Create a document reference linking clinical documents (PDFs, notes, reports) to the current patient's record.",
+  "version": "1.0.0",
+  "tags": [
+    "fhir",
+    "document-reference",
+    "results",
+    "clinical-documents",
+    "create",
+    "healthcare"
+  ],
+  "llm_hints": {
+    "intent_examples": [
+      "Attach a document to a patient",
+      "Create a document reference",
+      "Link a clinical document",
+      "Attach a PDF to a patient record",
+      "Add a clinical note document"
+    ],
+    "when_to_use": [
+      "User wants to attach or link a document to a patient record",
+      "User wants to create a DocumentReference resource"
+    ],
+    "when_not_to_use": [
+      "User wants to create a diagnostic report",
+      "User wants to book an appointment"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you attach a clinical document to the current patient's record.",
+  "completion": {
+    "message": "Document reference created successfully.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "create_document_reference_resource",
+      "name": "Create Document Reference",
+      "step_type": "form",
+      "description": "Enter the document details including type, status, author, and content link.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "field": "me_patient.id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Resolve current patient from session.",
+          "context_key": "me_patient",
+          "tool_name": "get_my_patient",
+          "url": "$fhir_gql_url/patients/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch document reference status value set.",
+          "context_key": "status_concepts",
+          "tool_name": "get_document_reference_status_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=DocumentReference&field=status",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch document reference doc-status value set.",
+          "context_key": "doc_status_concepts",
+          "tool_name": "get_document_reference_doc_status_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=DocumentReference&field=docStatus",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Load practitioners available for booking.",
+          "context_key": "booking_practitioners",
+          "tool_name": "list_practitioners_for_booking",
+          "url": "$fhir_gql_url/practitioner-roles/booking",
+          "method": "GET",
+          "timeout_ms": 10000
+        }
+      ],
+      "ui": {
+        "schema": "document_reference_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_document_reference",
+          "tool_name": "create_document_reference",
+          "url": "$fhir_gql_url/document-references/",
+          "method": "POST",
+          "validation_schema": "document_reference_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    }
+  ]
+}

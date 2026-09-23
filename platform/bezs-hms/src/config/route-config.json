@@ -1,0 +1,14 @@
+{
+  "default": {
+    "breadcrumbs": true,
+    "navbarBreadcrumbs": false
+  },
+  "/bezs/telemedicine/admin/emr-chat": {
+    "breadcrumbs": false,
+    "navbarBreadcrumbs": true
+  },
+  "/bezs/telemedicine/doctor/emr": {
+    "breadcrumbs": false,
+    "navbarBreadcrumbs": true
+  }
+}

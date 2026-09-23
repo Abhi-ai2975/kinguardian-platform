@@ -1,0 +1,135 @@
+---
+title: "Upload Tokens"
+description: "Issue short-lived browser upload tokens scoped to a project."
+---
+
+# Upload Tokens
+
+Upload tokens are short-lived credentials (`fn_upload_token_...`) that allow browser clients to call file upload endpoints without ever receiving your API key. Your server creates the token with embedded constraints; the browser uses it directly.
+
+## How it works
+
+```
+Browser                   Your server                    FileNest API
+  │                            │                               │
+  │── needs to upload ────────►│                               │
+  │                            │── POST /upload-tokens ───────►│
+  │                            │◄── { token, expiresAt } ──────│
+  │◄── { token, expiresAt } ───│                               │
+  │                            │                               │
+  │── PUT (presigned URL) ─────────────────────────────────────►│
+  │── POST /files/upload (Bearer token) ───────────────────────►│
+```
+
+The token encodes **constraints** (max file size, allowed MIME types, target folder, tags, metadata) that are enforced server-side at upload time. The browser cannot override them.
+
+---
+
+## Create an upload token
+
+```
+POST /v1/projects/{project_id}/upload-tokens
+```
+
+**Required scope:** `upload_tokens:create`
+
+### Request body
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `max_size` | `integer` | `104857600` (100 MB) | Maximum file size in bytes per upload |
+| `allowed_mime_types` | `string[]` | `["*/*"]` | MIME type allowlist. Supports wildcards: `image/*`, `*/*` |
+| `max_files` | `integer` | `10` | Maximum number of files that can be uploaded with this token |
+| `folder_id` | `string` | `null` | Lock uploads to a specific folder. Browser cannot override this |
+| `folder_path` | `string` | `null` | Slash-separated path (e.g. `users/alice/uploads`). Missing segments are created. Takes precedence over `folder_id` |
+| `metadata` | `object` | `null` | Default metadata applied to every file uploaded with this token. Token values win on key conflicts with browser-supplied metadata |
+| `tags` | `string[]` | `null` | Default tags merged onto every file uploaded with this token |
+| `expires_in` | `integer` | `3600` | Token TTL in seconds (60–86400) |
+| `owner_user_id` | `string` | `null` | End-user ID stamped on every file uploaded with this token |
+| `owner_org_id` | `string` | `null` | End-user org ID stamped on every file uploaded with this token |
+
+### Response
+
+```json
+{
+  "token": "fn_upload_token_a1b2c3...",
+  "expires_at": "2026-06-27T11:00:00Z",
+  "constraints": {
+    "max_size": 5242880,
+    "allowed_mime_types": ["image/jpeg", "image/png", "image/webp"],
+    "max_files": 1
+  }
+}
+```
+
+Return `token` and `expires_at` to the browser. The browser sends `Authorization: Bearer fn_upload_token_...` on upload requests.
+
+### Example — profile photo token
+
+```bash
+curl -X POST https://api.filenest.io/v1/projects/proj_01j.../upload-tokens \
+  -H "Authorization: Bearer fn_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "folder_path": "users/alice/avatars",
+    "allowed_mime_types": ["image/jpeg", "image/png", "image/webp"],
+    "max_size": 2097152,
+    "max_files": 1,
+    "expires_in": 300,
+    "owner_user_id": "user_alice",
+    "metadata": { "purpose": "avatar" },
+    "tags": ["avatar", "user-content"]
+  }'
+```
+
+---
+
+## Constraint reconciliation
+
+### At token creation time
+
+If the project has restrictions configured (in project settings), the token's constraints are validated against them before the token is issued. A token cannot grant more than the project allows.
+
+| Scenario | Result |
+|----------|--------|
+| Project has no `allowed_mime_types` set | Token MIME list is the only gate at upload time |
+| Project has `allowed_mime_types: "image/jpeg,image/png"` and token requests `["image/*"]` | **422** — `image/*` is wider than what the project allows |
+| Project has `allowed_mime_types: "image/*"` and token requests `["image/jpeg"]` | **Accepted** — `image/jpeg` is covered by `image/*` |
+| Project `max_file_size_bytes` is 10 MB and token `max_size` is 50 MB | **422** — token exceeds project ceiling |
+| Project `max_file_size_bytes` is 100 MB and token `max_size` is 5 MB | **Accepted** — token is more restrictive |
+
+### At upload time
+
+Both the token constraints **and** the project config are enforced independently on every upload request. The stricter of the two wins.
+
+- Token `max_size` → checked first (413 if exceeded)
+- Token `allowed_mime_types` → checked first (422 if not matched)
+- Token `folder_id` → applied; browser-supplied `folder_id` is ignored
+- Token `metadata` → merged over browser-supplied metadata; token values win on key conflicts
+- Token `tags` → merged with browser-supplied tags; duplicates are removed
+- Project config constraints → checked after token constraints (via `validate_upload_request`)
+
+---
+
+## Token scopes
+
+Upload tokens automatically grant:
+
+| Scope | Purpose |
+|-------|---------|
+| `files:upload` | Allows `POST /files/upload` and `/files/multipart/*` |
+| `files:read` | Allows `GET /files/{id}` (needed for post-upload confirmation) |
+
+Upload tokens cannot call any other endpoint. They cannot list files, delete files, manage webhooks, or create other tokens.
+
+---
+
+## Expiry and refresh
+
+Tokens expire at `expires_at`. The `@filenest/react` SDK handles proactive refresh automatically — it fetches a new token `tokenRefreshBuffer` seconds (default 60) before expiry and retries on 401. See [React SDK — useUploadToken](/docs/sdks/react#useuploadtoken) for details.
+
+If you are not using the React SDK, refresh by calling your token endpoint again and replacing the bearer token before the old one expires.
+
+<Callout type="tip" title="Set a short TTL for sensitive flows">
+For flows involving sensitive data (medical records, financial documents), set `expires_in` to 300–600 seconds and embed the user's ID in `owner_user_id`. The short window limits exposure if a token is intercepted.
+</Callout>

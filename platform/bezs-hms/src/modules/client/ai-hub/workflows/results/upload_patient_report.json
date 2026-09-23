@@ -1,0 +1,200 @@
+{
+  "id": "upload_patient_report",
+  "name": "Upload Patient Report",
+  "description": "Admin selects a patient, picks one of their fulfilled appointments, the encounter is resolved automatically, then selects the test order (ServiceRequest) and uploads the result file. A Diagnostic Report is created linking the file to the order.",
+  "version": "1.0.0",
+  "tags": [
+    "fhir",
+    "diagnostic-report",
+    "upload",
+    "results",
+    "service-request",
+    "encounter",
+    "admin",
+    "patient"
+  ],
+  "required_permissions": [
+    "patient:read",
+    "appointment:read",
+    "encounter:read",
+    "service_request:read",
+    "diagnostic_report:create"
+  ],
+  "llm_hints": {
+    "intent_examples": [
+      "Upload a test report for a patient",
+      "Upload lab results for a patient",
+      "Attach a report to a patient's test order",
+      "Upload diagnostic report for an appointment",
+      "Record test results for a patient",
+      "Upload radiology report",
+      "Add a PDF report to a patient's service request"
+    ],
+    "when_to_use": [
+      "Admin wants to upload a result file (PDF, image) against a patient's ServiceRequest",
+      "Staff needs to attach a lab or imaging report to a completed appointment's order",
+      "User wants to create a DiagnosticReport linked to a specific test order for a patient"
+    ],
+    "when_not_to_use": [
+      "Patient is uploading their own report (use the patient medical records page instead)",
+      "User wants to create a diagnostic report without uploading a file (use create_diagnostic_report instead)",
+      "User wants to order a new test (use create_service_request instead)"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you upload a report in 3 steps: select a patient, choose their completed appointment, then select the test order and upload the file.",
+  "completion": {
+    "message": "Report uploaded successfully. A Diagnostic Report has been created and linked to the test order.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "select_patient",
+      "name": "Select Patient",
+      "step_type": "form",
+      "description": "Search for a patient by name. Their fulfilled appointments will be loaded in the next step.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "field": "id"
+          },
+          "patient_user_id": {
+            "type": "string",
+            "resource": "Patient",
+            "field": "user_id"
+          },
+          "patient_org_id": {
+            "type": "string",
+            "resource": "Patient",
+            "field": "org_id"
+          }
+        }
+      },
+      "context_resolvers": [],
+      "ui": {
+        "schema": "admin_select_patient_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "confirm_patient_selection",
+          "tool_name": "confirm_patient_selection",
+          "url": "$fhir_gql_url/patients/$patient_id",
+          "method": "GET",
+          "validation_schema": "admin_select_patient_schema",
+          "retryable": false,
+          "timeout_ms": 8000
+        }
+      ]
+    },
+    {
+      "sequence_number": 2,
+      "id": "select_appointment",
+      "name": "Select Appointment",
+      "step_type": "form",
+      "description": "Select one of the patient's completed appointments. The encounter is resolved automatically — if no encounter exists for the selected appointment, the workflow stops.",
+      "context": {
+        "inputs": {
+          "patient_id": { "type": "integer", "source": "workflow" }
+        },
+        "outputs": {
+          "encounter_id": {
+            "type": "integer",
+            "resource": "Encounter",
+            "field": "data.0.id",
+            "error_message": "No encounter found for this appointment. Please select an appointment that has an associated encounter before continuing."
+          }
+        },
+        "required_outputs": ["encounter_id"]
+      },
+      "context_resolvers": [
+        {
+          "description": "Load fulfilled appointments for the selected patient so the user can pick one.",
+          "context_key": "patient_appointments",
+          "tool_name": "list_patient_appointments",
+          "url": "$fhir_gql_url/appointments/?user_id=$patient_user_id&org_id=$patient_org_id&status=fulfilled&limit=100",
+          "method": "GET",
+          "timeout_ms": 10000
+        }
+      ],
+      "ui": {
+        "schema": "admin_select_patient_appointment_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "fetch_encounter",
+          "tool_name": "get_encounter_for_appointment",
+          "url": "$fhir_gql_url/encounters/?appointment_id=$appointment_id&limit=1",
+          "method": "GET",
+          "validation_schema": "select_appointment_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    },
+    {
+      "sequence_number": 3,
+      "id": "upload_report",
+      "name": "Upload Report",
+      "step_type": "form",
+      "description": "Select the test order (ServiceRequest) this report belongs to, then upload the result file. A Diagnostic Report is created on submit.",
+      "context": {
+        "inputs": {
+          "encounter_id": { "type": "integer", "source": "workflow" },
+          "patient_id": { "type": "integer", "source": "workflow" }
+        },
+        "outputs": {
+          "diagnostic_report_id": {
+            "type": "integer",
+            "resource": "DiagnosticReport",
+            "field": "id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Load service requests for the resolved encounter so the user can select which test order this report belongs to.",
+          "context_key": "encounter_service_requests",
+          "tool_name": "list_encounter_service_requests",
+          "url": "$fhir_gql_url/service-requests/?encounter_id=$encounter_id&limit=50",
+          "method": "GET",
+          "timeout_ms": 10000
+        }
+      ],
+      "ui": {
+        "schema": "admin_upload_report_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "upload_patient_report",
+          "tool_name": "upload_patient_report",
+          "url": "$fhir_gql_url/diagnostic-reports/",
+          "method": "POST",
+          "validation_schema": "admin_upload_report_schema",
+          "retryable": false,
+          "timeout_ms": 15000
+        }
+      ]
+    }
+  ]
+}

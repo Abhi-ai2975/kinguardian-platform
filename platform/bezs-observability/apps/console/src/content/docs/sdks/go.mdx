@@ -1,0 +1,287 @@
+---
+title: Go SDK
+description: Reference for the Watcher24 Go SDK — zero-dependency client for Go services.
+---
+
+# Go SDK
+
+The `github.com/watcher24/go-sdk` package supports Go 1.21+ and is safe for concurrent use from multiple goroutines. It has **zero external dependencies** — only the Go standard library.
+
+## Installation
+
+```bash
+go get github.com/watcher24/go-sdk
+```
+
+## Initialisation
+
+Create a module-level singleton and shut it down when the process exits.
+
+```go
+package main
+
+import (
+    "log"
+    "os"
+
+    watcher "github.com/watcher24/go-sdk"
+)
+
+var w *watcher.Client
+
+func init() {
+    var err error
+    w, err = watcher.NewClient(watcher.ClientOptions{
+        APIKey:      os.Getenv("WATCHER_API_KEY"),
+        AppID:       os.Getenv("WATCHER_APP_ID"),        // links events to a registered app
+        ServiceName: os.Getenv("WATCHER_SERVICE_NAME"), // e.g. "payment-api"
+        Environment: os.Getenv("APP_ENV"),               // defaults to "production"
+    })
+    if err != nil {
+        log.Fatalf("watcher: %v", err)
+    }
+}
+
+func main() {
+    defer w.Shutdown()
+    // ...
+}
+```
+
+| Option | Type | Required | Description |
+|--------|------|----------|-------------|
+| `APIKey` | `string` | **Yes** | Secret key (`wtch_` prefix) from Settings → API Keys |
+| `AppID` | `string` | No | Links events to a registered application in the dashboard. Get the ID from Settings → Apps. |
+| `ServiceName` | `string` | No | Component label shown in the dashboard (e.g. `"worker"`) |
+| `Environment` | `string` | No | Deployment stage. Default: `"production"` |
+| `GatewayURL` | `string` | No | Override for self-hosted deployments. Default: `https://ingest.watcher24.io` |
+| `FlushInterval` | `time.Duration` | No | How often the background goroutine sends events. Default: `500ms` |
+| `FlushAt` | `int` | No | Buffer size that triggers an immediate flush. Default: `100` |
+| `MaxBuffer` | `int` | No | Maximum events held in memory; oldest dropped when full. Default: `10 000` |
+
+## Audit events
+
+Record user actions and compliance events.
+
+```go
+w.Audit("user.login",
+    watcher.WithUserID("u_abc123"),
+    watcher.WithSessionID("sess_xyz"),
+    watcher.WithPayload(map[string]any{
+        "method": "email",
+        "ip":     "203.0.113.1",
+    }),
+)
+
+w.Audit("document.exported",
+    watcher.WithUserID("u_abc123"),
+    watcher.WithPayload(map[string]any{
+        "doc_id": "doc_001",
+        "format": "pdf",
+    }),
+)
+```
+
+## Logs
+
+Structured application logs with a severity level.
+
+```go
+w.Log(watcher.SeverityInfo, "server started",
+    watcher.WithPayload(map[string]any{"port": 8080}),
+)
+
+w.Log(watcher.SeverityError, "payment failed",
+    watcher.WithUserID("u_abc123"),
+    watcher.WithPayload(map[string]any{
+        "order_id": "o_001",
+        "reason":   "card_declined",
+    }),
+)
+```
+
+Severity levels: `SeverityDebug` · `SeverityInfo` · `SeverityWarn` · `SeverityError` · `SeverityCritical`
+
+## Traces
+
+Distributed trace spans. Pass the same `traceID` across services to correlate spans.
+
+```go
+import (
+    "crypto/rand"
+    "encoding/hex"
+    "fmt"
+)
+
+// Generate a random trace ID (or propagate one from an incoming request header)
+b := make([]byte, 16)
+rand.Read(b)
+traceID := fmt.Sprintf("trace-%s", hex.EncodeToString(b))
+rootSpan := "span-handler"
+
+w.Trace("http.request",
+    watcher.WithTraceID(traceID),
+    watcher.WithSpanID(rootSpan),
+    watcher.WithPayload(map[string]any{"method": "POST", "path": "/api/orders"}),
+)
+
+// Child span
+w.Trace("db.insert",
+    watcher.WithTraceID(traceID),
+    watcher.WithSpanID("span-db"),
+    watcher.WithParentSpanID(rootSpan),
+    watcher.WithPayload(map[string]any{"table": "orders", "latency_ms": 12}),
+)
+```
+
+## Metrics
+
+Numeric measurements. Put values in the payload.
+
+```go
+w.Metric("api.request_duration",
+    watcher.WithPayload(map[string]any{
+        "p50_ms": 45,
+        "p95_ms": 120,
+        "p99_ms": 340,
+        "count":  1024,
+    }),
+)
+```
+
+## AI events
+
+Record AI agent telemetry — LLM calls, tool calls, workflow steps, retrievals, and evals.
+Always include a structured payload with a `"kind"` field so the console can display AI-specific columns (model, tokens, cost, latency) and the workflow waterfall.
+
+```go
+traceID := fmt.Sprintf("wf-%d", time.Now().UnixMilli())
+spanID  := fmt.Sprintf("llm-%d", time.Now().UnixMilli())
+
+// LLM call
+w.AI(watcher.SeverityInfo, "llm.call.completed",
+    watcher.WithTraceID(traceID),
+    watcher.WithSpanID(spanID),
+    watcher.WithPayload(map[string]any{
+        "kind":              "llm_call",
+        "provider":          "openai",
+        "model":             "gpt-4o",
+        "prompt_tokens":     840,
+        "completion_tokens": 400,
+        "total_tokens":      1240,
+        "latency_ms":        820,
+        "cost_usd":          0.0037,
+        "finish_reason":     "stop",
+    }),
+)
+
+// Tool call
+w.AI(watcher.SeverityInfo, "tool.call.completed",
+    watcher.WithTraceID(traceID),
+    watcher.WithPayload(map[string]any{
+        "kind":           "tool_call",
+        "tool_name":      "web_search",
+        "latency_ms":     340,
+        "success":        true,
+        "output_summary": "Found 5 results",
+    }),
+)
+```
+
+The `EventTypeAI` constant (`"ai"`) is also available for use with the generic `Event` method.
+
+See the [AI Agent Observability guide →](/docs/ai/overview) for the full payload schema for all AI event kinds.
+
+## Generic event
+
+Use `Event` when a typed helper doesn't fit.
+
+```go
+w.Event(watcher.EventTypeSecurity, watcher.SeverityWarn,
+    "suspicious login attempt",
+    watcher.WithPayload(map[string]any{
+        "ip":      "198.51.100.1",
+        "attempts": 5,
+    }),
+)
+```
+
+Available event types: `EventTypeAudit` · `EventTypeLog` · `EventTypeTrace` · `EventTypeMetric` · `EventTypeEvent` · `EventTypeSecurity` · `EventTypeAI` · `EventTypeSystem` · `EventTypeInfrastructure`
+
+## EventOption functions
+
+| Function | Description |
+|----------|-------------|
+| `WithUserID(id string)` | User identifier |
+| `WithSessionID(id string)` | Session identifier |
+| `WithTraceID(id string)` | Distributed trace ID |
+| `WithSpanID(id string)` | Span ID within a trace |
+| `WithParentSpanID(id string)` | Parent span ID for trace trees |
+| `WithPayload(p map[string]any)` | Arbitrary structured data |
+
+## Lifecycle
+
+```go
+// Force-send all buffered events — use at the end of a serverless handler
+if err := w.Flush(); err != nil {
+    log.Printf("flush: %v", err)
+}
+
+// Flush + stop the background goroutine — always call before process exit
+defer w.Shutdown()
+```
+
+<Callout type="note">
+In short-lived processes (AWS Lambda, Cloud Run jobs), call `w.Flush()` explicitly at the end of your handler — the background goroutine's timer tick may not fire before the process is frozen.
+</Callout>
+
+## Environment variables
+
+```bash
+WATCHER_API_KEY=wtch_...          # required — secret key from Settings → API Keys
+WATCHER_APP_ID=your_app_id_here   # optional — from Settings → Apps
+WATCHER_SERVICE_NAME=my-service   # optional — component label for filtering
+APP_ENV=production                 # optional
+
+# Only for local dev or self-hosted:
+# WATCHER_GATEWAY_URL=http://localhost:8080
+```
+
+## HTTP middleware example
+
+Wrap your `net/http` handlers to automatically trace every request:
+
+```go
+func watcherMiddleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+        start := time.Now()
+        traceID := r.Header.Get("X-Trace-Id")
+        if traceID == "" {
+            traceID = uuid.New().String()
+        }
+
+        wrapped := &responseWriter{ResponseWriter: rw, status: 200}
+        next.ServeHTTP(wrapped, r)
+
+        w.Trace("http.request",
+            watcher.WithTraceID(traceID),
+            watcher.WithPayload(map[string]any{
+                "method":     r.Method,
+                "path":       r.URL.Path,
+                "status":     wrapped.status,
+                "latency_ms": time.Since(start).Milliseconds(),
+            }),
+        )
+    })
+}
+
+type responseWriter struct {
+    http.ResponseWriter
+    status int
+}
+
+func (rw *responseWriter) WriteHeader(code int) {
+    rw.status = code
+    rw.ResponseWriter.WriteHeader(code)
+}
+```

@@ -1,0 +1,120 @@
+{
+  "id": "patient-name-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "patient-name-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "add_patient_name" },
+        "submitLabel": { "literalString": "Save Names" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Add Patient Names" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Add one or more names for this patient (official, nickname, maiden name, etc.)." },
+              "usageHint": "caption"
+            }
+          },
+          {
+            "id": "divider-top",
+            "type": "Divider",
+            "properties": {}
+          },
+          {
+            "id": "names",
+            "type": "RepeatableGroup",
+            "properties": {
+              "addLabel": { "literalString": "Add Name" },
+              "minItems": { "literalNumber": 1 },
+              "defaultCount": { "literalNumber": 1 },
+              "template": [
+                {
+                  "id": "use",
+                  "type": "TerminologySelect",
+                  "properties": {
+                    "label": { "literalString": "Name Use" },
+                    "placeholder": { "literalString": "Search name type…" },
+                    "items": "$name_use_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "name-given-family-row",
+                  "type": "Row",
+                  "properties": {
+                    "gap": "medium",
+                    "alignment": "stretch",
+                    "children": [
+                      {
+                        "id": "given",
+                        "type": "TextField",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Given Name(s)" },
+                          "placeholder": { "literalString": "First / middle name" },
+                          "textFieldType": "shortText"
+                        }
+                      },
+                      {
+                        "id": "family",
+                        "type": "TextField",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Family Name" },
+                          "placeholder": { "literalString": "Last name" },
+                          "textFieldType": "shortText"
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "name-prefix-suffix-row",
+                  "type": "Row",
+                  "properties": {
+                    "gap": "medium",
+                    "alignment": "stretch",
+                    "children": [
+                      {
+                        "id": "prefix",
+                        "type": "TextField",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Prefix (optional)" },
+                          "placeholder": { "literalString": "e.g. Mr., Dr." },
+                          "textFieldType": "shortText"
+                        }
+                      },
+                      {
+                        "id": "suffix",
+                        "type": "TextField",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Suffix (optional)" },
+                          "placeholder": { "literalString": "e.g. Jr., MD" },
+                          "textFieldType": "shortText"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

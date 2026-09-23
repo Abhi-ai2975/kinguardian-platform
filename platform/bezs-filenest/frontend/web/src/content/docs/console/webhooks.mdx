@@ -1,0 +1,61 @@
+---
+title: "Webhooks"
+description: "Configure webhook endpoints to receive real-time file events in the Console."
+---
+
+# Webhooks
+
+The **Webhooks** page (`/projects/{projectId}/webhooks`) lists all webhook endpoints for a project and lets you create, edit, and delete them.
+
+## Webhook table
+
+Each row shows:
+
+| Column | Description |
+|--------|-------------|
+| **URL** | The HTTPS endpoint that receives events |
+| **Events** | Event types subscribed (up to 3 shown; rest collapsed as "+N more") |
+| **Active** | Whether the endpoint is enabled |
+| **Created** | Registration timestamp |
+
+## Adding a webhook
+
+Click **Add webhook** to open the creation form.
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| **URL** | Yes | HTTPS endpoint that will receive POST requests |
+| **Events** | Yes | At least one event type must be selected |
+| **Active** | — | Toggle to enable or disable delivery (default: enabled) |
+
+### Event types
+
+| Event | Fired when |
+|-------|-----------|
+| `file.uploaded` | Upload request received |
+| `file.ready` | Processing pipeline completed |
+| `file.failed` | Processing pipeline failed |
+| `file.quarantined` | Virus scan flagged the file |
+| `file.deleted` | File deleted |
+
+### Signing secret
+
+After creating a webhook, an amber notice shows the `signing_secret` with a **Copy** button.
+
+<Callout type="warning" title="Save your signing secret">
+The signing secret is shown exactly once. Copy it immediately — it cannot be retrieved from the Console again. You will need it to verify the `x-filenest-signature` header on incoming requests.
+</Callout>
+
+See [Webhooks API — Signature verification](/docs/api/webhooks#signature-verification) for verification code.
+
+## Editing a webhook
+
+Click **Edit** in the row actions menu to update the URL, event subscriptions, or active state. The signing secret does not change on edit.
+
+## Deleting a webhook
+
+Click **Delete** in the row actions menu. A confirmation dialog appears with the endpoint URL. Deletion is immediate — any pending retries for that endpoint are cancelled.
+
+## Disabling vs deleting
+
+Use the **Active** toggle (via Edit) to temporarily stop delivery without losing the webhook configuration. Delete only when you no longer need the endpoint.

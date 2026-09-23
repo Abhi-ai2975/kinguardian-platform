@@ -1,0 +1,117 @@
+{
+  "id": "create_device_request",
+  "name": "Create Device Request",
+  "description": "Place a FHIR DeviceRequest to order or authorise a medical device (e.g. wheelchair, CPAP, blood glucose monitor) for the current patient.",
+  "version": "1.0.0",
+  "tags": ["fhir", "orders", "device-request", "device", "dme"],
+  "llm_hints": {
+    "intent_examples": [
+      "Order a medical device",
+      "Request a wheelchair for the patient",
+      "Create a device request",
+      "Order a CPAP machine",
+      "Request a blood glucose monitor",
+      "Place a DME order",
+      "Request a prosthetic device",
+      "Order assistive equipment"
+    ],
+    "when_to_use": [
+      "User wants to order or request a medical device for a patient",
+      "User wants to create a FHIR DeviceRequest",
+      "User is placing a durable medical equipment (DME) order"
+    ],
+    "when_not_to_use": [
+      "User wants to order medication (use create_medication_request instead)",
+      "User wants to order a procedure or lab (use create_service_request instead)",
+      "User wants to record an immunization (use record_immunization instead)",
+      "User wants to view existing device orders"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you place a device request order. Search for the device type using SNOMED CT, then classify the order and assign a requester.",
+  "completion": {
+    "message": "Device request placed successfully. The order has been recorded in the patient's FHIR record.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "create_device_request_step",
+      "name": "Place Device Request",
+      "step_type": "form",
+      "description": "Search for the device type, select status and intent, and optionally assign a requester.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "field": "me_patient.id"
+          },
+          "device_request_id": {
+            "type": "integer",
+            "resource": "DeviceRequest",
+            "field": "id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Resolve the logged-in user's Patient record so patient_id is available automatically.",
+          "context_key": "me_patient",
+          "tool_name": "get_my_patient",
+          "url": "$fhir_gql_url/patients/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch allowed status codes for DeviceRequest.",
+          "context_key": "status_concepts",
+          "tool_name": "get_device_request_status",
+          "url": "$fhir_gql_url/terminology/concepts?resource=DeviceRequest&field=status",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch allowed intent codes for DeviceRequest.",
+          "context_key": "intent_concepts",
+          "tool_name": "get_device_request_intent",
+          "url": "$fhir_gql_url/terminology/concepts?resource=DeviceRequest&field=intent",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Load practitioners available for booking to populate the requester select.",
+          "context_key": "booking_practitioners",
+          "tool_name": "list_practitioners",
+          "url": "$fhir_gql_url/practitioner-roles/booking",
+          "method": "GET",
+          "timeout_ms": 10000
+        }
+      ],
+      "ui": {
+        "schema": "device_request_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_device_request",
+          "tool_name": "create_device_request",
+          "url": "$fhir_gql_url/device-requests/",
+          "method": "POST",
+          "validation_schema": "device_request_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    }
+  ]
+}

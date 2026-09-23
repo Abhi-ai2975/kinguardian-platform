@@ -1,0 +1,29 @@
+# Minimal local dev infra — Postgres only, no Redis.
+#
+# Use this instead of docker-compose.yml when you just need a database
+# to run `pnpm dev` and `pnpm db:push` against.
+#
+# Usage:
+#   docker compose -f docker-compose.dev.yml up -d
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: drgodly-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-drgodly}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-drgodly}
+      POSTGRES_DB: ${POSTGRES_DB:-drgodly}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-drgodly}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data_dev:

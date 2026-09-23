@@ -1,0 +1,211 @@
+{
+  "id": "open_encounter",
+  "name": "Open Encounter",
+  "description": "Open a new clinical encounter in two steps: optionally create an Episode of Care to group related visits, then create the Encounter itself.",
+  "version": "1.0.0",
+  "tags": ["fhir", "encounter", "episode-of-care", "create", "clinical"],
+  "llm_hints": {
+    "intent_examples": [
+      "Open an encounter",
+      "Start a clinical encounter",
+      "Create an encounter for a patient",
+      "Begin a patient visit",
+      "Open a new consultation",
+      "Start an episode of care",
+      "Create an encounter linked to an episode"
+    ],
+    "when_to_use": [
+      "User wants to open or start a new Encounter resource",
+      "User wants to begin a patient visit or consultation",
+      "User wants to create an Encounter optionally linked to an EpisodeOfCare"
+    ],
+    "when_not_to_use": [
+      "User wants to close or discharge an encounter (use close_encounter)",
+      "User wants to book an appointment (use book_appointment)",
+      "User wants to view existing encounters"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you open a new encounter in 2 steps — first optionally create an Episode of Care, then open the Encounter itself.",
+  "completion": {
+    "message": "Encounter opened successfully. The clinical visit is now active.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "create_episode_of_care",
+      "name": "Episode of Care (Optional)",
+      "step_type": "form",
+      "optional": true,
+      "description": "Optionally create an Episode of Care to group this encounter with related long-term visits.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "episode_of_care_id": {
+            "type": "integer",
+            "resource": "EpisodeOfCare",
+            "field": "id"
+          },
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "field": "me_patient.id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Fetch EpisodeOfCare status value set.",
+          "context_key": "status_concepts",
+          "tool_name": "get_episode_of_care_status_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=EpisodeOfCare&field=status",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch EpisodeOfCare type value set.",
+          "context_key": "type_concepts",
+          "tool_name": "get_episode_of_care_type_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=EpisodeOfCare&field=type",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Resolve the logged-in user's Patient record automatically.",
+          "context_key": "me_patient",
+          "tool_name": "get_my_patient",
+          "url": "$fhir_gql_url/patients/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Load organisations for managing organisation selection.",
+          "context_key": "my_organizations",
+          "tool_name": "list_my_organizations",
+          "url": "$fhir_gql_url/organizations/me",
+          "method": "GET",
+          "timeout_ms": 10000
+        }
+      ],
+      "ui": {
+        "schema": "episode_of_care_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_episode_of_care",
+          "tool_name": "create_episode_of_care",
+          "url": "$fhir_gql_url/episode-of-cares/",
+          "method": "POST",
+          "validation_schema": "episode_of_care_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    },
+    {
+      "sequence_number": 2,
+      "id": "create_encounter",
+      "name": "Open Encounter",
+      "step_type": "form",
+      "description": "Provide encounter details including class, service type, provider, and attending practitioner.",
+      "context": {
+        "inputs": {
+          "episode_of_care_id": { "type": "integer", "source": "workflow" }
+        },
+        "outputs": {
+          "encounter_id": {
+            "type": "integer",
+            "resource": "Encounter",
+            "field": "id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Fetch Encounter status value set.",
+          "context_key": "status_concepts",
+          "tool_name": "get_encounter_status_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Encounter&field=status",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch Encounter class value set.",
+          "context_key": "class_concepts",
+          "tool_name": "get_encounter_class_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Encounter&field=class",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch Encounter service-type value set.",
+          "context_key": "service_type_concepts",
+          "tool_name": "get_encounter_service_type_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Encounter&field=serviceType",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Resolve the logged-in user's Patient record automatically.",
+          "context_key": "me_patient",
+          "tool_name": "get_my_patient",
+          "url": "$fhir_gql_url/patients/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Load organisations for service provider selection.",
+          "context_key": "my_organizations",
+          "tool_name": "list_my_organizations",
+          "url": "$fhir_gql_url/organizations/me",
+          "method": "GET",
+          "timeout_ms": 10000
+        },
+        {
+          "description": "Load locations for encounter location selection.",
+          "context_key": "my_locations",
+          "tool_name": "list_my_locations",
+          "url": "$fhir_gql_url/locations/me",
+          "method": "GET",
+          "timeout_ms": 10000
+        },
+        {
+          "description": "Load practitioners available for booking as attending clinicians.",
+          "context_key": "booking_practitioners",
+          "tool_name": "list_practitioners_for_booking",
+          "url": "$fhir_gql_url/practitioner-roles/booking",
+          "method": "GET",
+          "timeout_ms": 10000
+        }
+      ],
+      "ui": {
+        "schema": "encounter_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_encounter",
+          "tool_name": "create_encounter",
+          "url": "$fhir_gql_url/encounters/",
+          "method": "POST",
+          "validation_schema": "encounter_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    }
+  ]
+}

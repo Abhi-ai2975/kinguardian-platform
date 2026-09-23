@@ -1,0 +1,51 @@
+# Local development infrastructure for drgodly.
+#
+# This brings up the backing services only (Postgres + Redis) — it does
+# NOT run the Next.js app itself. Run the app natively with `pnpm dev` so
+# you get fast refresh; point DATABASE_URL in your .env at the Postgres
+# instance started here.
+#
+# Redis is provisioned for future caching/session use. Nothing in the
+# app talks to it yet, so it's safe to leave running idle.
+#
+# Usage:
+#   docker compose up -d
+#   docker compose down          # stop, keep data
+#   docker compose down -v       # stop and wipe volumes
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: drgodly-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-drgodly}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-drgodly}
+      POSTGRES_DB: ${POSTGRES_DB:-drgodly}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-drgodly}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: drgodly-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:

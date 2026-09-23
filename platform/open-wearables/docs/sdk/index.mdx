@@ -1,0 +1,136 @@
+---
+title: "Open Wearables Mobile SDK"
+sidebarTitle: "Overview"
+description: "Native mobile SDKs for background sync from Apple HealthKit, Samsung Health, and Health Connect. iOS, Android, Flutter, and React Native supported."
+keywords: ["mobile sdk", "healthkit sdk", "health connect sdk", "mobile health data sdk"]
+"og:title": "Mobile SDK | Open Wearables"
+"og:description": "Native mobile SDKs for Apple HealthKit, Samsung Health, and Health Connect. iOS, Android, Flutter, and React Native."
+"og:url": "https://docs.openwearables.io/sdk"
+"og:type": "article"
+"twitter:title": "Mobile SDK | Open Wearables"
+"twitter:description": "Native mobile SDKs for Apple HealthKit, Samsung Health, and Health Connect. iOS, Android, Flutter, and React Native."
+"twitter:card": "summary_large_image"
+---
+
+## Introduction
+
+Open Wearables Mobile SDKs enable seamless background synchronization of health data directly from **Apple HealthKit** (iOS), **Samsung Health**, and **Health Connect** (Android) to the Open Wearables platform.
+
+Unlike cloud-based providers (Garmin, Polar, Suunto) that use webhooks and OAuth, on-device health stores require a **push-based model** where data is sent from the user's device to your backend.
+
+<Note>
+  **Why Push-Based?** Apple HealthKit, Samsung Health, and Health Connect don't expose cloud APIs. Health data lives exclusively on the user's device, so the mobile app must actively push data to your backend.
+</Note>
+
+## Architecture Overview
+
+<Steps>
+  <Step title="Health Data Store" icon="heart-pulse">
+    Health data is stored locally on the user's device — in Apple Health (iOS), Samsung Health, or Health Connect (Android).
+  </Step>
+  <Step title="Your App + Mobile SDK" icon="mobile">
+    The SDK reads data from the health store and handles background synchronization automatically. Available as native iOS (Swift), native Android (Kotlin), or Flutter (cross-platform).
+  </Step>
+  <Step title="Open Wearables Platform" icon="cloud-arrow-up">
+    Data is pushed to `POST {host}/api/v1/sdk/users/{userId}/sync` and normalized to the unified data model.
+  </Step>
+</Steps>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Background Sync" icon="rotate">
+    Health data syncs automatically even when your app is in the background, using iOS Background App Refresh or Android WorkManager.
+  </Card>
+  <Card title="Incremental Updates" icon="bolt">
+    Uses anchored queries to sync only new data since the last sync, minimizing battery usage and network traffic.
+  </Card>
+  <Card title="Secure Storage" icon="shield">
+    Credentials stored securely in iOS Keychain or Android EncryptedSharedPreferences. API keys never leave your backend.
+  </Card>
+  <Card title="Wide Data Support" icon="chart-line">
+    Steps, heart rate, workouts, sleep, body measurements, nutrition, and more — all normalized to Open Wearables data model.
+  </Card>
+</CardGroup>
+
+## Available SDKs
+
+<CardGroup cols={3}>
+  <Card title="iOS (Swift)" icon="apple" href="/sdk/ios">
+    Native iOS SDK — the core implementation for Apple HealthKit sync.
+  </Card>
+  <Card title="Android (Kotlin)" icon="android" href="/sdk/android">
+    Native Android SDK — sync from Samsung Health and Health Connect.
+  </Card>
+  <Card title="Flutter" icon="mobile" href="/sdk/flutter">
+    Flutter SDK — cross-platform wrapper around the native iOS and Android SDKs.
+  </Card>
+  <Card title="React Native" icon="mobile" href="/sdk/react-native">
+    React Native SDK — cross-platform wrapper around the native iOS and Android SDKs.
+  </Card>
+</CardGroup>
+
+## Choosing an onboarding flow
+
+For any real integration, use the **backend token flow**: your backend mints a short-lived, user-scoped token (write-only to the `/sdk/*` endpoints) via [`POST /api/v1/users/{user_id}/token`](/api-reference/mobile-sdk/create-user-token) and forwards it to the app over its own authenticated API. Your `app_secret` never touches the device. This is the standard path, covered in each platform's Integration Guide.
+
+<Warning>
+  **Invitation codes are a niche mechanism, not a co-equal second option.** They exist for apps with **no backend of their own** to mint and forward tokens. Right now the flow is aimed primarily at individual users self-hosting Open Wearables for their own data (and the [Open Wearables app](/app/introduction) / quick manual testing), not at multi-user production integrations. If you are building your own app with its own backend, use the backend token flow above.
+</Warning>
+
+With an invitation code, a single-use code is issued via [`POST /api/v1/users/{user_id}/invitation-code`](/api-reference/mobile-sdk/generate-invitation-code) - from the dashboard or the API - and the app redeems it directly against the public [`POST /api/v1/invitation-code/redeem`](/api-reference/mobile-sdk/redeem-invitation-code) to obtain SDK tokens. Two situations are possible: in the primary case the same person generates the code in their own dashboard and enters it in their own app, so it never leaves that person. A code can also be delegated - for example a coach or clinician issuing one for a client - and **only in that hand-off** does the code travel to someone else; when it does, use a **secure channel**, because the code is the sole credential (single-use blocks replay after redemption, but not first-use theft if the code is intercepted in transit).
+
+## Security Model
+
+The SDK uses a secure token-based authentication flow that keeps your App credentials safe:
+
+1. **App credentials stay on your backend** - `app_id` and `app_secret` are never exposed to mobile apps
+2. **Short-lived access tokens** - In the standard backend token flow, generated server-to-server via `POST /api/v1/users/{user_id}/token` and forwarded to the mobile SDK. With the invitation code flow, the app instead redeems a single-use code at `POST /api/v1/invitation-code/redeem` and receives the tokens directly.
+3. **Secure credential storage** - iOS Keychain / Android EncryptedSharedPreferences
+4. **Automatic token refresh** - SDK can automatically refresh expired tokens using the `refresh_token`
+5. **API key auth** - Alternative for internal tools (not recommended for production)
+
+<Warning>
+  **Never embed your `app_id` / `app_secret` in your mobile app.** Always generate access tokens on your backend and pass only the tokens to the mobile SDK.
+</Warning>
+
+## Disconnecting
+
+`signOut()` only clears the credentials stored on the device. It makes no network call, so on its own the backend never learns the user left: the connection stays `active` behind a plausible `last_synced_at` and is indistinguishable from a healthy one.
+
+To report the disconnect, call [`DELETE /api/v1/users/{user_id}/connections/{provider}`](/api-reference/connections/disconnect-provider-endpoint) with the SDK access token **before** signing out locally:
+
+```bash
+curl -X DELETE "https://api.openwearables.io/api/v1/users/$USER_ID/connections/apple" \
+  -H "Authorization: Bearer $SDK_ACCESS_TOKEN"
+```
+
+A `204` means the connection is revoked. The endpoint is idempotent, so a retry after a failed sign-out is safe, and a `404` means there was no connection to revoke.
+
+An SDK token is deliberately narrower here than a developer JWT or an API key:
+
+| Rule | Response when violated |
+|------|------------------------|
+| The token's user must be the `user_id` in the path | `403` |
+| The provider must be one that can be fed by the SDK (Apple Health, Health Connect, Samsung Health) | `403` |
+| The connection must not hold OAuth tokens - cloud connections such as Google Health are out of the app's reach | `403` |
+
+No provider deregistration runs on this path: signing out of an app is not a reason to unregister the user from the provider's API. The resulting `connection.revoked` webhook carries `reason: "sdk_sign_out"`, which distinguishes it from a disconnect made in the dashboard.
+
+<Note>
+  Revoking permissions in the iOS Settings app and deleting the app cannot be reported - the SDK never runs again to make the call. Treat a connection that stops uploading as a separate signal from one that was explicitly revoked.
+</Note>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="iOS SDK" icon="arrow-right" href="/sdk/ios">
+    Get started with the native iOS SDK (Swift)
+  </Card>
+  <Card title="Android SDK" icon="arrow-right" href="/sdk/android">
+    Get started with the native Android SDK (Kotlin)
+  </Card>
+  <Card title="Flutter SDK" icon="arrow-right" href="/sdk/flutter">
+    Get started with the Flutter SDK
+  </Card>
+</CardGroup>

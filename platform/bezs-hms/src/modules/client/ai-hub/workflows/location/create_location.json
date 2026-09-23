@@ -1,0 +1,147 @@
+{
+  "id": "create_location",
+  "name": "Create Location",
+  "description": "Register a new Location resource — physical place, address, contact details, hierarchy, and operating hours — linked to a managing organisation.",
+  "version": "1.0.0",
+  "tags": ["fhir", "location", "create", "crud", "healthcare"],
+  "required_permissions": ["location:create"],
+  "llm_hints": {
+    "intent_examples": [
+      "Create a location",
+      "Add a new clinic building",
+      "Register a hospital wing",
+      "Add a new physical location",
+      "Set up a location for an organisation"
+    ],
+    "when_to_use": [
+      "User wants to create a new Location resource",
+      "User wants to register a physical place (building, room, ward, floor)"
+    ],
+    "when_not_to_use": [
+      "User wants to create an organisation (use Create Organization workflow)",
+      "User wants to create a healthcare service (use Create Healthcare Service workflow)"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you register a new location.",
+  "completion": {
+    "message": "Location created successfully.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "create_location_resource",
+      "name": "Create Location",
+      "step_type": "form",
+      "description": "Enter the location's details, address, contact information, and operating hours.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "location_id": {
+            "type": "integer",
+            "resource": "Location",
+            "field": "id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Fetch location-status value set.",
+          "context_key": "location_status_concepts",
+          "tool_name": "get_location_status_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Location&field=status",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch location physical-type value set.",
+          "context_key": "location_physical_type_concepts",
+          "tool_name": "get_location_physical_type_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Location&field=physicalType",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch address-use value set.",
+          "context_key": "address_use_concepts",
+          "tool_name": "get_address_use_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=address.use",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch address-type value set.",
+          "context_key": "address_type_concepts",
+          "tool_name": "get_address_type_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=address.type",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch location-mode value set (instance vs kind).",
+          "context_key": "location_mode_concepts",
+          "tool_name": "get_location_mode_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Location&field=mode",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch location operational-status value set (a FHIR Coding — system/code/display).",
+          "context_key": "location_operational_status_concepts",
+          "tool_name": "get_location_operational_status_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Location&field=operationalStatus",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch telecom-system value set (phone, fax, email, etc.) for contact details.",
+          "context_key": "telecom_system_concepts",
+          "tool_name": "get_telecom_system_valueset_loc",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=telecom.system",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch telecom-use value set (home, work, mobile, etc.) for contact details.",
+          "context_key": "telecom_use_concepts",
+          "tool_name": "get_telecom_use_valueset_loc",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=telecom.use",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch identifier-use value set (usual, official, temp, etc.) for identifiers.",
+          "context_key": "identifier_use_concepts",
+          "tool_name": "get_identifier_use_valueset_loc",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=identifier.use",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "location_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_location",
+          "tool_name": "create_location",
+          "url": "$fhir_gql_url/locations/",
+          "method": "POST",
+          "validation_schema": "location_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    }
+  ]
+}

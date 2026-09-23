@@ -1,0 +1,8 @@
+{
+  "use": "official",
+  "text": "Dr. James R. Carter",
+  "family": "Carter",
+  "given": ["James", "Robert"],
+  "prefix": ["Dr."],
+  "suffix": ["MD", "FACC"]
+}

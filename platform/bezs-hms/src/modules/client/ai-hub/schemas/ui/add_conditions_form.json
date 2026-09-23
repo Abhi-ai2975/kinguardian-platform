@@ -1,0 +1,213 @@
+{
+  "id": "add-conditions-root",
+  "type": "Column",
+  "properties": {
+    "gap": "small",
+    "children": [
+      {
+        "id": "ac-back-form",
+        "type": "Form",
+        "properties": {
+          "action": { "name": "back_to_choose" },
+          "submitLabel": { "literalString": "← Change selection" },
+          "gap": "small",
+          "alignment": "start",
+          "children": []
+        }
+      },
+      {
+        "id": "ac-main-card",
+        "type": "Card",
+        "properties": {
+          "child": {
+            "id": "add-conditions-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_conditions_batch" },
+        "submitLabel": { "literalString": "Save Conditions →" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "ac-form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Step 3: Add Conditions" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "ac-form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": {
+                "literalString": "Add one or more diagnoses or clinical conditions for this encounter. Each item is posted individually. Patient and encounter are resolved from session context."
+              },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "ac-divider-existing", "type": "Divider", "properties": {} },
+          {
+            "id": "ac-existing-label",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Existing Conditions" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "ac-existing-count-row",
+            "type": "Row",
+            "properties": {
+              "gap": "small",
+              "alignment": "center",
+              "children": [
+                {
+                  "id": "ac-existing-num",
+                  "type": "Text",
+                  "properties": { "text": "$existing_conditions.total", "usageHint": "h3" }
+                },
+                {
+                  "id": "ac-existing-suffix",
+                  "type": "Text",
+                  "properties": {
+                    "text": { "literalString": "condition(s) already recorded for this encounter" },
+                    "usageHint": "caption"
+                  }
+                }
+              ]
+            }
+          },
+          { "id": "ac-divider-new", "type": "Divider", "properties": {} },
+          {
+            "id": "ac-new-label",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "New Conditions" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "conditions_group",
+            "type": "RepeatableGroup",
+            "properties": {
+              "label": { "literalString": "Conditions to Add" },
+              "addLabel": { "literalString": "Add Another Condition" },
+              "defaultCount": 1,
+              "minItems": 1,
+              "maxItems": 10,
+              "allowDuplicate": false,
+              "template": [
+                {
+                  "id": "code",
+                  "type": "TerminologySelect",
+                  "properties": {
+                    "label": { "literalString": "Diagnosis (ICD-10 / SNOMED)" },
+                    "placeholder": { "literalString": "Search diagnosis…" },
+                    "valueType": { "literalString": "CodeableConcept" },
+                    "serverSearch": { "minChars": 2, "debounceMs": 200 }
+                  }
+                },
+                {
+                  "id": "cond-status-row",
+                  "type": "Row",
+                  "properties": {
+                    "gap": "medium",
+                    "alignment": "stretch",
+                    "children": [
+                      {
+                        "id": "clinical_status",
+                        "type": "TerminologySelect",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Clinical Status" },
+                          "placeholder": { "literalString": "Select clinical status…" },
+                          "items": "$clinical_status_concepts.concepts",
+                          "valueType": { "literalString": "CodeableConcept" }
+                        }
+                      },
+                      {
+                        "id": "verification_status",
+                        "type": "TerminologySelect",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Verification Status" },
+                          "placeholder": { "literalString": "Select verification status…" },
+                          "items": "$verification_status_concepts.concepts",
+                          "valueType": { "literalString": "CodeableConcept" }
+                        }
+                      },
+                      {
+                        "id": "severity",
+                        "type": "TerminologySelect",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Severity" },
+                          "placeholder": { "literalString": "Select severity…" },
+                          "items": "$severity_concepts.concepts",
+                          "valueType": { "literalString": "CodeableConcept" }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "category",
+                  "type": "TerminologySelect",
+                  "properties": {
+                    "label": { "literalString": "Category" },
+                    "placeholder": { "literalString": "Select category…" },
+                    "items": "$category_concepts.concepts",
+                    "valueType": { "literalString": "CodeableConcept" }
+                  }
+                },
+                {
+                  "id": "cond-date-row",
+                  "type": "Row",
+                  "properties": {
+                    "gap": "medium",
+                    "alignment": "stretch",
+                    "children": [
+                      {
+                        "id": "onset_datetime",
+                        "type": "DateTimeInput",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Onset Date" },
+                          "enableDate": true,
+                          "enableTime": false
+                        }
+                      },
+                      {
+                        "id": "recorded_date",
+                        "type": "DateTimeInput",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Recorded Date" },
+                          "enableDate": true,
+                          "enableTime": false
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "note_text",
+                  "type": "TextField",
+                  "properties": {
+                    "label": { "literalString": "Clinical Notes (optional)" },
+                    "placeholder": { "literalString": "Additional context, history, or notes" },
+                    "textFieldType": "longText"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}
+    ]
+  }
+}

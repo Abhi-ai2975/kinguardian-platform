@@ -1,0 +1,87 @@
+{
+  "id": "upload_practitioner_photo",
+  "name": "Upload Practitioner Profile Photo",
+  "description": "Upload or replace the profile photo for the currently signed-in practitioner. Fetches the practitioner's FHIR record first to resolve their ID, then streams the chosen image to FileNest and records the file reference in the practitioner.photo[] sub-resource.",
+  "version": "1.0.0",
+  "tags": ["fhir", "practitioner", "photo", "upload", "profile"],
+  "llm_hints": {
+    "intent_examples": [
+      "Upload my profile photo",
+      "Change my profile picture",
+      "Update my doctor photo",
+      "Add a photo to my practitioner profile",
+      "Set my profile image"
+    ],
+    "when_to_use": [
+      "Practitioner wants to upload or update their profile photo",
+      "Doctor wants to add a headshot to their profile"
+    ],
+    "when_not_to_use": [
+      "User wants to upload a patient photo",
+      "User wants to upload a clinical document or attachment"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you upload a profile photo. First I'll fetch your practitioner record, then you can choose an image to upload.",
+  "completion": {
+    "message": "Profile photo uploaded successfully.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "upload_practitioner_photo",
+      "name": "Upload Photo",
+      "step_type": "form",
+      "description": "Choose a profile photo to upload. JPEG, PNG, WebP or GIF, max 5 MB.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "practitioner_id": {
+            "type": "integer",
+            "resource": "Practitioner",
+            "field": "my_practitioner.id"
+          },
+          "practitioner_photo_id": {
+            "type": "integer",
+            "resource": "PractitionerPhoto",
+            "field": "id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Fetch the signed-in practitioner's FHIR record to resolve their integer ID for the upload path and the action URL.",
+          "context_key": "my_practitioner",
+          "tool_name": "get_my_practitioner",
+          "url": "$fhir_gql_url/practitioners/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "practitioner_photo_upload_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "upload_practitioner_photo",
+          "tool_name": "upload_practitioner_photo",
+          "url": "$fhir_gql_url/practitioners/$practitioner_id/photos",
+          "method": "POST",
+          "validation_schema": "practitioner_photo_create_schema",
+          "retryable": false,
+          "timeout_ms": 15000
+        }
+      ]
+    }
+  ]
+}

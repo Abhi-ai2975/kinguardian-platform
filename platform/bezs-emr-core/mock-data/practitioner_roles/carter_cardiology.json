@@ -1,0 +1,69 @@
+{
+  "user_id": "user-admin-001",
+  "org_id": "0fb41e50-82a4-461e-96c7-bd11359d892d",
+  "practitioner": "Practitioner/30000",
+  "practitioner_display": "Dr. James R. Carter",
+  "organization": "Organization/190000",
+  "organization_display": "Sunrise Medical Center",
+  "active": true,
+  "period_start": "2020-01-01T00:00:00Z",
+  "availability_exceptions": "Not available on Massachusetts public holidays. Unavailable Aug 1–15 annually.",
+  "code": [
+    {
+      "coding_system": "http://snomed.info/sct",
+      "coding_code": "17561000",
+      "coding_display": "Cardiologist",
+      "text": "Cardiologist"
+    }
+  ],
+  "specialty": [
+    {
+      "coding_system": "http://snomed.info/sct",
+      "coding_code": "394579002",
+      "coding_display": "Cardiology",
+      "text": "Cardiology"
+    }
+  ],
+  "location": [
+    {
+      "reference": "Location/230000",
+      "reference_display": "Sunrise Medical Center — Main Clinic"
+    }
+  ],
+  "healthcare_service": [
+    {
+      "reference": "HealthcareService/150000",
+      "reference_display": "Cardiology Consultation"
+    }
+  ],
+  "availability": [
+    {
+      "available_times": [
+        {
+          "days_of_week": ["mon", "tue", "thu", "fri"],
+          "all_day": false,
+          "available_start_time": "09:00:00",
+          "available_end_time": "12:00:00"
+        },
+        {
+          "days_of_week": ["mon", "tue", "thu", "fri"],
+          "all_day": false,
+          "available_start_time": "14:00:00",
+          "available_end_time": "17:00:00"
+        }
+      ],
+      "not_available_times": [
+        {
+          "description": "Dr. Carter annual leave",
+          "during_start": "2026-08-01T00:00:00Z",
+          "during_end": "2026-08-15T23:59:59Z"
+        }
+      ]
+    }
+  ],
+  "identifier": [],
+  "characteristic": [],
+  "communication": [],
+  "contact": [],
+  "endpoint": []
+}

@@ -1,0 +1,420 @@
+{
+  "id": "pr-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "pr-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_practitioner_role" },
+        "submitLabel": { "literalString": "Create Role" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "form-title",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Create Practitioner Role" }, "usageHint": "h2" }
+          },
+          {
+            "id": "form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Assign a practitioner to an organisation, location, and healthcare service. Define their role codes, specialty, and availability windows." },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "divider-top", "type": "Divider", "properties": {} },
+
+          {
+            "id": "section-practitioner",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Practitioner" }, "usageHint": "h4" }
+          },
+          {
+            "id": "practitioner_select",
+            "type": "DynamicSelect",
+            "properties": {
+              "label": { "literalString": "Practitioner" },
+              "placeholder": { "literalString": "Search practitioners…" },
+              "source": {
+                "url": "$fhir_gql_url/practitioners/",
+                "staticParams": { "org_id": { "path": "org_id" }, "active": true },
+                "searchParam": "name",
+                "responsePath": "data",
+                "minChars": 0,
+                "debounceMs": 300,
+                "pageSize": 20,
+                "limitParam": "limit",
+                "offsetParam": "offset"
+              },
+              "display": {
+                "label": { "template": "{name.0.given.0} {name.0.family}" },
+                "description": { "template": "Practitioner/{id}" }
+              },
+              "emits": [
+                { "key": "practitioner_ref_id", "path": "id" },
+                { "key": "practitioner_display", "template": "{name.0.given.0} {name.0.family}" }
+              ]
+            }
+          },
+
+          { "id": "divider-role", "type": "Divider", "properties": {} },
+          {
+            "id": "section-role",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Role & Status" }, "usageHint": "h4" }
+          },
+          {
+            "id": "pr-active-period-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "active",
+                  "type": "CheckBox",
+                  "weight": 1,
+                  "properties": { "label": { "literalString": "Active" }, "value": { "literalBoolean": true } }
+                },
+                {
+                  "id": "period_start",
+                  "type": "DateTimeInput",
+                  "weight": 2,
+                  "properties": { "label": { "literalString": "Period Start (optional)" }, "enableDate": true, "enableTime": false }
+                },
+                {
+                  "id": "period_end",
+                  "type": "DateTimeInput",
+                  "weight": 2,
+                  "properties": { "label": { "literalString": "Period End (optional)" }, "enableDate": true, "enableTime": false }
+                }
+              ]
+            }
+          },
+
+          { "id": "divider-codes", "type": "Divider", "properties": {} },
+          {
+            "id": "section-codes",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Role Codes & Specialty" }, "usageHint": "h4" }
+          },
+          {
+            "id": "section-codes-label",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Role Codes" }, "usageHint": "caption" }
+          },
+          {
+            "id": "codes",
+            "type": "RepeatableGroup",
+            "properties": {
+              "addLabel": { "literalString": "Add role code" },
+              "defaultCount": 0,
+              "minItems": 0,
+              "template": [
+                {
+                  "id": "code",
+                  "type": "TerminologySelect",
+                  "properties": {
+                    "label": { "literalString": "Role Code" },
+                    "placeholder": { "literalString": "Search role codes…" },
+                    "valueType": { "literalString": "CodeableConcept" },
+                    "serverSearch": {
+                      "resource": "PractitionerRole",
+                      "field": "code",
+                      "minChars": 0
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "section-specialties-label",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Specialties" }, "usageHint": "caption" }
+          },
+          {
+            "id": "specialties",
+            "type": "RepeatableGroup",
+            "properties": {
+              "addLabel": { "literalString": "Add specialty" },
+              "defaultCount": 0,
+              "minItems": 0,
+              "template": [
+                {
+                  "id": "specialty",
+                  "type": "TerminologySelect",
+                  "properties": {
+                    "label": { "literalString": "Specialty" },
+                    "placeholder": { "literalString": "Search specialties…" },
+                    "valueType": { "literalString": "CodeableConcept" },
+                    "serverSearch": {
+                      "resource": "PractitionerRole",
+                      "field": "specialty",
+                      "minChars": 0
+                    }
+                  }
+                }
+              ]
+            }
+          },
+
+          { "id": "divider-links", "type": "Divider", "properties": {} },
+          {
+            "id": "section-links",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Organisation, Locations & Services" }, "usageHint": "h4" }
+          },
+          {
+            "id": "org",
+            "type": "DynamicSelect",
+            "properties": {
+              "label": { "literalString": "Organisation (optional)" },
+              "placeholder": { "literalString": "Search organisations…" },
+              "source": {
+                "url": "$fhir_gql_url/organizations/",
+                "staticParams": { "org_id": { "path": "org_id" } },
+                "searchParam": "name",
+                "responsePath": "data",
+                "minChars": 0,
+                "debounceMs": 300,
+                "pageSize": 20,
+                "limitParam": "limit",
+                "offsetParam": "offset"
+              },
+              "display": {
+                "label": { "path": "name" },
+                "description": { "template": "Organization/{id}" }
+              },
+              "emits": [
+                { "key": "org_ref_id", "path": "id" },
+                { "key": "org_display", "path": "name" }
+              ]
+            }
+          },
+          {
+            "id": "section-locations-label",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Locations" }, "usageHint": "caption" }
+          },
+          {
+            "id": "locations",
+            "type": "RepeatableGroup",
+            "properties": {
+              "addLabel": { "literalString": "Add location" },
+              "defaultCount": 0,
+              "minItems": 0,
+              "template": [
+                {
+                  "id": "location_select",
+                  "type": "DynamicSelect",
+                  "properties": {
+                    "label": { "literalString": "Location" },
+                    "placeholder": { "literalString": "Search locations…" },
+                    "source": {
+                      "url": "$fhir_gql_url/locations/",
+                      "staticParams": { "org_id": { "path": "org_id" } },
+                      "searchParam": "name",
+                      "responsePath": "data",
+                      "minChars": 0,
+                      "debounceMs": 300,
+                      "pageSize": 20,
+                      "limitParam": "limit",
+                      "offsetParam": "offset"
+                    },
+                    "display": {
+                      "label": { "path": "name" },
+                      "description": { "template": "Location/{id}" }
+                    },
+                    "emits": [
+                      { "key": "location_reference", "template": "Location/{id}" },
+                      { "key": "location_display", "path": "name" }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "section-services-label",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Healthcare Services" }, "usageHint": "caption" }
+          },
+          {
+            "id": "healthcare_services",
+            "type": "RepeatableGroup",
+            "properties": {
+              "addLabel": { "literalString": "Add service" },
+              "defaultCount": 0,
+              "minItems": 0,
+              "template": [
+                {
+                  "id": "hs_select",
+                  "type": "DynamicSelect",
+                  "properties": {
+                    "label": { "literalString": "Healthcare Service" },
+                    "placeholder": { "literalString": "Search services…" },
+                    "source": {
+                      "url": "$fhir_gql_url/healthcare-services/",
+                      "staticParams": { "org_id": { "path": "org_id" } },
+                      "searchParam": "name",
+                      "responsePath": "data",
+                      "minChars": 0,
+                      "debounceMs": 300,
+                      "pageSize": 20,
+                      "limitParam": "limit",
+                      "offsetParam": "offset"
+                    },
+                    "display": {
+                      "label": { "path": "name" },
+                      "description": { "template": "HealthcareService/{id}" }
+                    },
+                    "emits": [
+                      { "key": "hs_reference", "template": "HealthcareService/{id}" },
+                      { "key": "hs_display", "path": "name" }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+
+          { "id": "divider-avail", "type": "Divider", "properties": {} },
+          {
+            "id": "section-avail",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Availability" }, "usageHint": "h4" }
+          },
+          {
+            "id": "section-avail-hours-label",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Regular Hours" }, "usageHint": "caption" }
+          },
+          {
+            "id": "available_time",
+            "type": "RepeatableGroup",
+            "properties": {
+              "addLabel": { "literalString": "Add hours" },
+              "defaultCount": 0,
+              "minItems": 0,
+              "template": [
+                {
+                  "id": "days-row",
+                  "type": "Row",
+                  "properties": {
+                    "gap": "medium",
+                    "alignment": "stretch",
+                    "children": [
+                      { "id": "mon", "type": "CheckBox", "properties": { "label": { "literalString": "Mon" } } },
+                      { "id": "tue", "type": "CheckBox", "properties": { "label": { "literalString": "Tue" } } },
+                      { "id": "wed", "type": "CheckBox", "properties": { "label": { "literalString": "Wed" } } },
+                      { "id": "thu", "type": "CheckBox", "properties": { "label": { "literalString": "Thu" } } },
+                      { "id": "fri", "type": "CheckBox", "properties": { "label": { "literalString": "Fri" } } },
+                      { "id": "sat", "type": "CheckBox", "properties": { "label": { "literalString": "Sat" } } },
+                      { "id": "sun", "type": "CheckBox", "properties": { "label": { "literalString": "Sun" } } }
+                    ]
+                  }
+                },
+                {
+                  "id": "all_day",
+                  "type": "Switch",
+                  "properties": { "label": { "literalString": "All day" } }
+                },
+                {
+                  "id": "avail-times-row",
+                  "type": "Row",
+                  "properties": {
+                    "gap": "medium",
+                    "alignment": "stretch",
+                    "children": [
+                      {
+                        "id": "available_start_time",
+                        "type": "TextField",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Start" },
+                          "placeholder": { "literalString": "09:00" },
+                          "textFieldType": "shortText"
+                        }
+                      },
+                      {
+                        "id": "available_end_time",
+                        "type": "TextField",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "End" },
+                          "placeholder": { "literalString": "17:00" },
+                          "textFieldType": "shortText"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+
+          {
+            "id": "section-notavail-label",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Not Available Periods" }, "usageHint": "caption" }
+          },
+          {
+            "id": "not_available",
+            "type": "RepeatableGroup",
+            "properties": {
+              "addLabel": { "literalString": "Add period" },
+              "defaultCount": 0,
+              "minItems": 0,
+              "template": [
+                {
+                  "id": "description",
+                  "type": "TextField",
+                  "properties": {
+                    "label": { "literalString": "Reason" },
+                    "placeholder": { "literalString": "e.g. Annual leave" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "notavail-dates-row",
+                  "type": "Row",
+                  "properties": {
+                    "gap": "medium",
+                    "alignment": "stretch",
+                    "children": [
+                      {
+                        "id": "during_start",
+                        "type": "DateTimeInput",
+                        "weight": 1,
+                        "properties": { "label": { "literalString": "From" }, "enableDate": true, "enableTime": false }
+                      },
+                      {
+                        "id": "during_end",
+                        "type": "DateTimeInput",
+                        "weight": 1,
+                        "properties": { "label": { "literalString": "Until" }, "enableDate": true, "enableTime": false }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+
+          {
+            "id": "availability_exceptions",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Availability Exceptions (optional)" },
+              "placeholder": { "literalString": "e.g. Not available on public holidays" },
+              "textFieldType": "longText"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

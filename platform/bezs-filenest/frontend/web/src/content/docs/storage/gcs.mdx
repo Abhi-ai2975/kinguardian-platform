@@ -1,0 +1,58 @@
+---
+title: "Google Cloud Storage"
+description: "Connect a FileNest project to a Google Cloud Storage bucket."
+---
+
+# Google Cloud Storage
+
+Connect a FileNest project to a GCS bucket using a service account with JSON credentials.
+
+## Prerequisites
+
+1. A GCS bucket in your Google Cloud project
+2. A **service account** with the `Storage Object Admin` role on the bucket
+3. A JSON key file downloaded for the service account
+
+## Creating a service account
+
+```bash
+# Create service account
+gcloud iam service-accounts create filenest-storage \
+  --display-name="FileNest Storage"
+
+# Grant bucket-level access
+gcloud storage buckets add-iam-policy-binding gs://my-bucket \
+  --member="serviceAccount:filenest-storage@my-project.iam.gserviceaccount.com" \
+  --role="roles/storage.objectAdmin"
+
+# Create and download a JSON key
+gcloud iam service-accounts keys create key.json \
+  --iam-account=filenest-storage@my-project.iam.gserviceaccount.com
+```
+
+## Connecting GCS
+
+Paste the entire contents of `key.json` as the `credentials_json` value:
+
+```bash
+curl -X PATCH https://api.filenest.io/v1/projects/{id}/storage \
+  -H "Authorization: Bearer fn_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "gcs",
+    "storage_mode": "byob",
+    "bucket_name": "my-bucket",
+    "credentials_json": "{\"type\":\"service_account\",\"project_id\":\"...\"}"
+  }'
+```
+
+## Encryption
+
+GCS encrypts all data at rest by default using Google-managed keys. No FileNest configuration is required. The `sse_enabled` field is always `true` for GCS projects.
+
+## Verify connectivity
+
+```bash
+curl -X POST https://api.filenest.io/v1/projects/{id}/storage/verify \
+  -H "Authorization: Bearer fn_live_..."
+```

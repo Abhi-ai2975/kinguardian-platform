@@ -1,0 +1,119 @@
+{
+  "id": "record_condition",
+  "name": "Record Condition",
+  "description": "Record a clinical condition or diagnosis with ICD-10/SNOMED coding, clinical status, verification, severity, and onset timeline.",
+  "version": "1.0.0",
+  "tags": ["fhir", "clinical", "condition", "diagnosis", "create"],
+  "llm_hints": {
+    "intent_examples": [
+      "Record a condition",
+      "Add a diagnosis",
+      "Document a patient condition",
+      "Record a new diagnosis",
+      "Add hypertension as a condition"
+    ],
+    "when_to_use": [
+      "User wants to record a new FHIR Condition resource",
+      "User wants to document a patient diagnosis or clinical condition"
+    ],
+    "when_not_to_use": [
+      "User wants to record an observation or lab result",
+      "User wants to record an allergy or intolerance"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you record a patient condition — diagnosis code, clinical status, severity, and timeline.",
+  "completion": {
+    "message": "Condition recorded successfully.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "record_condition_step",
+      "name": "Record Condition",
+      "step_type": "form",
+      "description": "Enter the condition details including diagnosis code, clinical status, and onset dates.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "condition_id": {
+            "type": "integer",
+            "resource": "Condition",
+            "field": "id"
+          },
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "field": "me_patient.id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Resolve the current patient from session.",
+          "context_key": "me_patient",
+          "tool_name": "get_my_patient",
+          "url": "$fhir_gql_url/patients/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch clinical status value set for Condition.",
+          "context_key": "clinical_status_concepts",
+          "tool_name": "get_condition_clinical_status",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Condition&field=clinicalStatus",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch verification status value set for Condition.",
+          "context_key": "verification_status_concepts",
+          "tool_name": "get_condition_verification_status",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Condition&field=verificationStatus",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch severity value set for Condition.",
+          "context_key": "severity_concepts",
+          "tool_name": "get_condition_severity",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Condition&field=severity",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch category value set for Condition.",
+          "context_key": "category_concepts",
+          "tool_name": "get_condition_category",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Condition&field=category",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "condition_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_condition",
+          "tool_name": "create_condition",
+          "url": "$fhir_gql_url/conditions/",
+          "method": "POST",
+          "validation_schema": "condition_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    }
+  ]
+}

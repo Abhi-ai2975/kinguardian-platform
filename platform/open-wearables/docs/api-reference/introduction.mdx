@@ -1,0 +1,204 @@
+---
+title: "Open Wearables API Reference"
+sidebarTitle: "Introduction"
+description: "REST API reference for managing users, connecting wearable providers, and retrieving health data. 3rd-party integration endpoints. Auth via API key."
+keywords: ["open wearables api reference", "wearable rest api docs", "health data api endpoints", "open wearables endpoints"]
+"og:title": "Open Wearables API Reference | REST API Docs"
+"og:description": "REST endpoints for managing users, connecting providers, and fetching health data. Authentication via API key."
+"og:url": "https://docs.openwearables.io/api-reference/introduction"
+"og:type": "article"
+"twitter:title": "Open Wearables API Reference | REST API Docs"
+"twitter:description": "REST endpoints for managing users, connecting providers, and fetching health data. Authentication via API key."
+"twitter:card": "summary_large_image"
+---
+
+## About this reference
+
+This API Reference covers endpoints for **3rd party integrations** - everything you need to manage users, connect wearable providers, and retrieve health data.
+
+Internal endpoints (dashboard management, team settings, webhook receivers) are not listed here. For the full API including internal endpoints, use Swagger UI.
+
+<CardGroup cols={2}>
+  <Card
+    title="Swagger UI (full API)"
+    icon="terminal"
+    href="https://api.openwearables.io/docs"
+  >
+    Interactive API explorer with all endpoints, including internal
+  </Card>
+  <Card
+    title="OpenAPI JSON"
+    icon="file-code"
+    href="https://github.com/the-momentum/open-wearables/blob/main/docs/openapi.json"
+  >
+    Machine-readable OpenAPI 3.1 specification
+  </Card>
+</CardGroup>
+
+## Overview
+
+The Open Wearables API provides a unified REST interface to access health data from multiple wearable devices and fitness platforms. All endpoints are versioned under `/api/v1` and follow RESTful conventions.
+
+## Base URL
+
+When running locally:
+```
+http://localhost:8000/api/v1
+```
+
+For production deployments, replace with your server URL.
+
+## Authentication
+
+All API endpoints require authentication using API keys. Include your API key in the `X-Open-Wearables-API-Key` header:
+
+```http
+X-Open-Wearables-API-Key: YOUR_API_KEY
+```
+
+<Warning>
+  **Do not use Bearer token format.** The API uses a custom header, not the standard Authorization header.
+</Warning>
+
+### Getting an API Key
+
+1. Open the [developer portal](/developer-portal) at `http://localhost:3000`
+2. Log in
+3. Navigate to **Settings → Credentials → API Keys**
+4. Generate a new API key
+5. Copy and securely store the key - it is shown only once
+
+<Warning>
+  The full key is displayed only once, right after you create or rotate it. Open Wearables stores a hash of the key, so it cannot be retrieved later - the portal shows just a short prefix (for example `sk-a1b2c3d`) to help you tell keys apart. If you lose a key, rotate it from the same section to get a new one.
+</Warning>
+
+API keys are shared across the whole deployment. Every developer account can see, rotate, and delete every key, see [Credentials](/developer-portal/settings/credentials#keys-are-shared-across-the-deployment).
+
+<Warning>
+  Keep your API keys secure. Never commit them to version control or expose them in client-side code.
+</Warning>
+
+## Response Formats
+
+The API uses different response formats depending on the endpoint type:
+
+### Resource Lists (Users)
+
+```json
+{
+  "items": [...],
+  "total": 50,
+  "page": 1,
+  "limit": 20,
+  "pages": 3,
+  "has_next": true,
+  "has_prev": false
+}
+```
+
+### Data Endpoints (Timeseries, Workouts, Sleep)
+
+```json
+{
+  "data": [...],
+  "pagination": {
+    "next_cursor": "abc123...",
+    "previous_cursor": null,
+    "has_more": true
+  },
+  "metadata": {
+    "resolution": null,
+    "sample_count": 100,
+    "start_time": "2025-01-01T00:00:00Z",
+    "end_time": "2025-01-31T00:00:00Z"
+  }
+}
+```
+
+### Error Response
+
+```json
+{
+  "detail": "Error message describing what went wrong"
+}
+```
+
+## HTTP Status Codes
+
+- `200 OK` - Request succeeded
+- `201 Created` - Resource created successfully
+- `204 No Content` - Request succeeded, no content to return
+- `400 Bad Request` - Invalid request parameters
+- `401 Unauthorized` - Authentication required or invalid
+- `404 Not Found` - Resource not found
+- `500 Internal Server Error` - Server error
+
+## Pagination
+
+The API uses two pagination styles depending on the endpoint:
+
+### Offset Pagination (Users)
+
+```http
+GET /api/v1/users?page=2&limit=50
+```
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `page` | 1 | Page number |
+| `limit` | 20 | Items per page (max: 100) |
+
+### Cursor Pagination (Timeseries, Events, Summaries)
+
+```http
+GET /api/v1/users/{user_id}/timeseries?cursor=abc123&limit=50
+```
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `cursor` | null | Cursor from previous response |
+| `limit` | 50 | Items per page (max: 1000) |
+
+Use the `next_cursor` from the response to fetch the next page.
+
+Health scores page by `limit` and `offset` instead, with the same defaults and maximum.
+
+<Note>
+  On `/timeseries`, `total_count` is returned on the first page only and is `null` on any page
+  reached by `cursor` — the count is a full aggregate over the largest table in the system, and a
+  keyset page cannot change it, so keep the value from the first response. A request with a
+  `resolution` other than `raw` pages by bucket and never carries a `total_count`, since counting
+  buckets would require scanning the whole requested range. Cursors are not interchangeable
+  between resolutions or endpoints.
+</Note>
+
+## Date & Time Parameters
+
+Endpoints that accept date range parameters (`start_date`, `end_date`, `start_time`, `end_time`) support the following input formats:
+
+| Format | Example | Notes |
+|--------|---------|-------|
+| ISO 8601 datetime with timezone | `2023-11-07T05:31:56Z` | Recommended |
+| ISO 8601 datetime with offset | `2023-11-07T06:31:56+01:00` | |
+| Date-only | `2023-11-07` | Start bounds: midnight UTC. End bounds: the whole day |
+| Unix timestamp (seconds) | `1699332716` | UTC |
+
+<Note>
+  Date-only ranges include both boundary days, so `start_date=2023-11-07&end_date=2023-11-07` covers the whole of November 7th. Values with an explicit time component are used exactly as given: `end_time=2023-11-07T00:00:00Z` stops at midnight and returns nothing from that day.
+</Note>
+
+## Filtering & Sorting
+
+Many endpoints support filtering and sorting. Check individual endpoint documentation for available options.
+
+## OpenAPI Specification
+
+This reference is generated from [`docs/openapi.json`](https://github.com/the-momentum/open-wearables/blob/main/docs/openapi.json), which is exported from the API code on every change, so it always describes the current `main` branch.
+
+Every Open Wearables instance also serves the spec for the exact version it runs:
+- **Swagger UI:** `https://<your-instance>/docs`
+- **OpenAPI JSON:** `https://<your-instance>/openapi.json`
+
+<Tip>
+  If you self-host an older release, the spec served by your own instance is the accurate reference for it.
+</Tip>

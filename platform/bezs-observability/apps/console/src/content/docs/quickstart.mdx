@@ -1,0 +1,83 @@
+---
+title: Quickstart
+description: Send your first event to Watcher24 in under 5 minutes.
+---
+
+# Quickstart
+
+This guide walks you from zero to your first event appearing in the Watcher24 console.
+
+## 1. Create an account
+
+Go to the Watcher24 console, click **Sign up**, and enter your email and password.
+
+After verifying your email you will be taken through a short onboarding wizard.
+
+## 2. Create an organisation
+
+During onboarding, create an organisation. Every event is scoped to an organisation — this is how Watcher24 isolates data between teams and companies.
+
+## 3. Get an API key
+
+In the onboarding wizard (or later at **Settings → API Keys**) click **Create key**. Copy the key — it starts with `wt_`.
+
+<Callout type="warning" title="Keep your API key secret">
+Your API key grants write access to your organisation. Never commit it to source code or expose it in a browser bundle. Use environment variables.
+</Callout>
+
+## 4. Install the SDK
+
+Pick the SDK for your stack:
+
+**Node.js / JavaScript**
+
+<PackageTabs pkg="@watcher/node" />
+
+**Python**
+
+<PackageTabs pkg="watcher-sdk" python />
+
+## 5. Initialise the client
+
+```typescript
+import { createNodeClient } from "@watcher/node";
+
+const watcher = createNodeClient({
+  apiKey: process.env.W24_API_KEY!,
+  // serviceName is optional — labels the component in the dashboard
+  // serviceName: "my-api",
+});
+
+// Flush buffered events before process exit
+process.on("SIGTERM", () => watcher.shutdown());
+```
+
+## 6. Send an event
+
+```typescript
+// Audit — user actions and compliance trail
+watcher.audit("user.signup", {
+  userId: "usr_abc123",
+  payload: { plan: "free" },
+});
+
+// Log — application events
+watcher.log("info", "server.started", {
+  payload: { port: 3000 },
+});
+```
+
+## 7. View in the console
+
+Open the **Overview** tab in the console. Your event should appear within a second or two.
+
+<Callout type="tip">
+If the event doesn't show up, check the **Logs** tab and make sure your `W24_API_KEY` environment variable is set correctly.
+</Callout>
+
+## Next steps
+
+- [JavaScript SDK reference →](/docs/sdks/javascript)
+- [Python SDK reference →](/docs/sdks/python)
+- [Next.js integration →](/docs/sdks/nextjs)
+- [Event types explained →](/docs/concepts/events)

@@ -1,0 +1,112 @@
+{
+  "id": "create_related_person",
+  "name": "Create Related Person",
+  "description": "Register a related person (next of kin, guardian, emergency contact) linked to the current patient, including relationship, name, contact details, gender, birth date, address, and communication preferences.",
+  "version": "1.0.0",
+  "tags": ["fhir", "related-person", "create", "crud", "patient"],
+  "llm_hints": {
+    "intent_examples": [
+      "Add a next of kin",
+      "Register a related person",
+      "Add an emergency contact",
+      "Register a guardian for a patient",
+      "Add a family member to a patient record"
+    ],
+    "when_to_use": [
+      "User wants to create a RelatedPerson resource linked to a patient",
+      "User wants to add a next of kin, guardian, or emergency contact",
+      "User wants to register a family member or carer for a patient"
+    ],
+    "when_not_to_use": [
+      "User wants to create a new Patient resource",
+      "User wants to add a practitioner"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you register a related person for the current patient — including their relationship, name, contact details, and address.",
+  "completion": {
+    "message": "Related person registered successfully.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "create_related_person_resource",
+      "name": "Create Related Person",
+      "step_type": "form",
+      "description": "Enter the related person's details, relationship to the patient, name, contact information, and address.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "related_person_id": {
+            "type": "integer",
+            "resource": "RelatedPerson",
+            "field": "id"
+          },
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "field": "me_patient.id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Auto-resolve the current patient from the session.",
+          "context_key": "me_patient",
+          "tool_name": "get_my_patient",
+          "url": "$fhir_gql_url/patients/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch relationship type value set for RelatedPerson.",
+          "context_key": "relationship_concepts",
+          "tool_name": "get_relationship_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=RelatedPerson&field=relationship",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch administrative-gender value set.",
+          "context_key": "gender_concepts",
+          "tool_name": "get_gender_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=RelatedPerson&field=gender",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch name-use value set.",
+          "context_key": "name_use_concepts",
+          "tool_name": "get_name_use_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=RelatedPerson&field=nameUse",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "related_person_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_related_person",
+          "tool_name": "create_related_person",
+          "url": "$fhir_gql_url/related-persons/",
+          "method": "POST",
+          "validation_schema": "related_person_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    }
+  ]
+}

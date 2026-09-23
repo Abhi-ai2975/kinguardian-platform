@@ -1,0 +1,225 @@
+{
+  "id": "add-medication-requests-root",
+  "type": "Column",
+  "properties": {
+    "gap": "small",
+    "children": [
+      {
+        "id": "amr-back-form",
+        "type": "Form",
+        "properties": {
+          "action": { "name": "back_to_choose" },
+          "submitLabel": { "literalString": "← Change selection" },
+          "gap": "small",
+          "alignment": "start",
+          "children": []
+        }
+      },
+      {
+        "id": "amr-main-card",
+        "type": "Card",
+        "properties": {
+          "child": {
+            "id": "add-medication-requests-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_medication_requests_batch" },
+        "submitLabel": { "literalString": "Save Prescriptions →" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "amr-form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Step 5: Add Medication Requests" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "amr-form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": {
+                "literalString": "Add one or more prescriptions for this consultation. Status and intent are required for each item."
+              },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "amr-divider-existing", "type": "Divider", "properties": {} },
+          {
+            "id": "amr-existing-label",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Existing Medication Requests" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "amr-existing-count-row",
+            "type": "Row",
+            "properties": {
+              "gap": "small",
+              "alignment": "center",
+              "children": [
+                {
+                  "id": "amr-existing-num",
+                  "type": "Text",
+                  "properties": { "text": "$existing_medication_requests.total", "usageHint": "h3" }
+                },
+                {
+                  "id": "amr-existing-suffix",
+                  "type": "Text",
+                  "properties": {
+                    "text": { "literalString": "medication request(s) already recorded for this encounter" },
+                    "usageHint": "caption"
+                  }
+                }
+              ]
+            }
+          },
+          { "id": "amr-divider-new", "type": "Divider", "properties": {} },
+          {
+            "id": "amr-new-label",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "New Prescriptions" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "medication_requests_group",
+            "type": "RepeatableGroup",
+            "properties": {
+              "label": { "literalString": "Prescriptions to Add" },
+              "addLabel": { "literalString": "Add Another Prescription" },
+              "defaultCount": 1,
+              "minItems": 1,
+              "maxItems": 10,
+              "allowDuplicate": false,
+              "template": [
+                {
+                  "id": "medication_code",
+                  "type": "TerminologySelect",
+                  "properties": {
+                    "label": { "literalString": "Or Search by RxNorm" },
+                    "placeholder": { "literalString": "Search RxNorm…" },
+                    "valueType": { "literalString": "CodeableConcept" },
+                    "serverSearch": {
+                      "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+                      "minChars": 2,
+                      "debounceMs": 200
+                    }
+                  }
+                },
+                {
+                  "id": "amr-order-row",
+                  "type": "Row",
+                  "properties": {
+                    "gap": "medium",
+                    "alignment": "stretch",
+                    "children": [
+                      {
+                        "id": "status",
+                        "type": "TerminologySelect",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Status *" },
+                          "placeholder": { "literalString": "Select status…" },
+                          "items": "$status_concepts.concepts",
+                          "valueType": { "literalString": "code" }
+                        }
+                      },
+                      {
+                        "id": "intent",
+                        "type": "TerminologySelect",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Intent *" },
+                          "placeholder": { "literalString": "Select intent…" },
+                          "items": "$intent_concepts.concepts",
+                          "valueType": { "literalString": "code" }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "dosage_text",
+                  "type": "TextField",
+                  "properties": {
+                    "label": { "literalString": "Dosage Instructions" },
+                    "placeholder": { "literalString": "e.g. 1 tablet twice daily" },
+                    "textFieldType": "text"
+                  }
+                },
+                {
+                  "id": "route",
+                  "type": "TerminologySelect",
+                  "properties": {
+                    "label": { "literalString": "Route (optional)" },
+                    "placeholder": { "literalString": "Search route…" },
+                    "valueType": { "literalString": "CodeableConcept" },
+                    "serverSearch": { "minChars": 2, "debounceMs": 200 }
+                  }
+                },
+                {
+                  "id": "amr-dispense-row",
+                  "type": "Row",
+                  "properties": {
+                    "gap": "medium",
+                    "alignment": "stretch",
+                    "children": [
+                      {
+                        "id": "dispense_quantity",
+                        "type": "TextField",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Dispense Quantity" },
+                          "placeholder": { "literalString": "e.g. 30" },
+                          "textFieldType": "text"
+                        }
+                      },
+                      {
+                        "id": "dispense_unit",
+                        "type": "TextField",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Dispense Unit" },
+                          "placeholder": { "literalString": "e.g. tablets, mL" },
+                          "textFieldType": "text"
+                        }
+                      },
+                      {
+                        "id": "repeats",
+                        "type": "TextField",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Repeats" },
+                          "placeholder": { "literalString": "e.g. 3" },
+                          "textFieldType": "text"
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "authored_on",
+                  "type": "DateTimeInput",
+                  "properties": {
+                    "label": { "literalString": "Authored On (optional)" },
+                    "enableDate": true,
+                    "enableTime": false
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}
+    ]
+  }
+}

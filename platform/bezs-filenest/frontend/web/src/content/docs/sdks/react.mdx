@@ -1,0 +1,487 @@
+---
+title: "React SDK"
+description: "Upload components, data hooks, and low-level imperative methods for React apps."
+---
+
+# React SDK
+
+`@filenest/react` works at three tiers — pick the one that fits your UI:
+
+| Tier | How |
+|------|-----|
+| **Components** | `<FileUpload>`, `<FilePreview>`, `<FileViewer>` — drop in and done |
+| **Hooks** | `useUpload`, `useFiles`, `useFolder`, `useSearch` — manage your own UI, SDK handles state |
+| **Headless methods** | `useFileNest()` — raw async methods, full control, build anything |
+
+The API key never reaches the browser. `FileNestProvider` exchanges short-lived upload tokens through your server.
+
+## Installation
+
+<PackageTabs pkg="@filenest/react" />
+
+---
+
+## Provider setup
+
+### Minimal
+
+```tsx
+import { FileNestProvider } from "@filenest/react";
+
+export default function RootLayout({ children }) {
+  return (
+    <FileNestProvider
+      tokenEndpoint="/api/filenest-token"
+      projectId={process.env.NEXT_PUBLIC_FILENEST_PROJECT_ID}
+    >
+      {children}
+    </FileNestProvider>
+  );
+}
+```
+
+### Full configuration
+
+```tsx
+import { FileNestProvider } from "@filenest/react";
+import { QueryClient } from "@tanstack/react-query";
+
+const myQueryClient = new QueryClient();
+
+<FileNestProvider
+  projectId="proj_01j..."
+  baseUrl="https://api.filenest.io"
+
+  // Token source — use tokenEndpoint OR tokenFetcher
+  tokenEndpoint="/api/filenest-token"
+
+  // Or a custom async function (headers, body, any server shape):
+  tokenFetcher={async () => {
+    const res = await fetch("/api/my-token", {
+      headers: { "x-tenant-id": currentTenantId },
+    });
+    return res.json(); // must return { token, expiresAt }
+  }}
+
+  // Token behaviour
+  fetchInitialToken={true}     // false = don't fetch on mount, call getToken() manually
+  tokenRefreshBuffer={60}      // seconds before expiry to proactively refresh (default 60)
+  tokenRetry={3}               // retry attempts on token fetch failure (default 3)
+
+  // Bring your own TanStack Query client
+  queryClient={myQueryClient}
+
+  debug={process.env.NODE_ENV === "development"}
+>
+  {children}
+</FileNestProvider>
+```
+
+### `tokenFetcher` vs `tokenEndpoint`
+
+Use `tokenEndpoint` when your token route is a standard POST endpoint.
+Use `tokenFetcher` when you need custom headers, auth cookies, a non-standard response shape, or any server framework other than Next.js.
+
+### `fetchInitialToken={false}` — manual token mode
+
+When disabled, no token is fetched on mount. You call `getToken()` or `useUploadToken().refresh()` yourself — useful when you want to defer auth until the user first interacts with a file input.
+
+### `queryClient` — bring your own
+
+If your app already wraps with `<QueryClientProvider>`, pass that client to avoid double-wrapping. The provider will use it rather than creating an internal one.
+
+---
+
+## Upload components
+
+### FileUpload
+
+```tsx
+import { FileUpload } from "@filenest/react";
+
+// Drag-and-drop zone
+<FileUpload
+  variant="dropzone"
+  accept={["image/*", "application/pdf"]}
+  maxSize={50 * 1024 * 1024}    // 50 MB
+  maxFiles={5}
+  multiple
+  placeholder="Drag files here or click to browse"
+  showProgress
+  folderId="fld_01j..."          // optional — lock uploads to a folder
+  metadata={{ uploadedBy: "user_abc" }}
+  tags={["finance"]}
+  onComplete={(files) => console.log("Uploaded:", files)}
+  onError={(err, filename) => console.error(`${filename}: ${err.message}`)}
+  onValidationError={(errors) => errors.forEach((e) => alert(e.message))}
+/>
+
+// Button trigger
+<FileUpload variant="button" accept={["image/*"]} onComplete={handleFiles} />
+```
+
+### FilePreview
+
+Inline preview — images render directly, PDFs via iframe.
+
+```tsx
+import { FilePreview } from "@filenest/react";
+
+<FilePreview
+  fileId="file_01j..."
+  showMetadata
+  showVersionHistory
+  allowDownload
+  height="500px"
+  onClose={() => setPreviewId(null)}
+/>
+```
+
+### FileViewer
+
+Full-page document viewer with toolbar, zoom, and download.
+
+```tsx
+import { FileViewer } from "@filenest/react";
+
+<FileViewer
+  fileId="file_01j..."
+  showToolbar
+  showSidebar
+  layout="fullscreen"
+  onClose={() => history.back()}
+/>
+```
+
+---
+
+## Upload hooks
+
+### useUpload
+
+Programmatic upload with per-file progress state. Wraps `useFileNest().upload()`.
+
+```tsx
+import { useUpload } from "@filenest/react";
+
+const { upload, uploads, isUploading, cancel, retry, clear } = useUpload({
+  folderId: "fld_01j...",
+  metadata: { uploadedBy: "user_abc" },
+  tags: ["finance"],
+  onComplete: (file) => console.log("Done:", file.id),
+  onError: (err, filename) => console.error(`${filename}: ${err.message}`),
+});
+
+// Trigger
+<input type="file" multiple onChange={(e) => upload(Array.from(e.target.files ?? []))} />
+
+// Track state
+{uploads.map((u) => (
+  <div key={u.id}>
+    {u.filename}: {u.progress}%  [{u.status}]
+    {u.status === "failed" && <button onClick={() => retry(u.id)}>Retry</button>}
+  </div>
+))}
+```
+
+### useUploadToken
+
+Reactive token state. Use this when `fetchInitialToken=false` or when you want to display token expiry in the UI.
+
+```tsx
+import { useUploadToken } from "@filenest/react";
+
+const { token, isLoading, error, refresh } = useUploadToken();
+
+// token — current cached token string, null if not yet fetched
+// isLoading — true while fetching
+// error — last fetch error
+// refresh() — force-fetch a fresh token from the endpoint
+```
+
+---
+
+## Data hooks
+
+All data hooks are backed by TanStack Query — results are cached, deduped, and revalidated automatically.
+
+### useFiles
+
+```tsx
+import { useFiles } from "@filenest/react";
+
+const { files, totalCount, hasMore, isLoading, isError, error, loadMore, refresh } = useFiles({
+  folderId: "fld_01j...",  // optional
+  tags: ["finance"],
+  sortBy: "created_at",
+  sortOrder: "desc",
+  limit: 20,
+});
+```
+
+### useInfiniteFiles
+
+Infinite-scroll variant — feeds a sentinel-based scroll pattern.
+
+```tsx
+import { useInfiniteFiles } from "@filenest/react";
+
+const { files, hasMore, isFetchingMore, fetchMore, refresh } = useInfiniteFiles({
+  folderId: "fld_01j...",
+  sortBy: "created_at",
+  limit: 50,
+});
+
+// Call fetchMore() when the user scrolls to the bottom
+```
+
+### useFile
+
+Single file with automatic cache invalidation.
+
+```tsx
+import { useFile } from "@filenest/react";
+
+const { file, isLoading, isError, mutate } = useFile("file_01j...");
+
+// mutate() — invalidates the cache entry and triggers a refetch
+await doSomething();
+mutate();
+```
+
+### useFolder
+
+Folder navigation with breadcrumbs, files, and subfolders in one call.
+
+```tsx
+import { useFolder } from "@filenest/react";
+
+const { folder, files, subfolders, isLoading, breadcrumbs } = useFolder(folderId);
+// folderId=null shows the project root
+```
+
+`breadcrumbs` is an array of `{ id, name }`. Update `folderId` to navigate — breadcrumbs update automatically.
+
+### useSearch
+
+Debounced full-text + faceted search.
+
+```tsx
+import { useSearch } from "@filenest/react";
+
+const { results, facets, isLoading, totalCount, queryTimeMs, search, hasMore } = useSearch({
+  debounceMs: 300,
+  limit: 20,
+});
+
+// Trigger (debounced automatically)
+search({ q: "invoice Q1 2026", tags: ["finance"] });
+```
+
+---
+
+## Headless methods — `useFileNest()`
+
+When you don't want to use any FileNest components or hooks, `useFileNest()` gives you raw async methods. All auth, token management, and `baseUrl` prepending are handled internally.
+
+```tsx
+import { useFileNest } from "@filenest/react";
+
+function CustomUI() {
+  const fn = useFileNest();
+  // Use fn.upload(), fn.listFiles(), fn.createFolder(), fn.search(), etc.
+}
+```
+
+### Token
+
+```tsx
+const { getToken } = useFileNest();
+
+// Returns cached token if still valid, fetches fresh if not
+const token = await getToken();
+```
+
+### Upload — combined (3 steps in one)
+
+```tsx
+const { upload } = useFileNest();
+
+const file = await upload(browserFile, {
+  folderId: "fld_01j...",
+  metadata: { uploadedBy: "user_abc" },
+  tags: ["finance"],
+  onProgress: ({ percentage }) => setProgress(percentage),
+});
+// Returns FileRecord when the confirm step completes
+```
+
+### Upload — individual steps
+
+Use these when you need fine-grained control — e.g. showing a "preparing upload" spinner before the PUT starts.
+
+```tsx
+const { initUpload, uploadToStorage, confirmUpload } = useFileNest();
+
+// Step 1 — register with backend, receive presigned URL
+const { fileId, uploadUrl, expiresAt } = await initUpload({
+  filename: file.name,
+  contentType: file.type,
+  sizeBytes: file.size,
+  folderId: "fld_01j...",
+  metadata: { uploadedBy: "user_abc" },
+});
+
+// Step 2 — PUT directly to storage (progress via XHR)
+await uploadToStorage(uploadUrl, file, {
+  onProgress: ({ bytesUploaded, totalBytes, percentage }) => setProgress(percentage),
+});
+
+// Step 3 — tell backend the bytes landed; triggers processing pipeline
+const { id, status } = await confirmUpload(fileId);
+```
+
+### Files
+
+```tsx
+const { listFiles, getFile, deleteFile, updateFile, getDownloadUrl } = useFileNest();
+
+const { items, total } = await listFiles({
+  folderId: "fld_01j...",
+  tags: ["finance"],
+  sortBy: "created_at",
+  sortOrder: "desc",
+  limit: 20,
+  offset: 0,
+  metadata: { year: "2026" },   // server-side metadata filter
+});
+
+const file = await getFile("file_01j...");
+
+await deleteFile("file_01j...");
+
+const updated = await updateFile("file_01j...", {
+  filename: "report-final.pdf",
+  tags: ["archived"],
+  metadata: { reviewed: true },
+});
+
+const { url, expiresAt } = await getDownloadUrl("file_01j...", {
+  ttl: 3600,                   // seconds (default 3600)
+  disposition: "attachment",   // "inline" | "attachment"
+});
+```
+
+### Folders
+
+```tsx
+const {
+  listFolders, createFolder, getFolder,
+  getFolderByPath, deleteFolder, ensurePath,
+} = useFileNest();
+
+const { items } = await listFolders({ parentFolderId: null }); // root folders
+
+const folder = await createFolder({ name: "invoices", parentFolderId: null });
+
+const folder = await getFolder("fld_01j...");
+
+// Returns null if not found (never throws on 404)
+const folder = await getFolderByPath("users/alice/uploads");
+
+// Idempotent — creates every missing path segment, returns leaf folder
+const folder = await ensurePath("users/alice/uploads");
+
+await deleteFolder("fld_01j..."); // throws if folder is non-empty
+```
+
+### Search
+
+```tsx
+const { search } = useFileNest();
+
+const { hits, total, facets, queryTimeMs } = await search({
+  q: "invoice Q1",
+  tags: ["finance"],
+  limit: 20,
+  offset: 0,
+});
+```
+
+---
+
+## Headless pattern example
+
+Full custom upload UI using only `useFileNest()` — no FileNest components used:
+
+```tsx
+"use client";
+import { useState } from "react";
+import { useFileNest } from "@filenest/react";
+import type { FileRecord } from "@filenest/react";
+
+export function CustomUploader() {
+  const { initUpload, uploadToStorage, confirmUpload } = useFileNest();
+  const [progress, setProgress] = useState(0);
+  const [result, setResult] = useState<FileRecord | null>(null);
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setProgress(0);
+
+    const { fileId, uploadUrl } = await initUpload({
+      filename: file.name,
+      contentType: file.type,
+      sizeBytes: file.size,
+    });
+
+    await uploadToStorage(uploadUrl, file, {
+      onProgress: ({ percentage }) => setProgress(percentage),
+    });
+
+    const confirmed = await confirmUpload(fileId);
+    console.log("Ready:", confirmed.id);
+  };
+
+  return (
+    <div>
+      <input type="file" onChange={handleFile} />
+      {progress > 0 && <progress value={progress} max={100} />}
+    </div>
+  );
+}
+```
+
+---
+
+## TypeScript types
+
+```typescript
+import type {
+  FileRecord,
+  FileStatus,
+  FileVersion,
+  Folder,
+  SearchHit,
+  SearchFacets,
+  UploadProgress,
+  UploadToken,
+  ListResponse,
+  // Context method param types
+  InitUploadOptions,
+  InitUploadResult,
+  UploadToStorageOptions,
+  ConfirmUploadResult,
+  UploadOptions,
+  FileListFilters,
+  FileUpdateOptions,
+  DownloadUrlOptions,
+  DownloadUrlResult,
+  FolderListOptions,
+  CreateFolderOptions,
+  SearchQuery,
+  SearchResults,
+} from "@filenest/react";
+```

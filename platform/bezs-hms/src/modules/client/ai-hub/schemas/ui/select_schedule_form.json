@@ -1,0 +1,68 @@
+{
+  "id": "select-schedule-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "select-schedule-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "get_schedule" },
+        "submitLabel": { "literalString": "Next →" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Step 1: Select Schedule" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": {
+                "literalString": "Search for an existing schedule. Its planning horizon will constrain the slot generation window in the next step."
+              },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "divider-top", "type": "Divider", "properties": {} },
+          {
+            "id": "schedule_select",
+            "type": "DynamicSelect",
+            "properties": {
+              "label": { "literalString": "Schedule" },
+              "placeholder": { "literalString": "Search schedules…" },
+              "source": {
+                "url": "$fhir_gql_url/schedules/",
+                "staticParams": {
+                  "org_id": { "path": "org_id" },
+                  "active": true
+                },
+                "searchParam": "comment",
+                "responsePath": "data",
+                "minChars": 0,
+                "debounceMs": 300,
+                "pageSize": 20,
+                "limitParam": "limit",
+                "offsetParam": "offset"
+              },
+              "display": {
+                "label": { "path": "comment" },
+                "description": { "template": "Schedule/{id}" }
+              },
+              "emits": [
+                { "key": "schedule_id", "path": "id" },
+                { "key": "planning_horizon_start", "path": "planning_horizon_start" },
+                { "key": "planning_horizon_end", "path": "planning_horizon_end" }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

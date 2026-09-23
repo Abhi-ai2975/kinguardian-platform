@@ -1,0 +1,214 @@
+from datetime import datetime
+from logging import Logger, getLogger
+from uuid import UUID
+
+from app.database import DbSession
+from app.models import UserConnection
+from app.repositories.data_source_repository import DataSourceRepository
+from app.repositories.user_connection_repository import UserConnectionRepository
+from app.schemas.enums import ProviderName, SdkConnectionOutcome
+from app.schemas.model_crud.user_management import UserConnectionCreate, UserConnectionUpdate
+from app.schemas.responses.upload import ConnectionsCoverage, ProviderConnectionCount
+from app.services.outgoing_webhooks.events import on_connection_created, on_connection_revoked
+from app.services.providers.templates.base_oauth import BaseOAuthTemplate
+from app.services.services import AppService
+from app.utils.exceptions import ResourceNotFoundError, handle_exceptions
+from app.utils.sentry_helpers import log_and_capture_error
+from app.utils.structured_logging import log_structured
+
+
+class UserConnectionService(
+    AppService[UserConnectionRepository, UserConnection, UserConnectionCreate, UserConnectionUpdate],
+):
+    def __init__(self, log: Logger, **kwargs):
+        super().__init__(
+            crud_model=UserConnectionRepository,
+            model=UserConnection,
+            log=log,
+            **kwargs,
+        )
+        self.data_source_crud = DataSourceRepository()
+
+    def get_active_count_in_range(self, db_session: DbSession, start_date: datetime, end_date: datetime) -> int:
+        """Get count of active connections created within a date range."""
+        return self.crud.get_active_count_in_range(db_session, start_date, end_date)
+
+    def get_connections_coverage(self, db_session: DbSession) -> ConnectionsCoverage:
+        """Aggregate coverage stats: users with active conn, multi-conn, top providers."""
+        return ConnectionsCoverage(
+            users_with_active=self.crud.get_users_with_active_conn_count(db_session),
+            users_with_multi_active=self.crud.get_users_with_multi_active_conn_count(db_session),
+            top_providers=[
+                ProviderConnectionCount(provider=p, count=c)
+                for p, c in self.crud.get_top_providers_by_active_conn(db_session, limit=6)
+            ],
+        )
+
+    @handle_exceptions
+    def get_connections_by_user(self, db_session: DbSession, user_id: UUID) -> list[UserConnection]:
+        """Get all connections for a user."""
+        return self.crud.get_by_user_id(db_session, user_id)
+
+    @handle_exceptions
+    def get_connection(self, db_session: DbSession, user_id: UUID, provider: str) -> UserConnection | None:
+        """Get a user's connection for one provider, or None if there is none."""
+        return self.crud.get_by_user_and_provider(db_session, user_id, provider)
+
+    def get_linked_user_ids(
+        self,
+        db_session: DbSession,
+        user_id: UUID,
+        provider_pairs: list[tuple[str, str]],
+    ) -> dict[tuple[str, str], list[UUID]]:
+        """Return other active OW users sharing the same external account, grouped by (provider, provider_user_id)."""
+        return self.crud.get_linked_user_ids(db_session, user_id, provider_pairs)
+
+    def ensure_sdk_connection(self, db_session: DbSession, user_id: UUID, provider: str) -> UserConnection:
+        """Ensure an SDK connection exists, emitting ``connection.created`` on state change.
+
+        SDK providers have no OAuth callback, so this is where their connection is born --
+        on the first upload. ``connected_at`` is taken from the row rather than ``now()``
+        because it feeds the webhook idempotency key: this runs on every batch and the
+        Celery task retries, so a row-derived key is what collapses the duplicates.
+        """
+        connection, outcome = self.crud.ensure_sdk_connection(db_session, user_id, provider)
+
+        if outcome == SdkConnectionOutcome.EXISTING:
+            return connection
+
+        connected_at = connection.created_at if outcome == SdkConnectionOutcome.CREATED else connection.updated_at
+
+        log_structured(
+            self.logger,
+            "info",
+            f"SDK connection {outcome}",
+            action="sdk_connection_state_change",
+            outcome=str(outcome),
+            provider=provider,
+            user_id=str(user_id),
+            connection_id=str(connection.id),
+            connected_at=connected_at.isoformat(),
+        )
+
+        on_connection_created(
+            user_id=user_id,
+            provider=provider,
+            connection_id=connection.id,
+            connected_at=connected_at.isoformat(),
+        )
+        return connection
+
+    @handle_exceptions
+    def disconnect(
+        self,
+        db_session: DbSession,
+        user_id: UUID,
+        provider: str,
+        oauth: BaseOAuthTemplate | None = None,
+        reason: str = "user_disconnected",
+    ) -> None:
+        """Disconnect a user from a provider. Raises 404 if connection not found.
+
+        If oauth is provided, calls the provider's deregistration API before clearing tokens.
+        Deregistration failures are logged but do not block the disconnect.
+
+        ``reason`` reaches the log line and the ``connection.revoked`` webhook.
+        """
+        if oauth:
+            self._deregister_from_provider(db_session, user_id, provider, oauth)
+
+        updated = self.crud.disconnect(db_session, user_id, provider)
+        if updated:
+            connection = self.crud.get_by_user_and_provider(db_session, user_id, provider)
+            log_structured(
+                self.logger,
+                "info",
+                "Connection revoked",
+                action="connection_revoked",
+                reason=reason,
+                provider=provider,
+                user_id=str(user_id),
+                connection_id=str(connection.id) if connection else None,
+            )
+            if connection:
+                on_connection_revoked(
+                    user_id=user_id,
+                    provider=provider,
+                    connection_id=connection.id,
+                    reason=reason,
+                    revoked_at=connection.updated_at.isoformat(),
+                )
+            return
+
+        # Nothing updated - check if connection exists (already revoked) or not found
+        connection = self.crud.get_by_user_and_provider(db_session, user_id, provider)
+        if not connection:
+            raise ResourceNotFoundError("connection", user_id)
+
+    @handle_exceptions
+    def purge_provider_data(
+        self, db_session: DbSession, user_id: UUID, provider: str, oauth: BaseOAuthTemplate | None = None
+    ) -> int:
+        """Revoke the connection and delete all of the user's data for the provider.
+
+        Runs the standard disconnect (best-effort deregistration, revoke, webhook), then
+        deletes the user's data_source rows for the provider. ON DELETE CASCADE removes all
+        dependent event records, series, details and health scores. Returns the number of
+        data_source rows deleted. Safe to call on an already-revoked connection.
+        """
+        self.disconnect(db_session, user_id, provider, oauth=oauth)
+        deleted = self.data_source_crud.delete_user_provider_data(db_session, user_id, ProviderName(provider))
+        self.logger.info("Purged %s data sources for user %s from provider %s", deleted, user_id, provider)
+        return deleted
+
+    @handle_exceptions
+    def stamp_last_synced_at(self, db_session: DbSession, user_id: UUID, provider: str) -> None:
+        """Stamp last_synced_at=now on the user's connection for the given provider.
+
+        Used after OAuth completion so the first periodic sync uses the connection
+        timestamp as its live-sync cursor and won't attempt to pull all historical data.
+        No-op if the connection does not exist.
+        """
+        connection = self.crud.get_by_user_and_provider(db_session, user_id, provider)
+        if connection:
+            self.crud.update_last_synced_at(db_session, connection)
+
+    def _deregister_from_provider(
+        self, db_session: DbSession, user_id: UUID, provider: str, oauth: BaseOAuthTemplate
+    ) -> None:
+        """Best-effort call to provider's deregistration API."""
+        connection = self.crud.get_by_user_and_provider(db_session, user_id, provider)
+        if not connection or not connection.access_token:
+            return
+
+        try:
+            oauth.deregister_user(
+                connection.access_token,
+                provider_user_id=connection.provider_user_id,
+            )
+            log_structured(
+                self.logger,
+                "info",
+                "Deregistered user from provider API",
+                provider=provider,
+                task="deregister_user",
+                user_id=str(user_id),
+            )
+        except Exception as e:
+            log_structured(
+                self.logger,
+                "error",
+                f"Failed to deregister user from provider API: {e}",
+                provider=provider,
+                task="deregister_user",
+                user_id=str(user_id),
+            )
+            log_and_capture_error(
+                e,
+                self.logger,
+                f"Failed to deregister user {user_id} from {provider} API: {e}",
+                extra={"user_id": str(user_id), "provider": provider},
+            )
+
+
+user_connection_service = UserConnectionService(log=getLogger(__name__))

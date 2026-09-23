@@ -1,0 +1,52 @@
+---
+title: Data Retention
+description: How long Watcher keeps your events and how retention is enforced per plan.
+---
+
+# Data Retention
+
+Watcher enforces per-organisation data retention based on the organisation's active subscription plan. Events older than the retention window are automatically deleted nightly.
+
+## Retention by plan
+
+| Plan | Retention |
+|---|---|
+| Free | 7 days |
+| Pro | 90 days |
+| Enterprise | 1 year |
+
+## How it works
+
+Retention is enforced by the **analytics-python** retention scheduler — a background job that runs once every 24 hours.
+
+```
+analytics-python (RetentionScheduler)
+  ↓  GET /api/internal/orgs/retention
+IAM service
+  ↓  [{ orgId, plan, retentionDays }, ...]
+analytics-python
+  ↓  ALTER TABLE watcher.events DELETE
+       WHERE organization_id = ? AND timestamp < cutoff
+ClickHouse
+```
+
+On each nightly pass, the scheduler:
+1. Fetches every organisation's plan and retention window from IAM
+2. Computes a cutoff timestamp per org (`now - retentionDays`)
+3. Issues a `DELETE` mutation in ClickHouse for events older than the cutoff
+
+The delete is an **async ClickHouse mutation** — rows are removed during the next MergeTree merge cycle (usually within minutes to hours), not instantly.
+
+## When retention takes effect
+
+- A free org that just created their account has a 7-day window. Events older than 7 days are purged on the next nightly pass.
+- When an org upgrades from Free to Pro, the next nightly pass will apply the 90-day window — older events that were previously purged are not restored, but events from the past 90 days will be retained going forward.
+- Downgrading from Pro to Free re-applies the 7-day window on the next pass.
+
+## Querying near the retention boundary
+
+The console and API query ClickHouse directly. If you query for events near the edge of your retention window, some may already have been purged by the time your query runs. Use an explicit `from` timestamp rather than relying on relative time ranges when working near the boundary.
+
+<Callout type="note">
+The nightly scheduler runs once every 24 hours. Events are not deleted in real time — there may be up to 24 hours of lag between an event aging past the retention window and it being removed from ClickHouse.
+</Callout>

@@ -1,0 +1,60 @@
+{
+  "id": "appointment-pick-slot-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "appointment-pick-slot-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "verify_slot" },
+        "submitLabel": { "literalString": "Continue — Confirm Details" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Step 2: Select Time Slot" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Choose a free appointment slot for the selected practitioner." },
+              "usageHint": "caption"
+            }
+          },
+          {
+            "id": "divider-top",
+            "type": "Divider",
+            "properties": {}
+          },
+          {
+            "id": "selected-practitioner-info",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Practitioner: $practitioner_display" },
+              "usageHint": "caption"
+            }
+          },
+          {
+            "id": "slot",
+            "type": "SlotPicker",
+            "properties": {
+              "label": { "literalString": "Available Slots" },
+              "items": "$booking_slots.data",
+              "emits": [
+                { "key": "id", "path": "id" },
+                { "key": "start", "path": "start" },
+                { "key": "end", "path": "end" }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

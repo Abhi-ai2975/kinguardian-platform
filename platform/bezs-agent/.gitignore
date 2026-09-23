@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+env/
+venv/
+.venv/
+mlartifacts/
+
+.commandcode/
+# Environment
+.env
+
+
+# OS
+.DS_Store
+Thumbs.db
+
+# MLflow
+mlruns/
+mlflow.db
+
+# Sessions
+session_*.json
+
+# Data
+data/
+patients/
+
+# Vault (audio cache)
+vault/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

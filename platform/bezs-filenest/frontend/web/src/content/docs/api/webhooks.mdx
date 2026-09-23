@@ -1,0 +1,172 @@
+---
+title: "Webhooks API"
+description: "Register and manage webhook endpoints to receive real-time file events."
+---
+
+# Webhooks API
+
+FileNest sends HMAC-signed HTTP `POST` requests to your registered endpoints whenever a file event occurs in a project.
+
+## Events
+
+| Event | Fired when |
+|-------|-----------|
+| `file.uploaded` | Upload request received and file record created |
+| `file.ready` | Processing pipeline completed successfully |
+| `file.failed` | Processing pipeline failed |
+| `file.quarantined` | Virus scan flagged the file |
+| `file.deleted` | File soft-deleted via `DELETE /files/{id}` |
+
+## Payload shape
+
+Every event delivery shares the same envelope:
+
+```json
+{
+  "event": "file.ready",
+  "timestamp": "2026-06-21T09:00:00Z",
+  "organization_id": "org_01j...",
+  "project_id": "proj_01j...",
+  "data": {
+    "file_id": "file_01j...",
+    "filename": "invoice.pdf",
+    "size": 204800,
+    "mime_type": "application/pdf",
+    "status": "ready"
+  }
+}
+```
+
+## Signature verification
+
+Every request carries an `x-filenest-signature` header — an HMAC-SHA256 hex digest of the raw request body, keyed with your webhook's `signing_secret`.
+
+```typescript
+import { createHmac, timingSafeEqual } from "crypto";
+
+export function verifyWebhookSignature(
+  body: string,           // raw request body — do NOT parse before verifying
+  signature: string,      // value of x-filenest-signature header
+  signingSecret: string,  // from your webhook config
+): boolean {
+  const expected = createHmac("sha256", signingSecret)
+    .update(body, "utf8")
+    .digest("hex");
+  return timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+}
+```
+
+Always use a constant-time comparison (`timingSafeEqual`) to prevent timing attacks.
+
+## Retry policy
+
+If your endpoint returns a non-`2xx` status code or times out (timeout: 10 s), FileNest retries with exponential backoff:
+
+| Attempt | Delay |
+|---------|-------|
+| 1 | immediate |
+| 2 | 30 s |
+| 3 | 5 min |
+| 4 | 1 h |
+| 5 | 6 h |
+
+After 5 failed attempts the event is marked `dead` and no further retries occur.
+
+---
+
+## List webhooks
+
+```
+GET /v1/projects/{project_id}/webhooks
+```
+
+**Required scope:** `projects:read`
+
+**Response `200`:**
+
+```json
+{
+  "items": [
+    {
+      "id": "wh_01j...",
+      "url": "https://example.com/webhooks/filenest",
+      "events": ["file.ready", "file.deleted"],
+      "is_active": true,
+      "created_at": "2026-06-21T09:00:00Z",
+      "updated_at": "2026-06-21T09:00:00Z"
+    }
+  ],
+  "total": 1
+}
+```
+
+## Create a webhook
+
+```
+POST /v1/projects/{project_id}/webhooks
+```
+
+**Required scope:** `projects:update`
+
+```bash
+curl -X POST https://api.filenest.io/v1/projects/{id}/webhooks \
+  -H "Authorization: Bearer fn_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://example.com/webhooks/filenest",
+    "events": ["file.ready", "file.deleted"],
+    "is_active": true
+  }'
+```
+
+**Response `201`:**
+
+```json
+{
+  "id": "wh_01j...",
+  "url": "https://example.com/webhooks/filenest",
+  "events": ["file.ready", "file.deleted"],
+  "is_active": true,
+  "signing_secret": "whsec_...",
+  "created_at": "2026-06-21T09:00:00Z"
+}
+```
+
+<Callout type="warning" title="Save your signing secret">
+`signing_secret` is returned exactly once on creation. Store it securely — it cannot be retrieved again.
+</Callout>
+
+## Update a webhook
+
+```
+PUT /v1/projects/{project_id}/webhooks/{webhook_id}
+```
+
+**Required scope:** `projects:update`
+
+```json
+{
+  "url": "https://example.com/webhooks/filenest-v2",
+  "events": ["file.ready", "file.failed", "file.quarantined"],
+  "is_active": true
+}
+```
+
+**Response `200`:** updated webhook object (no `signing_secret` field — secret does not rotate on update).
+
+## Delete a webhook
+
+```
+DELETE /v1/projects/{project_id}/webhooks/{webhook_id}
+```
+
+**Required scope:** `projects:update`
+
+**Response `204`:** no body. Pending retries are cancelled.
+
+## Error codes
+
+| Status | Code | Meaning |
+|--------|------|---------|
+| `404` | `webhook_not_found` | Webhook does not exist in this project |
+| `422` | `invalid_url` | Endpoint URL is not a valid HTTPS URL |

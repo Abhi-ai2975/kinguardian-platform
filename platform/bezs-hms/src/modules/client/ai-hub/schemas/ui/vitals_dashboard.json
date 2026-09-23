@@ -1,0 +1,353 @@
+{
+  "type": "Column",
+  "id": "vitals-dashboard-root",
+  "properties": {
+    "gap": 16,
+    "children": [
+      {
+        "type": "Row",
+        "id": "kpi-row",
+        "properties": {
+          "gap": 12,
+          "children": [
+            {
+              "type": "DashboardCard",
+              "id": "kpi-hr-card",
+              "properties": {
+                "title": "Heart Rate",
+                "child": {
+                  "type": "Metric",
+                  "id": "kpi-hr",
+                  "properties": {
+                    "label": "Latest (bpm)",
+                    "value": {
+                      "$transform": {
+                        "from": "$vitals.data",
+                        "type": "chain",
+                        "steps": [
+                          { "type": "filter", "field": "heart_rate", "op": "notNull" },
+                          { "type": "extract", "field": "heart_rate", "fallback": "—" }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "DashboardCard",
+              "id": "kpi-bp-card",
+              "properties": {
+                "title": "Blood Pressure",
+                "child": {
+                  "type": "Metric",
+                  "id": "kpi-bp",
+                  "properties": {
+                    "label": "Systolic (mmHg)",
+                    "value": {
+                      "$transform": {
+                        "from": "$vitals.data",
+                        "type": "chain",
+                        "steps": [
+                          { "type": "filter", "field": "blood_pressure_systolic", "op": "notNull" },
+                          { "type": "extract", "field": "blood_pressure_systolic", "fallback": "—" }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "DashboardCard",
+              "id": "kpi-steps-card",
+              "properties": {
+                "title": "Steps",
+                "child": {
+                  "type": "Metric",
+                  "id": "kpi-steps",
+                  "properties": {
+                    "label": "Latest Daily Count",
+                    "value": {
+                      "$transform": {
+                        "from": "$vitals.data",
+                        "type": "chain",
+                        "steps": [
+                          { "type": "filter", "field": "steps", "op": "notNull" },
+                          { "type": "extract", "field": "steps", "fallback": "—" }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "DashboardCard",
+              "id": "kpi-sleep-card",
+              "properties": {
+                "title": "Sleep",
+                "child": {
+                  "type": "Metric",
+                  "id": "kpi-sleep",
+                  "properties": {
+                    "label": "Minutes (latest)",
+                    "value": {
+                      "$transform": {
+                        "from": "$vitals.data",
+                        "type": "chain",
+                        "steps": [
+                          { "type": "filter", "field": "sleep_minutes", "op": "notNull" },
+                          { "type": "extract", "field": "sleep_minutes", "fallback": "—" }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+
+      {
+        "type": "Row",
+        "id": "chart-row-1",
+        "properties": {
+          "gap": 12,
+          "children": [
+            {
+              "type": "DashboardCard",
+              "id": "card-hr-trend",
+              "properties": {
+                "title": "Heart Rate Trend (last 30 days)",
+                "child": {
+                  "type": "LineChart",
+                  "id": "chart-hr",
+                  "properties": {
+                    "data": {
+                      "$transform": {
+                        "from": "$vitals.data",
+                        "type": "chain",
+                        "steps": [
+                          { "type": "filter", "field": "heart_rate", "op": "notNull" },
+                          { "type": "slice", "sort": "date", "order": "asc", "limit": 30 },
+                          { "type": "map", "fields": { "label": "date", "hr": "heart_rate" } }
+                        ]
+                      }
+                    },
+                    "series": [
+                      { "key": "hr", "name": "Heart Rate", "color": "#ef4444" }
+                    ],
+                    "xKey": "label",
+                    "height": 240,
+                    "showGrid": true,
+                    "exportable": true
+                  }
+                }
+              }
+            },
+            {
+              "type": "DashboardCard",
+              "id": "card-bp-trend",
+              "properties": {
+                "title": "Blood Pressure Trend (last 30 days)",
+                "child": {
+                  "type": "LineChart",
+                  "id": "chart-bp",
+                  "properties": {
+                    "data": {
+                      "$transform": {
+                        "from": "$vitals.data",
+                        "type": "chain",
+                        "steps": [
+                          { "type": "filter", "field": "blood_pressure_systolic", "op": "notNull" },
+                          { "type": "slice", "sort": "date", "order": "asc", "limit": 30 },
+                          {
+                            "type": "map",
+                            "fields": {
+                              "label": "date",
+                              "systolic": "blood_pressure_systolic",
+                              "diastolic": "blood_pressure_diastolic"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "series": [
+                      { "key": "systolic", "name": "Systolic", "color": "#3b82f6" },
+                      { "key": "diastolic", "name": "Diastolic", "color": "#8b5cf6" }
+                    ],
+                    "xKey": "label",
+                    "height": 240,
+                    "showGrid": true,
+                    "showLegend": true,
+                    "exportable": true
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+
+      {
+        "type": "Row",
+        "id": "chart-row-2",
+        "properties": {
+          "gap": 12,
+          "children": [
+            {
+              "type": "DashboardCard",
+              "id": "card-steps-chart",
+              "properties": {
+                "title": "Daily Steps (last 14 days)",
+                "child": {
+                  "type": "BarChart",
+                  "id": "chart-steps",
+                  "properties": {
+                    "data": {
+                      "$transform": {
+                        "from": "$vitals.data",
+                        "type": "chain",
+                        "steps": [
+                          { "type": "filter", "field": "steps", "op": "notNull" },
+                          { "type": "slice", "sort": "date", "order": "asc", "limit": 14 },
+                          { "type": "map", "fields": { "label": "date", "steps": "steps" } }
+                        ]
+                      }
+                    },
+                    "series": [
+                      { "key": "steps", "name": "Steps", "color": "#10b981" }
+                    ],
+                    "xKey": "label",
+                    "height": 240,
+                    "showGrid": true,
+                    "exportable": true
+                  }
+                }
+              }
+            },
+            {
+              "type": "DashboardCard",
+              "id": "card-sleep-breakdown",
+              "properties": {
+                "title": "Sleep Breakdown (latest record)",
+                "child": {
+                  "type": "PieChart",
+                  "id": "chart-sleep",
+                  "properties": {
+                    "data": {
+                      "$transform": {
+                        "from": "$vitals.data",
+                        "type": "chain",
+                        "steps": [
+                          { "type": "filter", "field": "deep_sleep_minutes", "op": "notNull" },
+                          { "type": "slice", "sort": "date", "order": "desc", "limit": 1 },
+                          {
+                            "type": "pivot",
+                            "source": "first",
+                            "fields": {
+                              "Deep Sleep": "deep_sleep_minutes",
+                              "REM Sleep": "rem_sleep_minutes",
+                              "Light Sleep": "light_sleep_minutes"
+                            },
+                            "colorMap": {
+                              "Deep Sleep": "#3b82f6",
+                              "REM Sleep": "#8b5cf6",
+                              "Light Sleep": "#10b981"
+                            },
+                            "excludeZero": true
+                          }
+                        ]
+                      }
+                    },
+                    "innerRadius": 60,
+                    "height": 240,
+                    "showLegend": true,
+                    "exportable": true
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+
+      {
+        "type": "DashboardCard",
+        "id": "card-vitals-table",
+        "properties": {
+          "title": "All Vitals Records",
+          "child": {
+            "type": "DataTable",
+            "id": "vitals-datatable",
+            "properties": {
+              "rows": {
+                "$transform": {
+                  "from": "$vitals.data",
+                  "type": "map",
+                  "fields": {
+                    "date": "date",
+                    "heart_rate": "heart_rate",
+                    "bp_systolic": "blood_pressure_systolic",
+                    "bp_diastolic": "blood_pressure_diastolic",
+                    "steps": "steps",
+                    "sleep_min": "sleep_minutes",
+                    "calories": "calories_kcal",
+                    "bmi": { "from": "bmi", "format": "round" }
+                  }
+                }
+              },
+              "url": "/api/v1/vitals/",
+              "pagination": {
+                "page": 0,
+                "pageSize": 20,
+                "total": "$vitals.total",
+                "pageSizeOptions": [10, 20, 50, 100]
+              },
+              "queryParams": {
+                "supported": ["date", "recorded_at_from", "recorded_at_to"],
+                "defaults": {
+                  "patient_id": "$patient_id"
+                },
+                "offsetParam": "offset",
+                "limitParam": "limit",
+                "dataPath": "data",
+                "totalPath": "total",
+                "rowMapping": {
+                  "date": "date",
+                  "heart_rate": "heart_rate",
+                  "bp_systolic": "blood_pressure_systolic",
+                  "bp_diastolic": "blood_pressure_diastolic",
+                  "steps": "steps",
+                  "sleep_min": "sleep_minutes",
+                  "calories": "calories_kcal",
+                  "bmi": "bmi"
+                },
+                "filterLabels": {
+                  "date": "Date (exact)",
+                  "recorded_at_from": "Recorded From",
+                  "recorded_at_to": "Recorded To"
+                },
+                "maxExportLimit": 200
+              },
+              "searchable": false,
+              "exportFormats": ["csv", "json", "xlsx", "pdf"],
+              "columns": [
+                { "key": "date", "label": "Date", "sortable": false },
+                { "key": "heart_rate", "label": "HR (bpm)", "sortable": false },
+                { "key": "bp_systolic", "label": "Systolic", "sortable": false },
+                { "key": "bp_diastolic", "label": "Diastolic", "sortable": false },
+                { "key": "steps", "label": "Steps", "sortable": false },
+                { "key": "sleep_min", "label": "Sleep (min)", "sortable": false },
+                { "key": "calories", "label": "Calories", "sortable": false },
+                { "key": "bmi", "label": "BMI", "sortable": false }
+              ]
+            }
+          }
+        }
+      }
+    ]
+  }
+}

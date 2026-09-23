@@ -1,0 +1,61 @@
+{
+  "id": "admin-select-patient-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "admin-select-patient-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "confirm_patient_selection" },
+        "submitLabel": { "literalString": "Next →" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "patient-form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Step 1: Select Patient" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "patient-form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": {
+                "literalString": "Search for a patient by last name. Their fulfilled appointments will be loaded in the next step."
+              },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "patient-divider", "type": "Divider", "properties": {} },
+          {
+            "id": "patient_select",
+            "type": "DynamicSelect",
+            "properties": {
+              "label": { "literalString": "Patient" },
+              "placeholder": { "literalString": "Search by last name…" },
+              "source": {
+                "url": "$fhir_gql_url/patients/",
+                "searchParam": "family_name",
+                "responsePath": "data",
+                "minChars": 0,
+                "debounceMs": 300,
+                "pageSize": 20,
+                "limitParam": "limit",
+                "offsetParam": "offset"
+              },
+              "display": {
+                "label": { "path": "name.0.family" },
+                "description": { "path": "birth_date" },
+                "tags": [{ "path": "id" }]
+              },
+              "emits": [{ "key": "patient_id", "path": "id" }]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

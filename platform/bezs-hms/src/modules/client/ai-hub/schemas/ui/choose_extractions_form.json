@@ -1,0 +1,73 @@
+{
+  "id": "choose-extractions-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "choose-extractions-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "confirm_encounter" },
+        "submitLabel": { "literalString": "Next →" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "ce-form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Step 2: Choose What to Add" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "ce-form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": {
+                "literalString": "Select one or more clinical extraction types to record for this consultation. You can add multiple items in each category on the next screens."
+              },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "ce-divider-top", "type": "Divider", "properties": {} },
+          {
+            "id": "ce-section-label",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Extraction Types" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "add_condition",
+            "type": "CheckBox",
+            "properties": {
+              "label": { "literalString": "Condition — diagnoses and clinical findings (ICD-10 / SNOMED)" }
+            }
+          },
+          {
+            "id": "add_observation",
+            "type": "CheckBox",
+            "properties": {
+              "label": { "literalString": "Observation — measurements and lab results (LOINC)" }
+            }
+          },
+          {
+            "id": "add_medication_request",
+            "type": "CheckBox",
+            "properties": {
+              "label": { "literalString": "Medication Request — prescriptions and drug orders (RxNorm)" }
+            }
+          },
+          {
+            "id": "add_service_request",
+            "type": "CheckBox",
+            "properties": {
+              "label": { "literalString": "Service Request — lab orders, imaging, and procedures" }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

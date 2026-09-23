@@ -1,0 +1,58 @@
+---
+title: "FileNest Documentation"
+description: "Enterprise file infrastructure platform — upload, process, search, and manage files at scale."
+---
+
+# FileNest Documentation
+
+FileNest is an **enterprise file infrastructure platform** — think Stripe, but for files. It sits between your application and cloud storage, providing upload, processing, search, compliance, and webhook delivery as a managed service.
+
+## What FileNest does
+
+| Capability | Description |
+|------------|-------------|
+| **Upload** | Single-file and multipart upload, drag-and-drop, presigned URLs |
+| **Processing** | Virus scanning, MIME validation, OCR, preview generation |
+| **Search** | Full-text search across file content and metadata via OpenSearch |
+| **Storage** | Managed S3 or bring your own bucket (S3, Azure, GCS, MinIO, R2, RustFS) |
+| **Webhooks** | HMAC-signed event delivery with retry |
+| **SDKs** | Node.js, React, Next.js, Python |
+
+## How it works
+
+```
+Your App  ──►  FileNest API  ──►  Storage Provider
+                    │
+                    ├── Processing pipeline (virus scan, OCR, previews)
+                    ├── Metadata + search index
+                    └── Webhook delivery
+```
+
+## Architecture
+
+```
+┌─────────────────────────────────────┐
+│  IAM  (BetterAuth)                  │
+│  OAuth 2.1, API keys, orgs          │
+└────────────────┬────────────────────┘
+                 │ Bearer token
+                 ▼
+┌─────────────────────────────────────┐
+│  FileNest API  (FastAPI)            │
+│  Projects, files, search, webhooks  │
+└────────────────┬────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────┐
+│  Storage Provider                   │
+│  S3 / Azure / GCS / MinIO / R2 /   │
+│  RustFS                             │
+└─────────────────────────────────────┘
+```
+
+## Quick links
+
+- [Quickstart](/docs/quickstart) — upload your first file in 5 minutes
+- [API Reference — Authentication](/docs/api/authentication) — get your API key
+- [Storage Overview](/docs/storage/overview) — choose a storage backend
+- [Node.js SDK](/docs/sdks/node) — install the SDK

@@ -1,0 +1,324 @@
+---
+title: AI Agent Observability
+description: Track LLM calls, tool executions, agent workflows, retrievals, and eval scores from any AI framework using Watcher24.
+---
+
+# AI Agent Observability
+
+AI agents and LLM-powered applications are fundamentally different from traditional software. They are non-deterministic, expensive per call, opaque by default, and prone to silent failure. Standard logging and tracing tools cannot answer the questions AI teams need most:
+
+- Why did the agent take a wrong turn on step 4?
+- Which prompt version performs best in production?
+- How much did this agent workflow cost in tokens this week?
+- Which tool calls are failing silently?
+- Why is this agent 3× slower than yesterday?
+
+Watcher24 treats AI agents as first-class citizens. Every LLM call, tool execution, and workflow step flows through the same pipeline as your backend logs and API traces — one platform, one dashboard, no proxy, no lock-in.
+
+---
+
+## How it works
+
+Send events with `event_type: "ai"` using any SDK. Every event carries a structured `payload` with a `kind` field that tells the console how to display it.
+
+```python
+client.ai("info", "llm.call.completed",
+    trace_id=workflow_trace_id,
+    span_id=f"llm-{int(time.time() * 1000)}",
+    payload={
+        "kind":              "llm_call",
+        "provider":          "openai",
+        "model":             "gpt-4o",
+        "prompt_tokens":     840,
+        "completion_tokens": 400,
+        "total_tokens":      1240,
+        "latency_ms":        820,
+        "cost_usd":          0.0037,
+        "finish_reason":     "stop",
+    }
+)
+```
+
+<Callout type="note">
+`ai()` is a server-side method. AI agent infrastructure (LLM calls, tool calls, token costs) always runs server-side. For browser-side AI interaction tracking (e.g. "user saw AI response"), use `audit()` from the browser SDK.
+</Callout>
+
+---
+
+## Event kinds
+
+All AI events share `event_type: "ai"`. The `payload.kind` field tells the console which columns and charts to apply.
+
+| `kind` | When to send | Key payload fields |
+|--------|-------------|-------------------|
+| `llm_call` | Every LLM API call completes | `provider`, `model`, `prompt_tokens`, `completion_tokens`, `total_tokens`, `latency_ms`, `cost_usd`, `finish_reason`, `cached` |
+| `tool_call` | Agent calls an external tool | `tool_name`, `tool_version`, `input_summary`, `output_summary`, `latency_ms`, `success`, `error` |
+| `agent_step` | One step in a reasoning loop | `step_number`, `thought`, `action`, `action_input`, `observation` |
+| `workflow_start` | Agent workflow begins | `workflow_name`, `workflow_version`, `trigger`, `input_summary` |
+| `workflow_end` | Agent workflow completes | `workflow_name`, `duration_ms`, `total_tokens`, `total_cost_usd`, `steps_taken`, `outcome` |
+| `retrieval` | RAG document fetch (any method) | `retrieval_method`, `source`, `query_summary`, `chunks_retrieved`, `top_score`, `latency_ms`, `empty_result` |
+| `memory_read` | Agent reads from memory store | `memory_type`, `query_summary`, `items_retrieved`, `latency_ms` |
+| `memory_write` | Agent writes to memory store | `memory_type`, `content_summary`, `latency_ms` |
+| `safety_check` | Content moderation / guardrail | `guardrail`, `input_flagged`, `output_flagged`, `action_taken` |
+| `human_handoff` | Agent escalates to human | `reason`, `escalation_type`, `urgency` |
+| `eval_result` | Production evaluation score | `evaluator`, `metric`, `score`, `passed`, `sample_input`, `sample_output` |
+| `eval_run` | Offline batch evaluation run | `run_id`, `dataset_id`, `prompt_version`, `model`, `pass_rate`, `avg_score`, `samples_evaluated`, `duration_ms` |
+| `human_feedback` | Human label on an AI output | `label`, `score`, `comment`, `labeller_id`, `feedback_source` |
+
+---
+
+## Tracing agent workflows
+
+Connect all spans in a workflow with a shared `trace_id`. The console renders the full workflow waterfall from `trace_id` + `span_id` + `parent_span_id` — no extra configuration needed.
+
+```
+trace_id: "wf-abc123"
+│
+├── workflow_start     (span: wf-001)
+│   ├── retrieval      (span: ret-001, parent: wf-001)
+│   ├── llm_call       (span: llm-001, parent: wf-001)
+│   │   └── safety_check (span: safe-001, parent: llm-001)
+│   └── tool_call      (span: tool-001, parent: wf-001)
+└── workflow_end       (span: wf-002, parent: wf-001)
+```
+
+---
+
+## SDK examples
+
+### Python — OpenAI direct
+
+```python
+import time, os
+from openai import OpenAI
+from watcher_sdk import Client
+
+watcher = Client(api_key=os.environ["WATCHER_API_KEY"], service_name="ai-agent")
+openai_client = OpenAI()
+
+def tracked_llm_call(prompt: str, trace_id: str, parent_span_id: str) -> str:
+    span_id = f"llm-{int(time.time() * 1000)}"
+    start = time.perf_counter()
+
+    response = openai_client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    latency_ms = round((time.perf_counter() - start) * 1000)
+    usage = response.usage
+
+    watcher.ai("info", "llm.call.completed",
+        trace_id=trace_id,
+        span_id=span_id,
+        parent_span_id=parent_span_id,
+        payload={
+            "kind":              "llm_call",
+            "provider":          "openai",
+            "model":             "gpt-4o",
+            "prompt_tokens":     usage.prompt_tokens,
+            "completion_tokens": usage.completion_tokens,
+            "total_tokens":      usage.total_tokens,
+            "latency_ms":        latency_ms,
+            "finish_reason":     response.choices[0].finish_reason,
+            "cost_usd":          round(
+                (usage.prompt_tokens * 0.0000025) +
+                (usage.completion_tokens * 0.000010), 6
+            ),
+        }
+    )
+    return response.choices[0].message.content
+```
+
+### Python — LangChain callback handler
+
+```python
+from langchain.callbacks.base import BaseCallbackHandler
+from watcher_sdk import Client
+import time
+
+class WatcherCallbackHandler(BaseCallbackHandler):
+    def __init__(self, client: Client, trace_id: str):
+        self.client = client
+        self.trace_id = trace_id
+        self._starts: dict[str, float] = {}
+
+    def on_llm_start(self, serialized, prompts, **kwargs):
+        self._starts[str(kwargs.get("run_id", ""))] = time.perf_counter()
+
+    def on_llm_end(self, response, **kwargs):
+        run_id = str(kwargs.get("run_id", ""))
+        latency_ms = round((time.perf_counter() - self._starts.pop(run_id, 0)) * 1000)
+        usage = response.llm_output.get("token_usage", {})
+        self.client.ai("info", "llm.call.completed",
+            trace_id=self.trace_id,
+            payload={
+                "kind":              "llm_call",
+                "provider":          "openai",
+                "model":             response.llm_output.get("model_name", "unknown"),
+                "prompt_tokens":     usage.get("prompt_tokens", 0),
+                "completion_tokens": usage.get("completion_tokens", 0),
+                "total_tokens":      usage.get("total_tokens", 0),
+                "latency_ms":        latency_ms,
+            }
+        )
+
+    def on_tool_end(self, output, **kwargs):
+        run_id = str(kwargs.get("run_id", ""))
+        latency_ms = round((time.perf_counter() - self._starts.pop(run_id, 0)) * 1000)
+        self.client.ai("info", "tool.call.completed",
+            trace_id=self.trace_id,
+            payload={
+                "kind":           "tool_call",
+                "tool_name":      kwargs.get("name", "unknown"),
+                "latency_ms":     latency_ms,
+                "success":        True,
+                "output_summary": str(output)[:500],
+            }
+        )
+
+    def on_tool_error(self, error, **kwargs):
+        self.client.ai("error", "tool.call.failed",
+            trace_id=self.trace_id,
+            payload={
+                "kind":      "tool_call",
+                "tool_name": kwargs.get("name", "unknown"),
+                "success":   False,
+                "error":     str(error)[:500],
+            }
+        )
+
+# Usage
+handler = WatcherCallbackHandler(watcher, trace_id="wf-abc123")
+chain.invoke({"input": "..."}, config={"callbacks": [handler]})
+```
+
+### Go — custom agent loop
+
+```go
+func RunAgentStep(step int, thought, action, traceID string) {
+    spanID := fmt.Sprintf("step-%d-%d", step, time.Now().UnixMilli())
+
+    client.AI(watcher.SeverityInfo, "agent.step",
+        watcher.WithTraceID(traceID),
+        watcher.WithSpanID(spanID),
+        watcher.WithPayload(map[string]any{
+            "kind":        "agent_step",
+            "step_number": step,
+            "thought":     thought,
+            "action":      action,
+        }),
+    )
+}
+```
+
+### Rust
+
+```rust
+client.ai(Severity::Info, "llm.call.completed")
+    .trace_id(&trace_id)
+    .span_id("llm-001")
+    .payload(json!({
+        "kind":           "llm_call",
+        "provider":       "openai",
+        "model":          "gpt-4o",
+        "total_tokens":   1240,
+        "cost_usd":       0.0037,
+        "latency_ms":     820,
+    }))
+    .send()?;
+```
+
+---
+
+## Retrieval methods
+
+The `retrieval` kind covers all document-fetch strategies under one event type. Use `retrieval_method` to tell them apart:
+
+| `retrieval_method` | Description |
+|--------------------|-------------|
+| `vector` | Dense embedding similarity search (Pinecone, pgvector, Weaviate, etc.) |
+| `bm25` | Keyword / full-text search (Elasticsearch, Typesense, Postgres FTS) |
+| `hybrid` | Combined vector + BM25 with re-ranking |
+| `wiki` | Structured wiki or knowledge base lookup by title / page ID |
+| `sql` | Structured database query used as a retrieval step |
+| `api` | External API call that fetches grounding context |
+
+`top_score` is only meaningful for `vector` and `hybrid` — omit it for other methods.
+
+```python
+# Vectorless wiki lookup
+watcher.ai("info", "retrieval.completed",
+    trace_id=trace_id,
+    payload={
+        "kind":             "retrieval",
+        "retrieval_method": "wiki",
+        "source":           "internal-wiki",
+        "query_summary":    "refund policy Q3",
+        "chunks_retrieved": 3,
+        "top_score":        None,
+        "empty_result":     False,
+        "latency_ms":       45,
+    }
+)
+```
+
+---
+
+## Eval and quality scoring
+
+### Online eval (production)
+
+Attach scores to production events as they happen:
+
+```python
+watcher.ai("info", "eval.result",
+    trace_id=trace_id,
+    payload={
+        "kind":      "eval_result",
+        "evaluator": "llm-as-judge",
+        "metric":    "factual_accuracy",
+        "score":     0.82,
+        "passed":    True,
+    }
+)
+```
+
+### Human feedback
+
+Collect thumbs up / down from your UI and send it back:
+
+```python
+watcher.ai("info", "human.feedback",
+    trace_id=trace_id,
+    span_id=llm_span_id,
+    payload={
+        "kind":            "human_feedback",
+        "label":           "bad",
+        "score":           0.2,
+        "comment":         "Hallucinated the product name",
+        "labeller_id":     user_id,
+        "feedback_source": "thumbs_down",
+    }
+)
+```
+
+### Offline eval runs
+
+After running a batch evaluation against a dataset, log the result:
+
+```python
+watcher.ai("info", "eval.run.completed",
+    payload={
+        "kind":               "eval_run",
+        "run_id":             "run-abc123",
+        "dataset_id":         "ds-xyz",
+        "prompt_version":     "v2.4",
+        "model":              "gpt-4o",
+        "samples_evaluated":  120,
+        "pass_rate":          0.91,
+        "avg_score":          0.87,
+        "duration_ms":        14200,
+    }
+)
+```

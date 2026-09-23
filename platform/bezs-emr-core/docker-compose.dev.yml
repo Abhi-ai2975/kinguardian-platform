@@ -1,0 +1,55 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Local development stack — Postgres + Redis only.
+#
+# Use this when running the API directly on the host with hot reload
+# (`uv run fastapi dev app/main.py`) instead of inside a container.
+# For the full containerized stack (API + Postgres + Redis), use
+# docker-compose.yml instead.
+#
+# Usage:
+#   docker compose -f docker-compose.dev.yml up -d
+#
+# Then point your .env at the mapped ports, e.g.:
+#   FHIR_DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/fhir-server
+#   REDIS_URL=redis://localhost:6379
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: fhir-postgres-dev
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-fhir-server}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-fhir-server}"]
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: fhir-redis-dev
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_dev_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      start_period: 5s
+      retries: 5
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:

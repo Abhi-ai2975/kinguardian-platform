@@ -1,0 +1,59 @@
+---
+title: "Dashboard"
+description: "The FileNest Console dashboard — org-level usage overview and recent activity."
+---
+
+# Dashboard
+
+The **Dashboard** (`/dashboard`) is the landing page after login. It shows a snapshot of your active organization's usage and recent file activity.
+
+## Stat cards
+
+Four headline metrics are shown at the top:
+
+| Card | What it shows |
+|------|--------------|
+| **Total files** | Count of all non-deleted files across every project in the org |
+| **Storage used** | Sum of `size_bytes` across all non-deleted files |
+| **Uploads this month** | Files uploaded in the last 30 days |
+| **Active projects** | Number of non-deleted projects in the org |
+
+## Charts
+
+### Uploads bar chart
+
+Shows daily file-upload counts over the last 30 days. Days with no uploads are filled with zero so the timeline is always complete. Hover a bar to see the exact count for that day.
+
+### Storage growth area chart
+
+Shows cumulative storage usage per day over the last 30 days. Each point is the running total up to and including that day — the chart is monotonically increasing unless files are deleted. Hover to see the byte total at any given day.
+
+## File status distribution
+
+A donut chart showing the current count of files in each lifecycle status:
+
+| Status | Colour |
+|--------|--------|
+| `ready` | Primary (chart-1) |
+| `processing` | Secondary (chart-2) |
+| `failed` | Tertiary (chart-3) |
+| `quarantined` | Quaternary (chart-4) |
+| `pending` | Quinary (chart-5) |
+
+A legend below the donut maps each status to its count. The chart adapts to the active colour theme.
+
+## Recent files
+
+A table of the 10 most recently uploaded files across all projects. Columns:
+
+| Column | Description |
+|--------|-------------|
+| **Filename** | Original upload name |
+| **Project** | The project the file belongs to |
+| **Status** | Current lifecycle status badge |
+| **Size** | Human-readable byte count |
+| **Uploaded** | Relative timestamp (e.g. "3 minutes ago") |
+
+## Data freshness
+
+Dashboard data is fetched fresh on every page load — there is no polling or websocket connection. Refresh the page to see the latest state.

@@ -1,0 +1,160 @@
+{
+  "id": "admin-patient-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "admin-patient-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_patient" },
+        "submitLabel": { "literalString": "Create Patient" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "New Patient Registration (Admin)" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Enter the target user ID and patient demographics. The patient record will be linked to the specified user account." },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "divider-top", "type": "Divider", "properties": {} },
+
+          {
+            "id": "section-user",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Target User" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "target_user_id",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "User ID" },
+              "placeholder": { "literalString": "Enter the platform user ID for this patient" },
+              "textFieldType": "shortText"
+            }
+          },
+
+          { "id": "divider-demo", "type": "Divider", "properties": {} },
+          {
+            "id": "section-personal",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Personal Information" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "gender-marital-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "gender",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Gender" },
+                    "placeholder": { "literalString": "Search gender…" },
+                    "items": "$gender_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "marital_status",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Marital Status" },
+                    "placeholder": { "literalString": "Search marital status…" },
+                    "items": "$marital_status_concepts.concepts",
+                    "valueType": { "literalString": "CodeableConcept" }
+                  }
+                }
+              ]
+            }
+          },
+          { "id": "divider-mid", "type": "Divider", "properties": {} },
+          {
+            "id": "section-dates",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Dates & Status" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "dates-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "birth_date",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Date of Birth" },
+                    "enableDate": true,
+                    "enableTime": false
+                  }
+                },
+                {
+                  "id": "deceased_datetime",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Deceased Date/Time (if applicable)" },
+                    "enableDate": true,
+                    "enableTime": true
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "flags-row",
+            "type": "Row",
+            "properties": {
+              "gap": "large",
+              "alignment": "center",
+              "children": [
+                {
+                  "id": "active",
+                  "type": "CheckBox",
+                  "properties": {
+                    "label": { "literalString": "Active" },
+                    "value": { "literalBoolean": true }
+                  }
+                },
+                {
+                  "id": "deceased_boolean",
+                  "type": "CheckBox",
+                  "properties": {
+                    "label": { "literalString": "Deceased" },
+                    "value": { "literalBoolean": false }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,183 @@
+---
+title: "Metadata & Tags API"
+description: "Attach searchable tags and structured metadata to files. Optionally enforce a JSON Schema."
+---
+
+# Metadata & Tags API
+
+FileNest lets you attach two kinds of annotations to every file:
+
+- **Tags** — a flat string array for fast categorical filtering (e.g. `["invoice", "q1-2026"]`)
+- **Metadata** — a free-form JSON object for structured per-file data (e.g. `{ "patientId": "P-001", "invoiceTotal": 1200.00 }`)
+
+Both are stored in the FileNest database and can be filtered via [List files](/docs/api/files#list-files).
+
+---
+
+## Tags
+
+### Replace tags (full set)
+
+```
+PUT /v1/projects/{project_id}/files/{file_id}/tags
+```
+
+**Required scope:** `files:update_metadata`
+
+Replaces the file's entire tag set. Supply an empty array to clear all tags.
+
+```json
+{ "tags": ["invoice", "q1-2026", "paid"] }
+```
+
+**Response `200`:**
+
+```json
+{ "id": "file_01j...", "tags": ["invoice", "q1-2026", "paid"] }
+```
+
+### Add tags (union)
+
+```
+POST /v1/projects/{project_id}/files/{file_id}/tags
+```
+
+**Required scope:** `files:update_metadata`
+
+Appends tags to the existing set. Duplicates are ignored.
+
+```json
+{ "tags": ["archived"] }
+```
+
+**Response `200`:** returns the full updated tag list.
+
+---
+
+## Metadata
+
+### Update metadata
+
+```
+PUT /v1/projects/{project_id}/files/{file_id}/metadata
+```
+
+**Required scope:** `files:update_metadata`
+
+Replaces the file's metadata object entirely. If the project has `enforce_schema = true` and an active metadata schema, the payload is validated before saving — a mismatch returns `422`.
+
+```json
+{
+  "patientId": "P-001",
+  "documentType": "LabReport",
+  "labDate": "2026-06-01"
+}
+```
+
+**Response `200`:**
+
+```json
+{ "id": "file_01j...", "metadata": { "patientId": "P-001", "documentType": "LabReport", "labDate": "2026-06-01" } }
+```
+
+### Merge metadata
+
+```
+POST /v1/projects/{project_id}/files/{file_id}/metadata
+```
+
+**Required scope:** `files:update_metadata`
+
+Shallow-merges the supplied object into the existing metadata. Existing keys not present in the payload are retained.
+
+---
+
+## Metadata schemas
+
+Define a JSON Schema that all metadata updates must conform to when `enforce_schema = true` on the project config.
+
+### Create a schema
+
+```
+POST /v1/projects/{project_id}/metadata-schemas
+```
+
+**Required scope:** `projects:update`
+
+```json
+{
+  "schema": {
+    "type": "object",
+    "required": ["documentType"],
+    "properties": {
+      "documentType": { "type": "string", "enum": ["LabReport", "Discharge", "Consent"] },
+      "patientId":    { "type": "string" },
+      "notes":        { "type": "string" }
+    },
+    "additionalProperties": false
+  }
+}
+```
+
+Creating a new schema version marks the previous version inactive. Validation always uses the **active** schema.
+
+**Response `201`:**
+
+```json
+{
+  "id": "schema_01j...",
+  "project_id": "prj_01j...",
+  "version": 2,
+  "schema_json": { "..." },
+  "is_active": true,
+  "created_at": "2026-06-21T10:00:00Z"
+}
+```
+
+### List schemas
+
+```
+GET /v1/projects/{project_id}/metadata-schemas
+```
+
+**Required scope:** `projects:read`
+
+Returns all schema versions, newest first. The one with `is_active: true` is currently enforced.
+
+---
+
+## Filtering by tags and metadata
+
+The [List files](/docs/api/files#list-files) endpoint accepts tag and metadata filters:
+
+| Param | Description |
+|-------|-------------|
+| `tags` | One or more tag values — returns files that have **all** of them (array containment) |
+| `metadata` | JSON string — returns files whose metadata contains **all** supplied key-value pairs (JSONB containment) |
+
+```
+GET /v1/projects/{project_id}/files?tags=invoice&tags=q1-2026&metadata={"documentType":"LabReport"}
+```
+
+---
+
+## Error codes
+
+| Status | Code | Meaning |
+|--------|------|---------|
+| `404` | `NOT_FOUND` | File does not exist |
+| `422` | `METADATA_VALIDATION_ERROR` | Metadata payload does not conform to the active schema |
+
+`422` shape:
+
+```json
+{
+  "error": {
+    "code": "METADATA_VALIDATION_ERROR",
+    "message": "Metadata does not match the active schema",
+    "field_errors": [
+      { "path": "documentType", "message": "must be one of LabReport, Discharge, Consent" }
+    ]
+  }
+}
+```

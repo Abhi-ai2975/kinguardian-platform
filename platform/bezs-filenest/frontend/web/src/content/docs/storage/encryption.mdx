@@ -1,0 +1,76 @@
+---
+title: "Encryption (SSE)"
+description: "Server-side encryption behavior across all FileNest storage providers."
+---
+
+# Encryption (SSE)
+
+FileNest uses **server-side encryption at rest (SSE)** for all storage backends. The behavior differs by provider.
+
+## Per-provider behavior
+
+| Provider | SSE type | `sse_enabled` default | Togglable |
+|----------|----------|-----------------------|-----------|
+| AWS S3 | SSE-S3 (AES-256) or SSE-KMS | `true` | No (always on) |
+| Cloudflare R2 | AES-256 (R2-managed) | `true` | No (always on) |
+| Azure Blob | Azure-managed | `true` | No (always on) |
+| Google Cloud Storage | Google-managed | `true` | No (always on) |
+| MinIO | SSE-S3 (AES-256) | `false` | Yes |
+| RustFS | SSE-S3 (AES-256) | `false` | Yes |
+
+## How SSE-S3 works
+
+When `sse_enabled` is `true`, FileNest sends the following header on every upload:
+
+```
+ServerSideEncryption: AES256
+```
+
+The storage server (MinIO/RustFS) uses its configured KMS key to encrypt the object. The encryption happens server-side — FileNest never holds the encryption key.
+
+## Enabling SSE for MinIO / RustFS
+
+### 1. Configure the KMS key on the server
+
+Set the environment variable **on the MinIO or RustFS server process** (not in FileNest):
+
+```bash
+# MinIO
+export MINIO_KMS_SECRET_KEY="my-key:$(openssl rand -base64 32)"
+
+# RustFS
+export RUSTFS_KMS_SECRET_KEY="my-key:$(openssl rand -base64 32)"
+```
+
+### 2. Toggle SSE in FileNest
+
+Via the API:
+
+```bash
+curl -X PATCH https://api.filenest.io/v1/projects/{id}/storage/sse \
+  -H "Authorization: Bearer fn_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{ "sse_enabled": true }'
+```
+
+Or via the Console: **Project Settings → Storage → Encryption at rest** toggle.
+
+<Callout type="warning" title="Enable KMS first">
+Enabling SSE before configuring the KMS key on your MinIO/RustFS server will cause all uploads to fail with a 400 error from the storage server.
+</Callout>
+
+## AWS KMS (SSE-KMS)
+
+For S3 projects that need customer-managed keys, set `server_side_encryption` to `aws:kms` and provide the key ARN:
+
+```bash
+curl -X PATCH https://api.filenest.io/v1/projects/{id}/storage \
+  -H "Authorization: Bearer fn_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "server_side_encryption": "aws:kms",
+    "kms_key_id": "arn:aws:kms:us-east-1:111122223333:key/mrk-..."
+  }'
+```
+
+Customer-managed KMS (BYOK with envelope encryption) is planned for v2.0.

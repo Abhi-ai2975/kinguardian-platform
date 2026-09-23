@@ -1,0 +1,50 @@
+---
+title: "Cloudflare R2"
+description: "Connect a FileNest project to a Cloudflare R2 bucket."
+---
+
+# Cloudflare R2
+
+Cloudflare R2 is an S3-compatible object storage service with no egress fees.
+
+## Prerequisites
+
+1. A Cloudflare account with R2 enabled
+2. An R2 bucket created
+3. An **R2 API token** with Object Read & Write permissions on the bucket
+
+## Getting R2 credentials
+
+In the Cloudflare dashboard:
+
+1. Go to **R2 → Manage R2 API Tokens**
+2. Create a token with **Object Read & Write** on your bucket
+3. Note the **Access Key ID** and **Secret Access Key**
+4. Your endpoint URL is: `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`
+
+## Connecting R2
+
+```bash
+curl -X PATCH https://api.filenest.io/v1/projects/{id}/storage \
+  -H "Authorization: Bearer fn_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "r2",
+    "storage_mode": "byob",
+    "bucket_name": "my-r2-bucket",
+    "endpoint_url": "https://abc123.r2.cloudflarestorage.com",
+    "access_key_id": "...",
+    "secret_access_key": "..."
+  }'
+```
+
+## Encryption
+
+R2 encrypts all data at rest by default. SSE is always enabled and cannot be disabled. The `sse_enabled` field is always `true` for R2 projects.
+
+## Verify connectivity
+
+```bash
+curl -X POST https://api.filenest.io/v1/projects/{id}/storage/verify \
+  -H "Authorization: Bearer fn_live_..."
+```

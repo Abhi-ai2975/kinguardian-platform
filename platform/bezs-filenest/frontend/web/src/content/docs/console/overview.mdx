@@ -1,0 +1,55 @@
+---
+title: "Console Overview"
+description: "Navigate and use the FileNest Console to manage your projects and files."
+---
+
+# Console Overview
+
+The FileNest Console is the web interface for managing your projects, files, API keys, webhooks, and organization settings.
+
+## Getting access
+
+1. Sign up at [console.filenest.io](/signup)
+2. Verify your email
+3. Complete the onboarding wizard (create org → create project → generate API key)
+
+## Layout
+
+```
+┌─────────────────────────────────────────────┐
+│  Sidebar          │  Header                 │
+│  ─────────────    │  ───────────────────    │
+│  Dashboard        │  Org Switcher  Profile  │
+│  Projects         │                         │
+│  ─────────────    │  Main content area      │
+│  Organisation     │                         │
+│    Team           │                         │
+│    Usage          │                         │
+│  ─────────────    │                         │
+│  Settings         │                         │
+└─────────────────────────────────────────────┘
+```
+
+## Sidebar
+
+The sidebar collapses to icon-only mode. Click the rail or use the keyboard shortcut to toggle. The open/closed state is remembered per browser via a cookie.
+
+## Organization switcher
+
+Multi-organization users can switch between orgs from the header. Switching updates the active organization context — all projects, API keys, and usage shown are scoped to the active org.
+
+## Onboarding wizard
+
+New users without an active organization are redirected to the onboarding wizard:
+
+1. **Create organization** — name and slug
+2. **Create project** — first project in the org
+3. **Generate API key** — copy the `fn_live_...` key (shown once)
+4. **Install SDK** — copy-paste snippets for Node.js, Python, or curl
+
+After completing the wizard you land on the dashboard.
+
+## Next steps
+
+- [Projects](/docs/console/projects) — create and manage projects
+- [Settings](/docs/console/settings) — configure storage, processing, and security

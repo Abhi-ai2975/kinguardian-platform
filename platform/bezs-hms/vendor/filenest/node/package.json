@@ -1,0 +1,23 @@
+{
+  "name": "@filenest/node",
+  "version": "0.1.0",
+  "description": "FileNest SDK for Node.js — server-side file infrastructure client",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {},
+  "engines": {
+    "node": ">=18"
+  }
+}

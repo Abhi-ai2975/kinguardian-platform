@@ -1,0 +1,71 @@
+---
+title: "Quickstart"
+description: "Upload your first file with FileNest in under 5 minutes."
+---
+
+# Quickstart
+
+This guide takes you from zero to a working file upload in under 5 minutes.
+
+## 1. Create an account
+
+Sign up at the [FileNest Console](/signup). After email verification you will be redirected to the onboarding wizard.
+
+## 2. Create an organization and project
+
+The onboarding wizard walks you through:
+
+1. **Create organization** — your top-level account (e.g. your company name)
+2. **Create project** — the unit of storage configuration (e.g. `production`, `staging`)
+3. **Generate API key** — copy the `fn_live_...` key shown once
+
+<Callout type="warning" title="Save your API key">
+The full API key is only shown once. Copy it to a secure location before continuing.
+</Callout>
+
+## 3. Install the SDK
+
+<PackageTabs pkg="@filenest/node" />
+
+## 4. Upload a file
+
+```typescript
+import { FileNest } from "@filenest/node";
+import { createReadStream } from "fs";
+
+const client = new FileNest({
+  apiKey: process.env.FILENEST_API_KEY,
+  projectId: process.env.FILENEST_PROJECT_ID,
+});
+
+const file = await client.files.upload(createReadStream("./invoice.pdf"), {
+  filename: "invoice.pdf",
+  contentType: "application/pdf",
+});
+
+console.log(file.id);     // file_01j...
+console.log(file.status); // "ready"
+```
+
+## 5. Download the file
+
+```typescript
+const url = await client.files.getDownloadUrl(file.id, { ttl: 3600 });
+console.log(url); // https://...s3.amazonaws.com/...?X-Amz-Expires=3600
+```
+
+## What happens behind the scenes
+
+```
+POST /v1/projects/{id}/files/upload
+  → FileNest stores file in S3
+  → Creates file record (status: uploading → processing → ready)
+  → Runs virus scan + MIME validation
+  → Emits file.ready event (webhooks fire)
+```
+
+## Next steps
+
+- [Core Concepts](/docs/concepts/projects) — understand organizations, projects, and files
+- [API Reference](/docs/api/files) — full upload/download API
+- [React SDK](/docs/sdks/react) — add a file upload UI to your app

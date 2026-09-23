@@ -1,0 +1,7 @@
+{
+  "name": "KinGuardian - Concierge AI HealthLink",
+  "description": "A concierge medical AI platform connecting family members with proactive health insights, clinical reasoning, health records search, and instant medical guidance.",
+
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

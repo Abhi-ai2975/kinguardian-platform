@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.uv/
+dist/
+build/
+
+# Env
+.env
+*.env.local
+
+# uv
+uv.lock
+
+# Alembic
+backend/migrations/alembic/versions/*.py
+!backend/migrations/alembic/versions/.gitkeep
+
+# Node / Frontend
+node_modules/
+.next/
+frontend/web/.env*
+!frontend/web/.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tests
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Pyright / mypy
+.pyright/
+.mypy_cache/
+
+# logs
+logs/

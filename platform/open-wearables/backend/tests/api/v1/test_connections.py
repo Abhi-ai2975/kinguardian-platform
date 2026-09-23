@@ -1,0 +1,865 @@
+"""
+Tests for connections endpoints.
+
+Tests the /api/v1/users/{user_id}/connections endpoint including:
+- Get user connections
+- Disconnect provider
+- Authentication and authorization
+- Connection status filtering
+- Error cases
+"""
+
+from datetime import datetime, timezone
+from unittest.mock import MagicMock, patch
+from uuid import UUID
+
+from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+
+from app.models import DataPointSeries, DataSource, EventRecord, HealthScore, User, UserConnection, WorkoutDetails
+from app.schemas.auth import ConnectionStatus
+from app.services.sdk_token_service import create_sdk_user_token
+from tests.factories import (
+    ApiKeyFactory,
+    DataPointSeriesFactory,
+    DataSourceFactory,
+    DeveloperFactory,
+    EventRecordFactory,
+    HealthScoreFactory,
+    UserConnectionFactory,
+    UserFactory,
+    WorkoutDetailsFactory,
+)
+from tests.utils import api_key_headers, developer_auth_headers
+
+
+class TestConnectionsEndpoints:
+    """Test suite for connections endpoints."""
+
+    def test_get_connections_success(self, client: TestClient, db: Session) -> None:
+        """Test successfully retrieving all connections for a user."""
+        # Arrange
+        user = UserFactory()
+        connection1 = UserConnectionFactory(
+            user=user,
+            provider="garmin",
+            status=ConnectionStatus.ACTIVE,
+        )
+        connection2 = UserConnectionFactory(
+            user=user,
+            provider="polar",
+            status=ConnectionStatus.ACTIVE,
+        )
+        api_key = ApiKeyFactory()
+        headers = api_key_headers(api_key.plain_key)
+
+        # Act
+        response = client.get(f"/api/v1/users/{user.id}/connections", headers=headers)
+
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 2
+        assert any(c["id"] == str(connection1.id) for c in data)
+        assert any(c["id"] == str(connection2.id) for c in data)
+
+    def test_get_connections_empty_list(self, client: TestClient, db: Session) -> None:
+        """Test retrieving connections for a user with no connections."""
+        # Arrange
+        user = UserFactory()
+        api_key = ApiKeyFactory()
+        headers = api_key_headers(api_key.plain_key)
+
+        # Act
+        response = client.get(f"/api/v1/users/{user.id}/connections", headers=headers)
+
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 0
+
+    def test_get_connections_multiple_providers(self, client: TestClient, db: Session) -> None:
+        """Test retrieving connections for multiple providers."""
+        # Arrange
+        user = UserFactory()
+        providers = ["garmin", "polar", "suunto", "apple"]
+        [UserConnectionFactory(user=user, provider=provider) for provider in providers]
+        api_key = ApiKeyFactory()
+        headers = api_key_headers(api_key.plain_key)
+
+        # Act
+        response = client.get(f"/api/v1/users/{user.id}/connections", headers=headers)
+
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 4
+        returned_providers = {c["provider"] for c in data}
+        assert returned_providers == set(providers)
+
+    def test_get_connections_different_statuses(self, client: TestClient, db: Session) -> None:
+        """Test retrieving connections with different statuses."""
+        # Arrange
+        user = UserFactory()
+        UserConnectionFactory(
+            user=user,
+            provider="garmin",
+            status=ConnectionStatus.ACTIVE,
+        )
+        UserConnectionFactory(
+            user=user,
+            provider="polar",
+            status=ConnectionStatus.REVOKED,
+        )
+        UserConnectionFactory(
+            user=user,
+            provider="suunto",
+            status=ConnectionStatus.EXPIRED,
+        )
+        api_key = ApiKeyFactory()
+        headers = api_key_headers(api_key.plain_key)
+
+        # Act
+        response = client.get(f"/api/v1/users/{user.id}/connections", headers=headers)
+
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 3
+        statuses = {c["status"] for c in data}
+        assert ConnectionStatus.ACTIVE.value in statuses
+        assert ConnectionStatus.REVOKED.value in statuses
+        assert ConnectionStatus.EXPIRED.value in statuses
+
+    def test_get_connections_user_isolation(self, client: TestClient, db: Session) -> None:
+        """Test that users can only see their own connections."""
+        # Arrange
+        user1 = UserFactory()
+        user2 = UserFactory()
+        connection1 = UserConnectionFactory(user=user1, provider="garmin")
+        UserConnectionFactory(user=user2, provider="polar")
+        api_key = ApiKeyFactory()
+        headers = api_key_headers(api_key.plain_key)
+
+        # Act - get user1's connections
+        response = client.get(f"/api/v1/users/{user1.id}/connections", headers=headers)
+
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["id"] == str(connection1.id)
+        assert data[0]["provider"] == "garmin"
+
+    def test_get_connections_response_structure(self, client: TestClient, db: Session) -> None:
+        """Test that response contains all expected fields."""
+        # Arrange
+        user = UserFactory()
+        connection = UserConnectionFactory(
+            user=user,
+            provider="garmin",
+            provider_user_id="test_user_123",
+            provider_username="test_user",
+            status=ConnectionStatus.ACTIVE,
+        )
+        api_key = ApiKeyFactory()
+        headers = api_key_headers(api_key.plain_key)
+
+        # Act
+        response = client.get(f"/api/v1/users/{user.id}/connections", headers=headers)
+
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        connection_data = data[0]
+
+        # Verify essential fields are present
+        assert "id" in connection_data
+        assert "user_id" in connection_data
+        assert "provider" in connection_data
+        assert "provider_user_id" in connection_data
+        assert "provider_username" in connection_data
+        assert "status" in connection_data
+        assert "created_at" in connection_data
+        assert "updated_at" in connection_data
+        assert "icon_url" in connection_data
+
+        # Verify values
+        assert connection_data["id"] == str(connection.id)
+        assert connection_data["user_id"] == str(user.id)
+        assert connection_data["provider"] == "garmin"
+        assert connection_data["status"] == ConnectionStatus.ACTIVE.value
+        assert connection_data["icon_url"] == "/static/provider-icons/garmin.svg"
+
+    def test_get_connections_missing_api_key(self, client: TestClient, db: Session) -> None:
+        """Test that request without API key is rejected."""
+        # Arrange
+        user = UserFactory()
+
+        # Act
+        response = client.get(f"/api/v1/users/{user.id}/connections")
+
+        # Assert
+        assert response.status_code == 401
+
+    def test_get_connections_invalid_api_key(self, client: TestClient, db: Session) -> None:
+        """Test that request with invalid API key is rejected."""
+        # Arrange
+        user = UserFactory()
+        headers = api_key_headers("invalid-api-key")
+
+        # Act
+        response = client.get(f"/api/v1/users/{user.id}/connections", headers=headers)
+
+        # Assert
+        assert response.status_code == 401
+
+    def test_get_connections_invalid_user_id(self, client: TestClient, db: Session) -> None:
+        """Test handling of invalid user ID format returns 400."""
+        # Arrange
+        api_key = ApiKeyFactory()
+        headers = api_key_headers(api_key.plain_key)
+
+        # Act - FastAPI/Starlette validates UUID path params and returns 400 Bad Request
+        response = client.get("/api/v1/users/not-a-uuid/connections", headers=headers)
+
+        # Assert
+        assert response.status_code == 400
+
+    def test_get_connections_nonexistent_user(self, client: TestClient, db: Session) -> None:
+        """Test retrieving connections for a user that doesn't exist."""
+        # Arrange
+        from uuid import uuid4
+
+        api_key = ApiKeyFactory()
+        headers = api_key_headers(api_key.plain_key)
+        nonexistent_user_id = uuid4()
+
+        # Act
+        response = client.get(f"/api/v1/users/{nonexistent_user_id}/connections", headers=headers)
+
+        # Assert - should return empty list, not 404
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 0
+
+    def test_get_connections_with_sync_metadata(self, client: TestClient, db: Session) -> None:
+        """Test that connections include sync metadata."""
+        # Arrange
+        from datetime import datetime, timezone
+
+        user = UserFactory()
+        last_synced = datetime(2025, 12, 15, 12, 0, 0, tzinfo=timezone.utc)
+        UserConnectionFactory(
+            user=user,
+            provider="garmin",
+            status=ConnectionStatus.ACTIVE,
+            last_synced_at=last_synced,
+        )
+        api_key = ApiKeyFactory()
+        headers = api_key_headers(api_key.plain_key)
+
+        # Act
+        response = client.get(f"/api/v1/users/{user.id}/connections", headers=headers)
+
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert "last_synced_at" in data[0]
+        # The last_synced_at should be present when set
+        if data[0]["last_synced_at"]:
+            assert isinstance(data[0]["last_synced_at"], str)
+
+    def test_get_connections_excludes_sensitive_data(self, client: TestClient, db: Session) -> None:
+        """Test that sensitive data like access tokens are not exposed."""
+        # Arrange
+        user = UserFactory()
+        UserConnectionFactory(
+            user=user,
+            provider="garmin",
+            access_token="secret_access_token",
+            refresh_token="secret_refresh_token",
+        )
+        api_key = ApiKeyFactory()
+        headers = api_key_headers(api_key.plain_key)
+
+        # Act
+        response = client.get(f"/api/v1/users/{user.id}/connections", headers=headers)
+
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        connection_data = data[0]
+
+        # Verify sensitive fields are not exposed
+        assert "access_token" not in connection_data
+        assert "refresh_token" not in connection_data
+
+
+class TestDisconnectEndpoint:
+    """Test suite for DELETE /api/v1/users/{user_id}/connections/{provider}."""
+
+    def test_disconnect_active_connection(self, client: TestClient, db: Session) -> None:
+        """Test disconnecting an active connection returns 204 and revokes it."""
+        # Arrange
+        user = UserFactory()
+        UserConnectionFactory(
+            user=user,
+            provider="garmin",
+            status=ConnectionStatus.ACTIVE,
+        )
+        api_key = ApiKeyFactory()
+        headers = api_key_headers(api_key.plain_key)
+
+        # Act
+        response = client.delete(f"/api/v1/users/{user.id}/connections/garmin", headers=headers)
+
+        # Assert
+        assert response.status_code == 204
+        conn = db.query(UserConnection).filter_by(user_id=user.id, provider="garmin").one()
+        assert conn.status == ConnectionStatus.REVOKED
+
+    def test_disconnect_clears_tokens(self, client: TestClient, db: Session) -> None:
+        """Test that disconnecting clears access_token, refresh_token, and token_expires_at."""
+        # Arrange
+        user = UserFactory()
+        UserConnectionFactory(
+            user=user,
+            provider="garmin",
+            status=ConnectionStatus.ACTIVE,
+            access_token="secret_access",
+            refresh_token="secret_refresh",
+            token_expires_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        )
+        api_key = ApiKeyFactory()
+        headers = api_key_headers(api_key.plain_key)
+
+        # Act
+        client.delete(f"/api/v1/users/{user.id}/connections/garmin", headers=headers)
+
+        # Assert
+        conn = db.query(UserConnection).filter_by(user_id=user.id, provider="garmin").one()
+        assert conn.access_token is None
+        assert conn.refresh_token is None
+        assert conn.token_expires_at is None
+
+    def test_disconnect_already_revoked_is_idempotent(self, client: TestClient, db: Session) -> None:
+        """Test that disconnecting an already revoked connection returns 204."""
+        # Arrange
+        user = UserFactory()
+        UserConnectionFactory(
+            user=user,
+            provider="garmin",
+            status=ConnectionStatus.REVOKED,
+        )
+        api_key = ApiKeyFactory()
+        headers = api_key_headers(api_key.plain_key)
+
+        # Act
+        response = client.delete(f"/api/v1/users/{user.id}/connections/garmin", headers=headers)
+
+        # Assert
+        assert response.status_code == 204
+
+    def test_disconnect_nonexistent_connection(self, client: TestClient, db: Session) -> None:
+        """Test that disconnecting a nonexistent connection returns 404."""
+        # Arrange
+        user = UserFactory()
+        api_key = ApiKeyFactory()
+        headers = api_key_headers(api_key.plain_key)
+
+        # Act
+        response = client.delete(f"/api/v1/users/{user.id}/connections/garmin", headers=headers)
+
+        # Assert
+        assert response.status_code == 404
+
+    def test_disconnect_expired_connection(self, client: TestClient, db: Session) -> None:
+        """Test that an expired connection gets revoked."""
+        # Arrange
+        user = UserFactory()
+        UserConnectionFactory(
+            user=user,
+            provider="polar",
+            status=ConnectionStatus.EXPIRED,
+        )
+        api_key = ApiKeyFactory()
+        headers = api_key_headers(api_key.plain_key)
+
+        # Act
+        response = client.delete(f"/api/v1/users/{user.id}/connections/polar", headers=headers)
+
+        # Assert
+        assert response.status_code == 204
+        conn = db.query(UserConnection).filter_by(user_id=user.id, provider="polar").one()
+        assert conn.status == ConnectionStatus.REVOKED
+
+    def test_disconnect_invalid_provider(self, client: TestClient, db: Session) -> None:
+        """Test that an invalid provider name is rejected."""
+        # Arrange
+        user = UserFactory()
+        api_key = ApiKeyFactory()
+        headers = api_key_headers(api_key.plain_key)
+
+        # Act
+        response = client.delete(f"/api/v1/users/{user.id}/connections/not_a_provider", headers=headers)
+
+        # Assert - FastAPI returns 400 for invalid enum path params
+        assert response.status_code == 400
+
+    def test_disconnect_missing_api_key(self, client: TestClient, db: Session) -> None:
+        """Test that request without API key is rejected."""
+        # Arrange
+        user = UserFactory()
+
+        # Act
+        response = client.delete(f"/api/v1/users/{user.id}/connections/garmin")
+
+        # Assert
+        assert response.status_code == 401
+
+    def test_disconnect_invalid_api_key(self, client: TestClient, db: Session) -> None:
+        """Test that request with invalid API key is rejected."""
+        # Arrange
+        user = UserFactory()
+        headers = api_key_headers("invalid-api-key")
+
+        # Act
+        response = client.delete(f"/api/v1/users/{user.id}/connections/garmin", headers=headers)
+
+        # Assert
+        assert response.status_code == 401
+
+    def test_disconnect_sdk_provider(self, client: TestClient, db: Session) -> None:
+        """Test disconnecting an SDK provider (no tokens to clear)."""
+        # Arrange
+        user = UserFactory()
+        UserConnectionFactory(
+            user=user,
+            provider="apple",
+            status=ConnectionStatus.ACTIVE,
+            access_token=None,
+            refresh_token=None,
+            token_expires_at=None,
+        )
+        api_key = ApiKeyFactory()
+        headers = api_key_headers(api_key.plain_key)
+
+        # Act
+        response = client.delete(f"/api/v1/users/{user.id}/connections/apple", headers=headers)
+
+        # Assert
+        assert response.status_code == 204
+        conn = db.query(UserConnection).filter_by(user_id=user.id, provider="apple").one()
+        assert conn.status == ConnectionStatus.REVOKED
+
+    def test_disconnect_user_isolation(self, client: TestClient, db: Session) -> None:
+        """Test that disconnecting user1's provider doesn't affect user2."""
+        # Arrange
+        user1 = UserFactory()
+        user2 = UserFactory()
+        UserConnectionFactory(user=user1, provider="garmin", status=ConnectionStatus.ACTIVE)
+        UserConnectionFactory(user=user2, provider="garmin", status=ConnectionStatus.ACTIVE)
+        api_key = ApiKeyFactory()
+        headers = api_key_headers(api_key.plain_key)
+
+        # Act - disconnect user1's garmin
+        response = client.delete(f"/api/v1/users/{user1.id}/connections/garmin", headers=headers)
+
+        # Assert
+        assert response.status_code == 204
+        conn1 = db.query(UserConnection).filter_by(user_id=user1.id, provider="garmin").one()
+        conn2 = db.query(UserConnection).filter_by(user_id=user2.id, provider="garmin").one()
+        assert conn1.status == ConnectionStatus.REVOKED
+        assert conn2.status == ConnectionStatus.ACTIVE
+
+
+def sdk_token_headers(user_id: UUID, app_id: str = "app_123") -> dict[str, str]:
+    """Bearer headers for an SDK user token scoped to user_id."""
+    return {"Authorization": f"Bearer {create_sdk_user_token(app_id, str(user_id))}"}
+
+
+class TestDisconnectWithSDKToken:
+    """SDK sign-out: DELETE /users/{user_id}/connections/{provider} with an SDK user token."""
+
+    def test_sdk_token_disconnects_own_sdk_connection(self, client: TestClient, db: Session) -> None:
+        """An SDK token revokes its own user's SDK-fed connection."""
+        # Arrange
+        user = UserFactory()
+        UserConnectionFactory(
+            user=user,
+            provider="apple",
+            status=ConnectionStatus.ACTIVE,
+            access_token=None,
+            refresh_token=None,
+        )
+
+        # Act
+        response = client.delete(f"/api/v1/users/{user.id}/connections/apple", headers=sdk_token_headers(user.id))
+
+        # Assert
+        assert response.status_code == 204
+        conn = db.query(UserConnection).filter_by(user_id=user.id, provider="apple").one()
+        assert conn.status == ConnectionStatus.REVOKED
+
+    def test_sdk_token_cannot_disconnect_another_user(self, client: TestClient, db: Session) -> None:
+        """An SDK token scoped to user1 cannot revoke user2's connection."""
+        # Arrange
+        user1 = UserFactory()
+        user2 = UserFactory()
+        UserConnectionFactory(
+            user=user2,
+            provider="apple",
+            status=ConnectionStatus.ACTIVE,
+            access_token=None,
+            refresh_token=None,
+        )
+
+        # Act
+        response = client.delete(f"/api/v1/users/{user2.id}/connections/apple", headers=sdk_token_headers(user1.id))
+
+        # Assert
+        assert response.status_code == 403
+        conn = db.query(UserConnection).filter_by(user_id=user2.id, provider="apple").one()
+        assert conn.status == ConnectionStatus.ACTIVE
+
+    def test_sdk_token_cannot_disconnect_oauth_only_provider(self, client: TestClient, db: Session) -> None:
+        """An SDK token cannot revoke a provider that never arrives over the SDK."""
+        # Arrange - tokens are already cleared, so only the capability check can catch this
+        user = UserFactory()
+        UserConnectionFactory(
+            user=user,
+            provider="garmin",
+            status=ConnectionStatus.ACTIVE,
+            access_token=None,
+            refresh_token=None,
+        )
+
+        # Act
+        response = client.delete(f"/api/v1/users/{user.id}/connections/garmin", headers=sdk_token_headers(user.id))
+
+        # Assert
+        assert response.status_code == 403
+        conn = db.query(UserConnection).filter_by(user_id=user.id, provider="garmin").one()
+        assert conn.status == ConnectionStatus.ACTIVE
+
+    def test_sdk_token_cannot_disconnect_cloud_connection(self, client: TestClient, db: Session) -> None:
+        """Google Health is cloud-only: its OAuth-fed row stays out of the SDK's reach."""
+        # Arrange
+        user = UserFactory()
+        UserConnectionFactory(
+            user=user,
+            provider="google_health",
+            status=ConnectionStatus.ACTIVE,
+            access_token="secret_access",
+            refresh_token="secret_refresh",
+        )
+
+        # Act
+        response = client.delete(
+            f"/api/v1/users/{user.id}/connections/google_health", headers=sdk_token_headers(user.id)
+        )
+
+        # Assert
+        assert response.status_code == 403
+        conn = db.query(UserConnection).filter_by(user_id=user.id, provider="google_health").one()
+        assert conn.status == ConnectionStatus.ACTIVE
+        assert conn.access_token == "secret_access"
+
+    def test_sdk_token_disconnects_sdk_fed_connection(self, client: TestClient, db: Session) -> None:
+        """Health Connect is SDK-fed and may be revoked."""
+        # Arrange
+        user = UserFactory()
+        UserConnectionFactory(
+            user=user,
+            provider="health_connect",
+            status=ConnectionStatus.ACTIVE,
+            access_token=None,
+            refresh_token=None,
+        )
+
+        # Act
+        response = client.delete(
+            f"/api/v1/users/{user.id}/connections/health_connect", headers=sdk_token_headers(user.id)
+        )
+
+        # Assert
+        assert response.status_code == 204
+        conn = db.query(UserConnection).filter_by(user_id=user.id, provider="health_connect").one()
+        assert conn.status == ConnectionStatus.REVOKED
+
+    def test_sdk_token_on_nonexistent_connection_returns_404(self, client: TestClient, db: Session) -> None:
+        """Nothing to revoke is still a 404, not a 403."""
+        # Arrange
+        user = UserFactory()
+
+        # Act
+        response = client.delete(f"/api/v1/users/{user.id}/connections/apple", headers=sdk_token_headers(user.id))
+
+        # Assert
+        assert response.status_code == 404
+
+    @patch("app.api.routes.v1.connections.user_connection_service.disconnect")
+    def test_sdk_path_skips_provider_deregistration(
+        self, mock_disconnect: MagicMock, client: TestClient, db: Session
+    ) -> None:
+        """Signing out of an app must not deregister the user from the provider's API."""
+        # Arrange
+        user = UserFactory()
+        UserConnectionFactory(
+            user=user,
+            provider="health_connect",
+            status=ConnectionStatus.ACTIVE,
+            access_token=None,
+            refresh_token=None,
+        )
+
+        # Act
+        client.delete(f"/api/v1/users/{user.id}/connections/health_connect", headers=sdk_token_headers(user.id))
+
+        # Assert
+        assert mock_disconnect.call_args.kwargs["oauth"] is None
+        assert mock_disconnect.call_args.kwargs["reason"] == "sdk_sign_out"
+
+    def test_developer_jwt_still_disconnects(self, client: TestClient, db: Session) -> None:
+        """The dashboard's developer JWT keeps working after the auth was widened."""
+        # Arrange
+        user = UserFactory()
+        UserConnectionFactory(user=user, provider="polar", status=ConnectionStatus.ACTIVE)
+        developer = DeveloperFactory()
+
+        # Act
+        response = client.delete(
+            f"/api/v1/users/{user.id}/connections/polar",
+            headers=developer_auth_headers(developer.id),
+        )
+
+        # Assert
+        assert response.status_code == 204
+        conn = db.query(UserConnection).filter_by(user_id=user.id, provider="polar").one()
+        assert conn.status == ConnectionStatus.REVOKED
+
+    def test_no_credentials_returns_401(self, client: TestClient, db: Session) -> None:
+        """Widening the auth did not make the endpoint public."""
+        # Arrange
+        user = UserFactory()
+        UserConnectionFactory(user=user, provider="apple", status=ConnectionStatus.ACTIVE)
+
+        # Act
+        response = client.delete(f"/api/v1/users/{user.id}/connections/apple")
+
+        # Assert
+        assert response.status_code == 401
+
+
+class TestDeleteProviderDataEndpoint:
+    """Test suite for DELETE /api/v1/users/{user_id}/connections/{provider}/data."""
+
+    def _seed_provider_data(self, user: User, provider: str) -> DataSource:
+        """Create a data_source with a workout (+details), a time series and a health score."""
+        data_source = DataSourceFactory(user=user, provider=provider)
+        event = EventRecordFactory(data_source=data_source, category="workout")
+        WorkoutDetailsFactory(event_record=event)
+        DataPointSeriesFactory(data_source=data_source)
+        HealthScoreFactory(user_id=user.id, data_source_id=data_source.id, provider=provider)
+        return data_source
+
+    def test_delete_data_removes_all_provider_data_and_revokes(self, client: TestClient, db: Session) -> None:
+        """Deleting provider data removes every dependent row (via cascade) and revokes the connection."""
+        # Arrange
+        user = UserFactory()
+        UserConnectionFactory(user=user, provider="apple", status=ConnectionStatus.ACTIVE)
+        ds = self._seed_provider_data(user, "apple")
+        ds_id = ds.id
+        api_key = ApiKeyFactory()
+        headers = api_key_headers(api_key.plain_key)
+
+        # Act
+        response = client.delete(f"/api/v1/users/{user.id}/connections/apple/data", headers=headers)
+
+        # Assert
+        assert response.status_code == 204
+        db.expire_all()
+        assert db.query(DataSource).filter_by(user_id=user.id, provider="apple").count() == 0
+        assert db.query(EventRecord).filter_by(data_source_id=ds_id).count() == 0
+        assert db.query(WorkoutDetails).count() == 0
+        assert db.query(DataPointSeries).filter_by(data_source_id=ds_id).count() == 0
+        assert db.query(HealthScore).filter_by(user_id=user.id, provider="apple").count() == 0
+        conn = db.query(UserConnection).filter_by(user_id=user.id, provider="apple").one()
+        assert conn.status == ConnectionStatus.REVOKED
+
+    def test_delete_data_does_not_affect_other_providers(self, client: TestClient, db: Session) -> None:
+        """Deleting Apple data leaves Suunto's data and connection untouched."""
+        # Arrange
+        user = UserFactory()
+        UserConnectionFactory(user=user, provider="apple", status=ConnectionStatus.ACTIVE)
+        UserConnectionFactory(user=user, provider="suunto", status=ConnectionStatus.ACTIVE)
+        self._seed_provider_data(user, "apple")
+        suunto_ds = self._seed_provider_data(user, "suunto")
+        suunto_ds_id = suunto_ds.id
+        api_key = ApiKeyFactory()
+        headers = api_key_headers(api_key.plain_key)
+
+        # Act
+        response = client.delete(f"/api/v1/users/{user.id}/connections/apple/data", headers=headers)
+
+        # Assert
+        assert response.status_code == 204
+        db.expire_all()
+        assert db.query(DataSource).filter_by(user_id=user.id, provider="apple").count() == 0
+        assert db.query(DataSource).filter_by(user_id=user.id, provider="suunto").count() == 1
+        assert db.query(EventRecord).filter_by(data_source_id=suunto_ds_id).count() == 1
+        assert db.query(HealthScore).filter_by(user_id=user.id, provider="suunto").count() == 1
+        suunto_conn = db.query(UserConnection).filter_by(user_id=user.id, provider="suunto").one()
+        assert suunto_conn.status == ConnectionStatus.ACTIVE
+
+    def test_delete_data_only_affects_target_user(self, client: TestClient, db: Session) -> None:
+        """Deleting user1's Apple data leaves user2's Apple data intact."""
+        # Arrange
+        user1 = UserFactory()
+        user2 = UserFactory()
+        UserConnectionFactory(user=user1, provider="apple", status=ConnectionStatus.ACTIVE)
+        self._seed_provider_data(user1, "apple")
+        self._seed_provider_data(user2, "apple")
+        api_key = ApiKeyFactory()
+        headers = api_key_headers(api_key.plain_key)
+
+        # Act
+        response = client.delete(f"/api/v1/users/{user1.id}/connections/apple/data", headers=headers)
+
+        # Assert
+        assert response.status_code == 204
+        db.expire_all()
+        assert db.query(DataSource).filter_by(user_id=user1.id, provider="apple").count() == 0
+        assert db.query(DataSource).filter_by(user_id=user2.id, provider="apple").count() == 1
+
+    def test_delete_data_on_revoked_connection_still_deletes(self, client: TestClient, db: Session) -> None:
+        """Data can be purged even when the connection is already revoked."""
+        # Arrange
+        user = UserFactory()
+        UserConnectionFactory(user=user, provider="apple", status=ConnectionStatus.REVOKED)
+        self._seed_provider_data(user, "apple")
+        api_key = ApiKeyFactory()
+        headers = api_key_headers(api_key.plain_key)
+
+        # Act
+        response = client.delete(f"/api/v1/users/{user.id}/connections/apple/data", headers=headers)
+
+        # Assert
+        assert response.status_code == 204
+        db.expire_all()
+        assert db.query(DataSource).filter_by(user_id=user.id, provider="apple").count() == 0
+
+    def test_delete_data_nonexistent_connection_returns_404(self, client: TestClient, db: Session) -> None:
+        """Purging a provider the user was never connected to returns 404."""
+        # Arrange
+        user = UserFactory()
+        api_key = ApiKeyFactory()
+        headers = api_key_headers(api_key.plain_key)
+
+        # Act
+        response = client.delete(f"/api/v1/users/{user.id}/connections/garmin/data", headers=headers)
+
+        # Assert
+        assert response.status_code == 404
+
+    def test_delete_data_missing_api_key(self, client: TestClient, db: Session) -> None:
+        """Request without API key is rejected."""
+        # Arrange
+        user = UserFactory()
+
+        # Act
+        response = client.delete(f"/api/v1/users/{user.id}/connections/apple/data")
+
+        # Assert
+        assert response.status_code == 401
+
+
+class TestDisconnectDeregistration:
+    """Test suite for provider deregistration during disconnect."""
+
+    @patch("httpx.delete")
+    def test_disconnect_calls_garmin_deregistration(
+        self, mock_httpx_delete: MagicMock, client: TestClient, db: Session
+    ) -> None:
+        """Test that disconnecting Garmin calls the deregistration API before revoking."""
+        # Arrange
+        mock_response = MagicMock()
+        mock_response.raise_for_status.return_value = None
+        mock_httpx_delete.return_value = mock_response
+
+        user = UserFactory()
+        UserConnectionFactory(
+            user=user,
+            provider="garmin",
+            status=ConnectionStatus.ACTIVE,
+            access_token="garmin_access_token",
+        )
+        api_key = ApiKeyFactory()
+        headers = api_key_headers(api_key.plain_key)
+
+        # Act
+        response = client.delete(f"/api/v1/users/{user.id}/connections/garmin", headers=headers)
+
+        # Assert
+        assert response.status_code == 204
+        mock_httpx_delete.assert_called_once_with(
+            "https://apis.garmin.com/partner-gateway/rest/user/registration",
+            headers={"Authorization": "Bearer garmin_access_token"},
+            timeout=30.0,
+        )
+        conn = db.query(UserConnection).filter_by(user_id=user.id, provider="garmin").one()
+        assert conn.status == ConnectionStatus.REVOKED
+        assert conn.access_token is None
+
+    @patch("httpx.delete")
+    def test_disconnect_succeeds_when_deregistration_fails(
+        self, mock_httpx_delete: MagicMock, client: TestClient, db: Session
+    ) -> None:
+        """Test that disconnect still works when the provider deregistration API fails."""
+        # Arrange
+        mock_httpx_delete.side_effect = Exception("Network error")
+
+        user = UserFactory()
+        UserConnectionFactory(
+            user=user,
+            provider="garmin",
+            status=ConnectionStatus.ACTIVE,
+            access_token="garmin_access_token",
+        )
+        api_key = ApiKeyFactory()
+        headers = api_key_headers(api_key.plain_key)
+
+        # Act
+        response = client.delete(f"/api/v1/users/{user.id}/connections/garmin", headers=headers)
+
+        # Assert - disconnect still succeeds
+        assert response.status_code == 204
+        conn = db.query(UserConnection).filter_by(user_id=user.id, provider="garmin").one()
+        assert conn.status == ConnectionStatus.REVOKED
+
+    @patch("httpx.delete")
+    def test_disconnect_skips_deregistration_when_no_token(
+        self, mock_httpx_delete: MagicMock, client: TestClient, db: Session
+    ) -> None:
+        """Test that deregistration is skipped when connection has no access token."""
+        # Arrange
+        user = UserFactory()
+        UserConnectionFactory(
+            user=user,
+            provider="garmin",
+            status=ConnectionStatus.ACTIVE,
+            access_token=None,
+        )
+        api_key = ApiKeyFactory()
+        headers = api_key_headers(api_key.plain_key)
+
+        # Act
+        response = client.delete(f"/api/v1/users/{user.id}/connections/garmin", headers=headers)
+
+        # Assert
+        assert response.status_code == 204
+        mock_httpx_delete.assert_not_called()

@@ -1,0 +1,11 @@
+# Next.js auto-generated — do not commit
+next-env.d.ts
+.next/
+out/
+
+# Dependencies
+node_modules/
+
+# Env
+.env
+.env.local

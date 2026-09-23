@@ -1,0 +1,65 @@
+{
+  "id": "practitioner-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "practitioner-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_practitioner" },
+        "submitLabel": { "literalString": "Create Practitioner" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "form-title",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Step 1: Create Practitioner" }, "usageHint": "h2" }
+          },
+          {
+            "id": "form-subtitle",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Enter core demographic details. Names, identifiers, and role will be added in the following steps." }, "usageHint": "caption" }
+          },
+          { "id": "divider-top", "type": "Divider", "properties": {} },
+          {
+            "id": "prac-gender-active-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "gender",
+                  "type": "TerminologySelect",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "Gender (optional)" },
+                    "placeholder": { "literalString": "Search gender…" },
+                    "items": "$gender_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "active",
+                  "type": "CheckBox",
+                  "weight": 1,
+                  "properties": { "label": { "literalString": "Active" }, "value": { "literalBoolean": true } }
+                }
+              ]
+            }
+          },
+          {
+            "id": "birth_date",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Date of Birth (optional)" },
+              "placeholder": { "literalString": "YYYY-MM-DD" },
+              "textFieldType": "date"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

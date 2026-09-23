@@ -1,0 +1,144 @@
+---
+title: "Next.js SDK"
+description: "Server-side FileNest utilities for Next.js App Router."
+---
+
+# Next.js SDK
+
+The `@filenest/nextjs` SDK provides server-side utilities for Next.js App Router — a pre-configured `FileNest` client, an upload token helper, and a webhook verification utility.
+
+## Installation
+
+<PackageTabs pkg="@filenest/nextjs" />
+
+---
+
+## Server-side client
+
+`filenestServer()` creates a `FileNest` Node.js SDK instance pre-configured from environment variables. Use it inside async server components, server actions, and route handlers.
+
+```typescript
+import { filenestServer } from "@filenest/nextjs/server";
+
+const fn = filenestServer({
+  apiKey: process.env.FILENEST_API_KEY!,
+  projectId: process.env.FILENEST_PROJECT_ID!,
+  baseUrl: process.env.FILENEST_API_URL,  // optional, defaults to https://api.filenest.io
+});
+
+// Inside an async server component
+const { items } = await fn.files.list({ status: "ready", limit: 10 });
+
+// Ensure a per-user folder exists before returning an upload token
+const folder = await fn.folders.ensurePath(`users/${session.userId}/uploads`);
+```
+
+`filenestServer()` has the same namespace API as `@filenest/node` — see the [Node.js SDK](/docs/sdks/node) for full method docs.
+
+---
+
+## Upload token endpoint
+
+Your app must expose a token endpoint that the `<FileNestProvider>` will call before each upload. The endpoint authenticates the user and issues a short-lived `fn_upload_token_...` — the API key stays server-side.
+
+```typescript
+// app/api/filenest-token/route.ts
+import { filenestServer } from "@filenest/nextjs/server";
+import { getServerSession } from "@/modules/server/auth/get-session";
+
+export async function POST(req: Request) {
+  const session = await getServerSession();
+  if (!session) return new Response("Unauthorized", { status: 401 });
+
+  const fn = filenestServer({
+    apiKey: process.env.FILENEST_API_KEY!,
+    projectId: process.env.FILENEST_PROJECT_ID!,
+  });
+
+  // Ensure the user's folder hierarchy exists
+  const folder = await fn.folders.ensurePath(`users/${session.user.id}/uploads`);
+
+  const token = await fn.uploadTokens.create({
+    folderId: folder.id,
+    ownerUserId: session.user.id,
+    allowedMimeTypes: ["image/jpeg", "image/png", "image/webp", "application/pdf"],
+    maxSize: 50 * 1024 * 1024,   // 50 MB — must be ≤ project config ceiling
+    maxFiles: 10,
+    expiresIn: 3600,
+    metadata: { uploadedBy: session.user.id },  // stamped on every uploaded file
+    tags: ["user-content"],                      // merged onto every uploaded file
+  });
+
+  // Return both token and expiresAt — the React SDK uses expiresAt to schedule refresh
+  return Response.json({ token: token.token, expiresAt: token.expiresAt });
+}
+```
+
+Point `<FileNestProvider tokenEndpoint="/api/filenest-token">` at this route — it will be called automatically before each upload.
+
+### Custom token fetcher
+
+If you need to pass extra headers or a custom body, use `tokenFetcher` instead of `tokenEndpoint`:
+
+```tsx
+// layout.tsx
+<FileNestProvider
+  projectId={process.env.NEXT_PUBLIC_FILENEST_PROJECT_ID!}
+  tokenFetcher={async () => {
+    const res = await fetch("/api/filenest-token", {
+      method: "POST",
+      headers: { "x-org-id": currentOrgId },
+      body: JSON.stringify({ folderId: "uploads" }),
+    });
+    return res.json(); // { token, expiresAt }
+  }}
+>
+  {children}
+</FileNestProvider>
+```
+
+---
+
+## Webhook verification
+
+```typescript
+// app/api/webhooks/filenest/route.ts
+import { verifyWebhookSignature, parseWebhookEvent } from "@filenest/nextjs/server";
+
+export async function POST(req: Request) {
+  const body = await req.text();
+  const sig = req.headers.get("x-filenest-signature") ?? "";
+  const secret = process.env.FILENEST_WEBHOOK_SECRET!;
+
+  if (!verifyWebhookSignature(body, sig, secret)) {
+    return new Response("Invalid signature", { status: 401 });
+  }
+
+  const event = parseWebhookEvent(body);
+
+  switch (event.type) {
+    case "file.ready":
+      console.log("File ready:", event.data.file_id);
+      break;
+    case "file.failed":
+      console.error("Processing failed:", event.data.file_id);
+      break;
+  }
+
+  return new Response("OK");
+}
+```
+
+The signing secret is the `signing_secret` returned when you create a webhook endpoint. It is shown only once — store it in an environment variable.
+
+---
+
+## Environment variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `FILENEST_API_KEY` | Yes | Server-side API key (`fn_live_...` or `fn_test_...`) |
+| `FILENEST_PROJECT_ID` | Yes | Project ID |
+| `FILENEST_API_URL` | No | Override API base URL (default: `https://api.filenest.io`) |
+| `NEXT_PUBLIC_FILENEST_PROJECT_ID` | Yes | Project ID exposed to the browser for `<FileNestProvider>` |
+| `FILENEST_WEBHOOK_SECRET` | Webhooks only | Signing secret for verifying webhook payloads |

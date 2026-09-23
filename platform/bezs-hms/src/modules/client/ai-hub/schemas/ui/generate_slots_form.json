@@ -1,0 +1,149 @@
+{
+  "id": "generate-slots-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "generate-slots-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "generate_slots" },
+        "submitLabel": { "literalString": "Generate Slots" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Step 2: Configure Slot Generation" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": {
+                "literalString": "Pick the date range within the planning horizon, then set a slot duration. One free slot is created per interval."
+              },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "divider-top", "type": "Divider", "properties": {} },
+
+          {
+            "id": "section-window",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Generation Window" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "section-window-desc",
+            "type": "Text",
+            "properties": {
+              "text": {
+                "literalString": "Slot creation is constrained to the schedule's planning horizon. Dates outside it are greyed out."
+              },
+              "usageHint": "caption"
+            }
+          },
+          {
+            "id": "window-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "generation_start",
+                  "type": "DatePicker",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Start Date" },
+                    "placeholder": { "literalString": "Pick start date…" },
+                    "mode": "single",
+                    "fromDate": "$planning_horizon_start",
+                    "toDate": "$planning_horizon_end",
+                    "captionLayout": "dropdown",
+                    "outputFormat": "yyyy-MM-dd",
+                    "required": true
+                  }
+                },
+                {
+                  "id": "generation_end",
+                  "type": "DatePicker",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "End Date" },
+                    "placeholder": { "literalString": "Pick end date…" },
+                    "mode": "single",
+                    "fromDate": "$planning_horizon_start",
+                    "toDate": "$planning_horizon_end",
+                    "captionLayout": "dropdown",
+                    "outputFormat": "yyyy-MM-dd",
+                    "required": true
+                  }
+                }
+              ]
+            }
+          },
+
+          { "id": "divider-duration", "type": "Divider", "properties": {} },
+          {
+            "id": "section-duration",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Slot Configuration" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "slot_duration_minutes",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Slot Duration (minutes)" },
+              "placeholder": { "literalString": "e.g. 30" },
+              "textFieldType": "shortText"
+            }
+          },
+
+          { "id": "divider-type", "type": "Divider", "properties": {} },
+          {
+            "id": "section-appt-type",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Appointment Type (optional)" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "section-appt-type-desc",
+            "type": "Text",
+            "properties": {
+              "text": {
+                "literalString": "Pre-set only when every slot in this batch shares the same type (e.g. ROUTINE). Leave blank to set the type at booking time instead."
+              },
+              "usageHint": "caption"
+            }
+          },
+          {
+            "id": "appointment_type",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Appointment Type" },
+              "placeholder": { "literalString": "Search appointment types…" },
+              "valueType": { "literalString": "CodeableConcept" },
+              "serverSearch": {
+                "resource": "Slot",
+                "field": "appointmentType",
+                "minChars": 0
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

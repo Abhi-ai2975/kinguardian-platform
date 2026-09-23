@@ -1,0 +1,76 @@
+---
+title: Authentication
+description: How API keys work, how to create and revoke them, and how the gateway validates them.
+---
+
+# Authentication
+
+Watcher uses API keys to authenticate event ingestion. Keys are short-lived tokens scoped to an organisation.
+
+## API key format
+
+```
+wt_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+wt_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+- `wt_live_` — production key; events count against your plan limit
+- `wt_test_` — test key; events are stored but flagged with `environment = "test"` and do not count against limits
+
+## Creating a key
+
+1. Open **Settings → API Keys** in the console
+2. Click **Create key**
+3. Give it a name (e.g. `"backend-prod"`)
+4. Copy the key — it is only shown once
+
+<Callout type="warning" title="Store the key immediately">
+The raw key is only displayed once at creation time. We store only the SHA-256 hash. If you lose the key, revoke it and create a new one.
+</Callout>
+
+## Using a key
+
+Pass it in the `Authorization` header on every ingest request:
+
+```bash
+curl -X POST https://ingest.your-domain.com/v1/events \
+  -H "Authorization: Bearer wt_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{"app_id": "svc", "event_type": "log", "message": "hello"}'
+```
+
+Or configure it in an SDK:
+
+```typescript
+const watcher = new Watcher({ apiKey: process.env.WATCHER_API_KEY });
+```
+
+## Key permissions
+
+All keys are write-only — they can only ingest events, not read them. Reading data (via the console or API) requires an authenticated user session.
+
+## Revoking a key
+
+Go to **Settings → API Keys**, click the three-dot menu next to the key, and select **Revoke**. Revoked keys are rejected immediately with `401 INVALID_API_KEY`.
+
+## How validation works
+
+The gateway validates every ingest request:
+
+1. Extracts `Authorization: Bearer <key>` from the request header
+2. Computes `SHA-256(key)` and looks it up in the IAM database
+3. Checks the key is `active` and not expired
+4. Resolves the key to an organisation ID for event storage
+5. Checks the organisation's monthly event count against its plan limit
+
+The validated organisation ID is attached to the event before it is written to ClickHouse.
+
+## Key expiry
+
+Keys do not expire by default. You can set an optional expiry date when creating a key in the console. Expired keys return `401` just like revoked keys.
+
+## Best practices
+
+- Create one key per service, not one key for all services — this makes it easy to rotate a single service's key without affecting others
+- Rotate production keys every 90 days
+- Never use a server key (`wt_live_`) in browser JavaScript — create a separate key or use the browser SDK which supports limited scope

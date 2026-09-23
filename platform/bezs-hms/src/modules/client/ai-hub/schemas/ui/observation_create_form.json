@@ -1,0 +1,204 @@
+{
+  "id": "observation-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "observation-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_observation" },
+        "submitLabel": { "literalString": "Record Observation" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "obs-form-title",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Record Clinical Observation" }, "usageHint": "h2" }
+          },
+          {
+            "id": "obs-form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Document a clinical observation using a LOINC code with status, value, and performer details. Patient and encounter resolved from session context." },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "obs-divider-top", "type": "Divider", "properties": {} },
+          {
+            "id": "obs-section-code",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Observation Code" }, "usageHint": "h4" }
+          },
+          {
+            "id": "code",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "LOINC Code" },
+              "placeholder": { "literalString": "Search LOINC codes…" },
+              "valueType": { "literalString": "CodeableConcept" },
+              "serverSearch": {
+                "system": "http://loinc.org",
+                "minChars": 2,
+                "debounceMs": 200
+              }
+            }
+          },
+          { "id": "obs-divider-1", "type": "Divider", "properties": {} },
+          {
+            "id": "obs-section-classification",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Classification" }, "usageHint": "h4" }
+          },
+          {
+            "id": "obs-status-category-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "status",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Status" },
+                    "placeholder": { "literalString": "Select status…" },
+                    "items": "$status_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "category",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Category" },
+                    "placeholder": { "literalString": "Select category…" },
+                    "items": "$category_concepts.concepts",
+                    "valueType": { "literalString": "CodeableConcept" }
+                  }
+                }
+              ]
+            }
+          },
+          { "id": "obs-divider-2", "type": "Divider", "properties": {} },
+          {
+            "id": "obs-section-value",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Value" }, "usageHint": "h4" }
+          },
+          {
+            "id": "obs-value-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "value_quantity",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Numeric Value" },
+                    "placeholder": { "literalString": "e.g. 7.4" },
+                    "textFieldType": "number"
+                  }
+                },
+                {
+                  "id": "value_quantity_unit",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Unit" },
+                    "placeholder": { "literalString": "mmHg, L, %" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "interpretation",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Interpretation" },
+                    "placeholder": { "literalString": "Select interpretation…" },
+                    "items": "$interpretation_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "value_string",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Free-text Value (optional)" },
+              "placeholder": { "literalString": "Narrative or qualitative result" },
+              "textFieldType": "shortText"
+            }
+          },
+          { "id": "obs-divider-3", "type": "Divider", "properties": {} },
+          {
+            "id": "obs-section-performer",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Performer & Timing" }, "usageHint": "h4" }
+          },
+          {
+            "id": "performer",
+            "type": "DataSelect",
+            "properties": {
+              "label": { "literalString": "Performer (Practitioner)" },
+              "placeholder": { "literalString": "Search practitioners…" },
+              "items": "$booking_practitioners.data",
+              "labelPath": "practitioner_detail.name.text",
+              "descriptionPath": "specialty.0.coding_display",
+              "emits": [
+                { "key": "ref_id", "path": "practitioner_ref_id" }
+              ]
+            }
+          },
+          {
+            "id": "obs-timing-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "effective_datetime",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Effective Date & Time" },
+                    "enableDate": true,
+                    "enableTime": true
+                  }
+                },
+                {
+                  "id": "issued",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Issued" },
+                    "enableDate": true,
+                    "enableTime": true
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "note",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Notes (optional)" },
+              "placeholder": { "literalString": "Additional clinical notes or context" },
+              "textFieldType": "longText"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,39 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Standalone local dev stack — Redis only.
+#
+# Use this when running fhir-gql on the host (`uv run uvicorn app.main:app
+# --reload`) and you don't want to depend on fhir-server's Docker network —
+# e.g. fhir-server isn't running in Docker, or you're developing fhir-gql
+# against a remote/hosted fhir-server instance.
+#
+# If fhir-server IS running locally via its own docker-compose.dev.yml, you
+# can skip this file entirely and just point REDIS_URL at that instance
+# instead (see CONTRIBUTING.md) — there's no need to run two Redis containers.
+#
+# Usage:
+#   docker compose -f docker-compose.dev.yml up -d
+#
+# Then point your .env at:
+#   REDIS_URL=redis://localhost:6379/0
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: fhir-gql-redis-dev
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_dev_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      start_period: 5s
+      retries: 5
+
+volumes:
+  redis_dev_data:

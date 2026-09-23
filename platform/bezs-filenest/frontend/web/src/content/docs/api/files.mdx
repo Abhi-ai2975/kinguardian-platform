@@ -1,0 +1,323 @@
+---
+title: "Files API"
+description: "Upload, download, list, and delete files via the FileNest REST API."
+---
+
+# Files API
+
+See [Upload Flow & Processing](/docs/concepts/processing) for a full walkthrough of how
+uploads, presigned URLs, and the processing pipeline work together.
+
+## Initiate upload
+
+```
+POST /v1/projects/{project_id}/files/upload
+```
+
+**Required scope:** `files:upload`  
+**Content-Type:** `application/json`
+
+```json
+{
+  "filename": "invoice.pdf",
+  "content_type": "application/pdf",
+  "size_bytes": 204800,
+  "folder_id": null,
+  "metadata": { "invoiceId": "INV-0042" }
+}
+```
+
+**Response `201`:**
+
+```json
+{
+  "file_id": "file_01j...",
+  "upload_url": "https://s3.amazonaws.com/...",
+  "expires_at": "2026-06-21T11:00:00Z"
+}
+```
+
+PUT the file bytes to `upload_url` (no Authorization header needed — the signature
+is embedded in the URL). Then call `/confirm` to trigger the pipeline.
+
+## Confirm upload
+
+```
+POST /v1/projects/{project_id}/files/{file_id}/confirm
+```
+
+**Required scope:** `files:upload`
+
+Call this immediately after the PUT to `upload_url` succeeds. This is the pipeline
+trigger — it transitions the file out of `uploading` and starts virus scan / MIME
+validation if enabled.
+
+**Response `200`:**
+
+```json
+{
+  "id": "file_01j...",
+  "status": "processing"
+}
+```
+
+`status` will be `"processing"` when `virus_scan_enabled` is on, or `"ready"` immediately if not.
+
+## List files
+
+```
+GET /v1/projects/{project_id}/files
+```
+
+**Required scope:** `files:read`
+
+**Query parameters:**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `folder_id` | `string` | Filter to a specific folder |
+| `q` | `string` | Case-insensitive filename search (ILIKE `%q%`) |
+| `tags` | `string` (repeatable) | Return files containing **all** specified tags — `?tags=a&tags=b` |
+| `category` | `string` | Filter by classification category (e.g. `document`, `image`, `video`) |
+| `status` | `string` | Filter by lifecycle status |
+| `date_from` | `string` | ISO 8601 — earliest `created_at` to include |
+| `date_to` | `string` | ISO 8601 — latest `created_at` to include |
+| `size_min` | `number` | Minimum file size in bytes |
+| `size_max` | `number` | Maximum file size in bytes |
+| `metadata` | `string` | JSON object — returns files whose metadata contains **all** key-value pairs (JSONB containment) |
+| `limit` | `number` | Page size (default 50, max 200) |
+| `offset` | `number` | Zero-based page offset for table pagination |
+| `cursor` | `string` | Cursor from `next_cursor` for keyset (infinite-scroll) pagination. Takes priority over `offset`. |
+
+**Response `200`:**
+
+```json
+{
+  "items": [ /* file objects */ ],
+  "total": 142,
+  "limit": 50,
+  "offset": 0,
+  "has_more": true,
+  "next_cursor": "file_01j..."
+}
+```
+
+Use `cursor` / `next_cursor` for infinite scroll; use `offset` for page-number tables.
+`total` is always the full un-paginated count matching the current filters.
+
+## Get a file
+
+```
+GET /v1/projects/{project_id}/files/{file_id}
+```
+
+**Required scope:** `files:read`
+
+## Download a file
+
+```
+GET /v1/projects/{project_id}/files/{file_id}/download
+```
+
+**Required scope:** `files:download`
+
+Returns a presigned download URL. The TTL defaults to the project's `signed_url_ttl_seconds`
+value. When `require_signed_urls` is enabled, the caller cannot override the TTL.
+
+**Query parameters:**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `ttl` | `number` | URL lifetime in seconds (60–86 400). Ignored when `require_signed_urls` is on. |
+
+**Response `200`:**
+
+```json
+{
+  "url": "https://s3.amazonaws.com/...",
+  "expires_at": "2026-06-21T11:00:00Z"
+}
+```
+
+## Tags
+
+See [Metadata & Tags API](/docs/api/metadata) for the full reference. Quick summary:
+
+```
+PUT  /v1/projects/{project_id}/files/{file_id}/tags   # replace full tag set
+POST /v1/projects/{project_id}/files/{file_id}/tags   # add tags (union)
+```
+
+Both require scope `files:update_metadata`.
+
+## Metadata
+
+```
+PUT  /v1/projects/{project_id}/files/{file_id}/metadata   # replace metadata object
+POST /v1/projects/{project_id}/files/{file_id}/metadata   # merge metadata (shallow)
+```
+
+Both require scope `files:update_metadata`. If the project has `enforce_schema = true` and an
+active metadata schema, the payload is validated and a `422` is returned on mismatch.
+
+See [Metadata & Tags API](/docs/api/metadata) for schema management and filtering.
+
+## Move to folder
+
+```
+POST /v1/projects/{project_id}/files/{file_id}/move
+```
+
+**Required scope:** `files:update_metadata`
+
+```json
+{ "folder_id": "fld_01j..." }
+```
+
+Set `folder_id` to `null` to move the file back to the project root. See [Folders API](/docs/api/folders).
+
+## Delete a file
+
+```
+DELETE /v1/projects/{project_id}/files/{file_id}
+```
+
+**Required scope:** `files:delete`
+
+Soft-deletes the file by setting `deleted_at`. The storage object is removed by a
+background job. Files under a legal hold cannot be deleted (Phase 8).
+
+---
+
+## File versions
+
+### List versions
+
+```
+GET /v1/projects/{project_id}/files/{file_id}/versions
+```
+
+**Required scope:** `files:read`
+
+Returns all version snapshots, newest first. Requires `versioning_enabled = true` on the project.
+
+### Download a version
+
+```
+GET /v1/projects/{project_id}/files/{file_id}/versions/{version_id}/download
+```
+
+**Required scope:** `files:download`
+
+Same TTL rules as the main download endpoint.
+
+### Restore a version
+
+```
+POST /v1/projects/{project_id}/files/{file_id}/versions/{version_id}/restore
+```
+
+**Required scope:** `files:update_metadata`
+
+Sets the file's current `storage_key`, `size_bytes`, and `content_type` to match the
+chosen version. Creates a new version row capturing the restore event.
+
+---
+
+## Multipart upload
+
+Use multipart for files over 100 MB or when you need to resume an interrupted upload.
+
+### Start
+
+```
+POST /v1/projects/{project_id}/files/upload/multipart/start
+```
+
+**Required scope:** `files:upload`
+
+```json
+{
+  "filename": "recording.mp4",
+  "content_type": "video/mp4",
+  "total_size_bytes": 1073741824,
+  "folder_id": null,
+  "metadata": {}
+}
+```
+
+**Response `201`:**
+
+```json
+{ "upload_id": "session_01j...", "file_id": "file_01j..." }
+```
+
+### Get a part URL
+
+```
+GET /v1/projects/{project_id}/files/upload/multipart/{upload_id}/part-url
+```
+
+**Required scope:** `files:upload`
+
+**Query parameters:**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `part` | `number` | 1-based part number (max 10 000) |
+| `ttl` | `number` | URL TTL in seconds. Ignored when `require_signed_urls` is on. |
+
+**Response `200`:**
+
+```json
+{
+  "upload_id": "session_01j...",
+  "part_number": 1,
+  "url": "https://s3.amazonaws.com/...",
+  "expires_at": "2026-06-21T11:00:00Z"
+}
+```
+
+PUT the bytes for that part to `url`. Save the `ETag` from the response — you need it in `complete`.
+
+### Complete
+
+```
+POST /v1/projects/{project_id}/files/upload/multipart/{upload_id}/complete
+```
+
+**Required scope:** `files:upload`
+
+```json
+{
+  "parts": [
+    { "part_number": 1, "etag": "\"d41d8cd9...\"" },
+    { "part_number": 2, "etag": "\"b6d81b36...\"" }
+  ]
+}
+```
+
+Assembles all parts into the final object and triggers the processing pipeline (same
+as `confirm` for single-file uploads).
+
+### Abort
+
+```
+DELETE /v1/projects/{project_id}/files/upload/multipart/{upload_id}
+```
+
+**Required scope:** `files:upload`
+
+Instructs S3 to discard all uploaded parts and marks the file `failed`.
+
+---
+
+## Error codes
+
+| Status | Code | Meaning |
+|--------|------|---------|
+| `403` | `PERMISSION_DENIED` | IP not in project allowlist |
+| `404` | `NOT_FOUND` | File does not exist or is deleted |
+| `409` | `CONFLICT` | File quarantined — virus detected |
+| `413` | `FILE_TOO_LARGE` | File exceeds the project's max upload size |
+| `422` | `VALIDATION_ERROR` | Content type or extension not allowed by project config |

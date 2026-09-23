@@ -1,0 +1,184 @@
+{
+  "id": "create_diagnostic_report",
+  "name": "Create Diagnostic Report with Observation",
+  "description": "Create a diagnostic report for the current patient and then link an observation result to it in two steps.",
+  "version": "1.0.0",
+  "tags": [
+    "fhir",
+    "diagnostic-report",
+    "observation",
+    "results",
+    "laboratory",
+    "create",
+    "healthcare"
+  ],
+  "llm_hints": {
+    "intent_examples": [
+      "Create a diagnostic report",
+      "Record lab results",
+      "Add a diagnostic report with observations",
+      "Create a lab report",
+      "Record a test result with a report"
+    ],
+    "when_to_use": [
+      "User wants to create a DiagnosticReport resource",
+      "User wants to record laboratory or imaging results",
+      "User wants to link an observation to a diagnostic report"
+    ],
+    "when_not_to_use": [
+      "User wants to record a simple observation without a report",
+      "User wants to book an appointment"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you create a diagnostic report and add a linked observation result in 2 steps.",
+  "completion": {
+    "message": "Diagnostic report and observation recorded successfully.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "create_diagnostic_report_resource",
+      "name": "Create Diagnostic Report",
+      "step_type": "form",
+      "description": "Enter the diagnostic report details including report code, status, performer, and conclusion.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "field": "me_patient.id"
+          },
+          "diagnostic_report_id": {
+            "type": "integer",
+            "resource": "DiagnosticReport",
+            "field": "id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Resolve current patient from session.",
+          "context_key": "me_patient",
+          "tool_name": "get_my_patient",
+          "url": "$fhir_gql_url/patients/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch diagnostic report status value set.",
+          "context_key": "status_concepts",
+          "tool_name": "get_diagnostic_report_status_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=DiagnosticReport&field=status",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch diagnostic report category value set.",
+          "context_key": "category_concepts",
+          "tool_name": "get_diagnostic_report_category_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=DiagnosticReport&field=category",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Load practitioners available for booking.",
+          "context_key": "booking_practitioners",
+          "tool_name": "list_practitioners_for_booking",
+          "url": "$fhir_gql_url/practitioner-roles/booking",
+          "method": "GET",
+          "timeout_ms": 10000
+        }
+      ],
+      "ui": {
+        "schema": "diagnostic_report_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_diagnostic_report",
+          "tool_name": "create_diagnostic_report",
+          "url": "$fhir_gql_url/diagnostic-reports/",
+          "method": "POST",
+          "validation_schema": "diagnostic_report_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    },
+    {
+      "sequence_number": 2,
+      "id": "add_linked_observation",
+      "name": "Add Result Observation",
+      "step_type": "form",
+      "description": "Record the observation result value linked to the diagnostic report created in step 1.",
+      "context": {
+        "inputs": {
+          "diagnostic_report_id": { "type": "integer", "source": "workflow" }
+        },
+        "outputs": {}
+      },
+      "context_resolvers": [
+        {
+          "description": "Verify diagnostic report exists.",
+          "tool_name": "get_diagnostic_report_by_id",
+          "url": "$fhir_gql_url/diagnostic-reports/$diagnostic_report_id",
+          "method": "GET",
+          "timeout_ms": 10000
+        },
+        {
+          "description": "Fetch observation status value set.",
+          "context_key": "status_concepts",
+          "tool_name": "get_observation_status_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Observation&field=status",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch observation interpretation value set.",
+          "context_key": "interpretation_concepts",
+          "tool_name": "get_observation_interpretation_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Observation&field=interpretation",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Resolve current patient from session.",
+          "context_key": "me_patient",
+          "tool_name": "get_my_patient",
+          "url": "$fhir_gql_url/patients/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "diagnostic_report_observation_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_observation",
+          "tool_name": "create_observation",
+          "url": "$fhir_gql_url/observations/",
+          "method": "POST",
+          "validation_schema": "diagnostic_report_observation_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    }
+  ]
+}

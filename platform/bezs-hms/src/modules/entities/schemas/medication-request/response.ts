@@ -1,0 +1,272 @@
+/**
+ * MedicationRequest response schemas.
+ *
+ * Layer: entities / schemas / medication-request
+ *
+ * Mirrors the fhir-gql PlainMedicationRequest* response shapes exactly.
+ * All optional fields use .nullish() — the API returns explicit JSON null, not missing keys.
+ */
+
+import { z } from "zod";
+
+// ── Sub-resource response schemas ─────────────────────────────────────────────
+
+export const MedicationRequestIdentifierResponseSchema = z.object({
+  id: z.number(),
+  use: z.string().nullish(),
+  type_system: z.string().nullish(),
+  type_code: z.string().nullish(),
+  type_display: z.string().nullish(),
+  type_text: z.string().nullish(),
+  system: z.string().nullish(),
+  value: z.string().nullish(),
+  period_start: z.string().nullish(),
+  period_end: z.string().nullish(),
+  assigner: z.string().nullish(),
+});
+
+export const MedicationRequestCategoryResponseSchema = z.object({
+  id: z.number(),
+  coding_system: z.string().nullish(),
+  coding_code: z.string().nullish(),
+  coding_display: z.string().nullish(),
+  text: z.string().nullish(),
+});
+
+const RefItemSchema = z.object({
+  id: z.number(),
+  reference_type: z.string().nullish(),
+  reference_id: z.number().nullish(),
+  reference_display: z.string().nullish(),
+});
+
+export const MedicationRequestSupportingInfoResponseSchema = RefItemSchema;
+export const MedicationRequestReasonCodeResponseSchema = z.object({
+  id: z.number(),
+  coding_system: z.string().nullish(),
+  coding_code: z.string().nullish(),
+  coding_display: z.string().nullish(),
+  text: z.string().nullish(),
+});
+export const MedicationRequestReasonReferenceResponseSchema = RefItemSchema;
+export const MedicationRequestBasedOnResponseSchema = RefItemSchema;
+export const MedicationRequestInsuranceResponseSchema = RefItemSchema;
+
+export const MedicationRequestNoteResponseSchema = z.object({
+  id: z.number(),
+  text: z.string().nullish(),
+  time: z.string().nullish(),
+  author_string: z.string().nullish(),
+  author_reference_type: z.string().nullish(),
+  author_reference_id: z.number().nullish(),
+  author_reference_display: z.string().nullish(),
+});
+
+export const MedicationRequestAdditionalInstructionResponseSchema = z.object({
+  id: z.number(),
+  coding_system: z.string().nullish(),
+  coding_code: z.string().nullish(),
+  coding_display: z.string().nullish(),
+  text: z.string().nullish(),
+});
+
+export const MedicationRequestDoseAndRateResponseSchema = z.object({
+  id: z.number(),
+  type_system: z.string().nullish(),
+  type_code: z.string().nullish(),
+  type_display: z.string().nullish(),
+  dose_quantity_value: z.number().nullish(),
+  dose_quantity_unit: z.string().nullish(),
+  dose_quantity_system: z.string().nullish(),
+  dose_quantity_code: z.string().nullish(),
+  dose_range_low_value: z.number().nullish(),
+  dose_range_low_unit: z.string().nullish(),
+  dose_range_high_value: z.number().nullish(),
+  dose_range_high_unit: z.string().nullish(),
+  rate_ratio_numerator_value: z.number().nullish(),
+  rate_ratio_numerator_unit: z.string().nullish(),
+  rate_ratio_denominator_value: z.number().nullish(),
+  rate_ratio_denominator_unit: z.string().nullish(),
+  rate_range_low_value: z.number().nullish(),
+  rate_range_low_unit: z.string().nullish(),
+  rate_range_high_value: z.number().nullish(),
+  rate_range_high_unit: z.string().nullish(),
+  rate_quantity_value: z.number().nullish(),
+  rate_quantity_unit: z.string().nullish(),
+  rate_quantity_system: z.string().nullish(),
+  rate_quantity_code: z.string().nullish(),
+});
+
+export const MedicationRequestDosageInstructionResponseSchema = z.object({
+  id: z.number(),
+  sequence: z.number().nullish(),
+  text: z.string().nullish(),
+  patient_instruction: z.string().nullish(),
+  as_needed_boolean: z.boolean().nullish(),
+  as_needed_system: z.string().nullish(),
+  as_needed_code: z.string().nullish(),
+  as_needed_display: z.string().nullish(),
+  as_needed_text: z.string().nullish(),
+  site_system: z.string().nullish(),
+  site_code: z.string().nullish(),
+  site_display: z.string().nullish(),
+  site_text: z.string().nullish(),
+  route_system: z.string().nullish(),
+  route_code: z.string().nullish(),
+  route_display: z.string().nullish(),
+  route_text: z.string().nullish(),
+  method_system: z.string().nullish(),
+  method_code: z.string().nullish(),
+  method_display: z.string().nullish(),
+  method_text: z.string().nullish(),
+  timing_code_system: z.string().nullish(),
+  timing_code_code: z.string().nullish(),
+  timing_code_display: z.string().nullish(),
+  timing_repeat_bounds_start: z.string().nullish(),
+  timing_repeat_bounds_end: z.string().nullish(),
+  timing_repeat_count: z.number().nullish(),
+  timing_repeat_count_max: z.number().nullish(),
+  timing_repeat_duration: z.number().nullish(),
+  timing_repeat_duration_max: z.number().nullish(),
+  timing_repeat_duration_unit: z.string().nullish(),
+  timing_repeat_frequency: z.number().nullish(),
+  timing_repeat_frequency_max: z.number().nullish(),
+  timing_repeat_period: z.number().nullish(),
+  timing_repeat_period_max: z.number().nullish(),
+  timing_repeat_period_unit: z.string().nullish(),
+  timing_repeat_day_of_week: z.string().nullish(),
+  timing_repeat_time_of_day: z.string().nullish(),
+  timing_repeat_when: z.string().nullish(),
+  timing_repeat_offset: z.number().nullish(),
+  max_dose_per_period_numerator_value: z.number().nullish(),
+  max_dose_per_period_numerator_unit: z.string().nullish(),
+  max_dose_per_period_denominator_value: z.number().nullish(),
+  max_dose_per_period_denominator_unit: z.string().nullish(),
+  max_dose_per_administration_value: z.number().nullish(),
+  max_dose_per_administration_unit: z.string().nullish(),
+  max_dose_per_lifetime_value: z.number().nullish(),
+  max_dose_per_lifetime_unit: z.string().nullish(),
+  additional_instruction: z.array(MedicationRequestAdditionalInstructionResponseSchema).nullish(),
+  dose_and_rate: z.array(MedicationRequestDoseAndRateResponseSchema).nullish(),
+});
+
+export const MedicationRequestDetectedIssueResponseSchema = RefItemSchema;
+export const MedicationRequestEventHistoryResponseSchema = RefItemSchema;
+
+// ── Top-level response schema ─────────────────────────────────────────────────
+
+export const MedicationRequestResponseSchema = z.object({
+  id: z.number(),
+  user_id: z.string().nullish(),
+  org_id: z.string().nullish(),
+  status: z.string().nullish(),
+  intent: z.string().nullish(),
+  priority: z.string().nullish(),
+  do_not_perform: z.boolean().nullish(),
+  status_reason_system: z.string().nullish(),
+  status_reason_code: z.string().nullish(),
+  status_reason_display: z.string().nullish(),
+  status_reason_text: z.string().nullish(),
+  medication_code_system: z.string().nullish(),
+  medication_code_code: z.string().nullish(),
+  medication_code_display: z.string().nullish(),
+  medication_code_text: z.string().nullish(),
+  medication_reference_type: z.string().nullish(),
+  medication_reference_id: z.number().nullish(),
+  medication_reference_display: z.string().nullish(),
+  subject_type: z.string().nullish(),
+  subject_id: z.number().nullish(),
+  subject_display: z.string().nullish(),
+  encounter_id: z.number().nullish(),
+  encounter_display: z.string().nullish(),
+  authored_on: z.string().nullish(),
+  reported_boolean: z.boolean().nullish(),
+  reported_reference_type: z.string().nullish(),
+  reported_reference_id: z.number().nullish(),
+  reported_reference_display: z.string().nullish(),
+  requester_type: z.string().nullish(),
+  requester_id: z.number().nullish(),
+  requester_display: z.string().nullish(),
+  performer_type: z.string().nullish(),
+  performer_id: z.number().nullish(),
+  performer_display: z.string().nullish(),
+  performer_type_system: z.string().nullish(),
+  performer_type_code: z.string().nullish(),
+  performer_type_display: z.string().nullish(),
+  performer_type_text: z.string().nullish(),
+  recorder_type: z.string().nullish(),
+  recorder_id: z.number().nullish(),
+  recorder_display: z.string().nullish(),
+  group_identifier_use: z.string().nullish(),
+  group_identifier_type_system: z.string().nullish(),
+  group_identifier_type_code: z.string().nullish(),
+  group_identifier_type_display: z.string().nullish(),
+  group_identifier_type_text: z.string().nullish(),
+  group_identifier_system: z.string().nullish(),
+  group_identifier_value: z.string().nullish(),
+  group_identifier_period_start: z.string().nullish(),
+  group_identifier_period_end: z.string().nullish(),
+  group_identifier_assigner: z.string().nullish(),
+  course_of_therapy_type_system: z.string().nullish(),
+  course_of_therapy_type_code: z.string().nullish(),
+  course_of_therapy_type_display: z.string().nullish(),
+  course_of_therapy_type_text: z.string().nullish(),
+  prior_prescription_type: z.string().nullish(),
+  prior_prescription_id: z.number().nullish(),
+  prior_prescription_display: z.string().nullish(),
+  instantiates_canonical: z.string().nullish(),
+  instantiates_uri: z.string().nullish(),
+  dispense_initial_fill_quantity_value: z.number().nullish(),
+  dispense_initial_fill_quantity_unit: z.string().nullish(),
+  dispense_initial_fill_quantity_system: z.string().nullish(),
+  dispense_initial_fill_quantity_code: z.string().nullish(),
+  dispense_initial_fill_duration_value: z.number().nullish(),
+  dispense_initial_fill_duration_unit: z.string().nullish(),
+  dispense_interval_value: z.number().nullish(),
+  dispense_interval_unit: z.string().nullish(),
+  dispense_validity_period_start: z.string().nullish(),
+  dispense_validity_period_end: z.string().nullish(),
+  dispense_number_of_repeats_allowed: z.number().nullish(),
+  dispense_quantity_value: z.number().nullish(),
+  dispense_quantity_unit: z.string().nullish(),
+  dispense_quantity_system: z.string().nullish(),
+  dispense_quantity_code: z.string().nullish(),
+  dispense_expected_supply_duration_value: z.number().nullish(),
+  dispense_expected_supply_duration_unit: z.string().nullish(),
+  dispense_performer_type: z.string().nullish(),
+  dispense_performer_id: z.number().nullish(),
+  dispense_performer_display: z.string().nullish(),
+  substitution_allowed_boolean: z.boolean().nullish(),
+  substitution_allowed_system: z.string().nullish(),
+  substitution_allowed_code: z.string().nullish(),
+  substitution_allowed_display: z.string().nullish(),
+  substitution_allowed_text: z.string().nullish(),
+  substitution_reason_system: z.string().nullish(),
+  substitution_reason_code: z.string().nullish(),
+  substitution_reason_display: z.string().nullish(),
+  substitution_reason_text: z.string().nullish(),
+  created_at: z.string().nullish(),
+  updated_at: z.string().nullish(),
+  created_by: z.string().nullish(),
+  updated_by: z.string().nullish(),
+  identifier: z.array(MedicationRequestIdentifierResponseSchema).nullish(),
+  category: z.array(MedicationRequestCategoryResponseSchema).nullish(),
+  supporting_info: z.array(MedicationRequestSupportingInfoResponseSchema).nullish(),
+  reason_code: z.array(MedicationRequestReasonCodeResponseSchema).nullish(),
+  reason_reference: z.array(MedicationRequestReasonReferenceResponseSchema).nullish(),
+  based_on: z.array(MedicationRequestBasedOnResponseSchema).nullish(),
+  insurance: z.array(MedicationRequestInsuranceResponseSchema).nullish(),
+  note: z.array(MedicationRequestNoteResponseSchema).nullish(),
+  dosage_instruction: z.array(MedicationRequestDosageInstructionResponseSchema).nullish(),
+  detected_issue: z.array(MedicationRequestDetectedIssueResponseSchema).nullish(),
+  event_history: z.array(MedicationRequestEventHistoryResponseSchema).nullish(),
+});
+export type TMedicationRequestResponse = z.infer<typeof MedicationRequestResponseSchema>;
+
+export const PaginatedMedicationRequestResponseSchema = z.object({
+  total: z.number(),
+  limit: z.number(),
+  offset: z.number(),
+  data: z.array(MedicationRequestResponseSchema),
+});
+export type TPaginatedMedicationRequestResponse = z.infer<typeof PaginatedMedicationRequestResponseSchema>;

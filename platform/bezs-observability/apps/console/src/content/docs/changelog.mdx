@@ -1,0 +1,40 @@
+---
+title: Changelog
+description: Release history for Watcher.
+---
+
+# Changelog
+
+## v0.1.0 — MVP
+
+_May 2025_
+
+Initial MVP release. Watcher is now open for early access.
+
+### Added
+
+- **Event ingestion gateway** — Go service accepting HTTP events from SDKs; validates API keys and publishes to Redis Streams
+- **Analytics pipeline** — Python worker consuming the Redis stream and bulk-inserting into ClickHouse
+- **Realtime service** — Go WebSocket fan-out so the console shows new events without polling
+- **Console** — Next.js dashboard with:
+  - Overview tab with 24-hour stats and hourly event chart
+  - Logs, Traces, Metrics, and Audit explorers
+  - Org switcher with multi-org support
+  - Settings: organisation, members, teams, API keys, billing
+  - Billing: Stripe subscription, usage meter, plan comparison
+  - Documentation site (this site)
+- **IAM service** — Next.js app with Better Auth powering sign-up, login, org management, API keys, and Stripe billing
+- **JavaScript SDK** — `@watcher24/js-sdk` for Node.js and browsers
+- **Python SDK** — `watcher24-sdk` for synchronous and async Python
+
+### Platforms
+
+- Node.js 18+
+- Python 3.9+
+- PostgreSQL 15
+- ClickHouse 24+
+- Redis 7+
+
+---
+
+Older versions will appear here as the project grows.

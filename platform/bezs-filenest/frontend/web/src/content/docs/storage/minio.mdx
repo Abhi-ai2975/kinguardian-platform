@@ -1,0 +1,61 @@
+---
+title: "MinIO"
+description: "Connect a FileNest project to a self-hosted MinIO instance."
+---
+
+# MinIO
+
+MinIO is an S3-compatible object storage server designed for on-premises and private cloud deployments.
+
+## Prerequisites
+
+- A running MinIO instance accessible from the FileNest API
+- A bucket created in MinIO
+- An access key + secret key with read/write access to the bucket
+
+## Connecting MinIO
+
+```bash
+curl -X PATCH https://api.filenest.io/v1/projects/{id}/storage \
+  -H "Authorization: Bearer fn_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "minio",
+    "storage_mode": "byob",
+    "bucket_name": "company-files",
+    "endpoint_url": "https://minio.internal.example.com",
+    "access_key_id": "minio-access-key",
+    "secret_access_key": "minio-secret-key"
+  }'
+```
+
+<Callout type="note">
+The `endpoint_url` must be reachable from the FileNest API server. Self-signed TLS certificates are not supported — use a CA-signed cert or disable TLS at the endpoint and use HTTP only.
+</Callout>
+
+## Server-side encryption (SSE)
+
+MinIO SSE is **off by default** and can be toggled per project. When enabled, FileNest sends `ServerSideEncryption: AES256` on every upload.
+
+**Requirement:** your MinIO server must have a KMS key configured before enabling SSE:
+
+```bash
+# Set on the MinIO server process (not in FileNest)
+export MINIO_KMS_SECRET_KEY="my-key:base64encodedvalue="
+```
+
+Enable SSE via the Console (Project Settings → Storage → Encryption) or the API:
+
+```bash
+curl -X PATCH https://api.filenest.io/v1/projects/{id}/storage/sse \
+  -H "Authorization: Bearer fn_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{ "sse_enabled": true }'
+```
+
+## Verify connectivity
+
+```bash
+curl -X POST https://api.filenest.io/v1/projects/{id}/storage/verify \
+  -H "Authorization: Bearer fn_live_..."
+```

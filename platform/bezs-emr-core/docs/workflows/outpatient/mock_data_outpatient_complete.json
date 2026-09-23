@@ -1,0 +1,1432 @@
+{
+  "scenario": {
+    "title": "Complete Outpatient Visit — Chest Pain Workup",
+    "patient": "Rahul Sharma",
+    "provider": "Dr. Arjun Kumar (Cardiologist)",
+    "facility": "City Care Hospital, Chennai",
+    "date": "2026-05-20",
+    "summary": "Patient presents with 2 days of chest pain. Vitals recorded, Hypertension diagnosed, CBC and ECG ordered, lab results returned, Amlodipine prescribed, ECG performed, Blood Glucose Monitor ordered, invoice generated, insurance claim filed and approved, encounter closed."
+  },
+
+  "workflow": [
+    {
+      "step": 1,
+      "name": "Organization Setup",
+      "description": "Create the hospital/clinic entity first. All practitioners, services, and billing reference this.",
+      "api": "POST /organizations",
+      "resources": [
+        {
+          "resourceType": "Organization",
+          "id": "190001",
+          "active": true,
+          "name": "City Care Hospital",
+          "telecom": [
+            { "system": "phone", "value": "+91-9876543210" },
+            { "system": "email", "value": "info@citycarehosp.in" }
+          ],
+          "address": [
+            {
+              "line": ["12, Anna Salai"],
+              "city": "Chennai",
+              "state": "Tamil Nadu",
+              "postalCode": "600002",
+              "country": "India"
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "step": 2,
+      "name": "Practitioner Creation",
+      "description": "Create the doctor. PractitionerRole links the doctor to the hospital and their specialty.",
+      "api": "POST /practitioners  |  POST /practitioner-roles",
+      "resources": [
+        {
+          "resourceType": "Practitioner",
+          "id": "30001",
+          "active": true,
+          "name": [
+            {
+              "use": "official",
+              "prefix": ["Dr."],
+              "given": ["Arjun"],
+              "family": "Kumar",
+              "text": "Dr. Arjun Kumar"
+            }
+          ],
+          "gender": "male",
+          "birthDate": "1980-03-15",
+          "qualification": [
+            { "code": { "text": "MBBS" } },
+            { "code": { "text": "DM Cardiology" } }
+          ],
+          "telecom": [
+            { "system": "phone", "value": "+91-9000011111" },
+            { "system": "email", "value": "arjun.kumar@citycarehosp.in" }
+          ]
+        },
+        {
+          "resourceType": "PractitionerRole",
+          "id": "140001",
+          "active": true,
+          "practitioner": {
+            "reference": "Practitioner/30001",
+            "display": "Dr. Arjun Kumar"
+          },
+          "organization": {
+            "reference": "Organization/190001",
+            "display": "City Care Hospital"
+          },
+          "specialty": [
+            {
+              "coding": [{ "code": "394579002", "display": "Cardiology" }],
+              "text": "Cardiology"
+            }
+          ],
+          "availableTime": [
+            {
+              "daysOfWeek": ["mon", "tue", "wed", "thu", "fri"],
+              "availableStartTime": "09:00:00",
+              "availableEndTime": "17:00:00"
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "step": 3,
+      "name": "HealthcareService Setup",
+      "description": "Defines the services offered by the hospital. Appointments are booked against a service.",
+      "api": "POST /healthcare-services",
+      "resources": [
+        {
+          "resourceType": "HealthcareService",
+          "id": "150001",
+          "active": true,
+          "providedBy": {
+            "reference": "Organization/190001",
+            "display": "City Care Hospital"
+          },
+          "name": "Cardiology Outpatient Consultation",
+          "comment": "OP consultation for cardiac conditions including hypertension, arrhythmia, and heart failure.",
+          "type": [{ "text": "Cardiology" }],
+          "specialty": [{ "text": "Cardiology" }],
+          "telecom": [{ "system": "phone", "value": "+91-9876500001" }],
+          "appointmentRequired": true,
+          "availableTime": [
+            {
+              "daysOfWeek": ["mon", "tue", "wed", "thu", "fri"],
+              "availableStartTime": "09:00:00",
+              "availableEndTime": "13:00:00"
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "step": 4,
+      "name": "Schedule Creation",
+      "description": "Defines the planning horizon for Dr. Arjun Kumar's availability.",
+      "api": "POST /schedules",
+      "resources": [
+        {
+          "resourceType": "Schedule",
+          "id": "200001",
+          "active": true,
+          "actor": [
+            { "reference": "Practitioner/30001", "display": "Dr. Arjun Kumar" },
+            {
+              "reference": "HealthcareService/150001",
+              "display": "Cardiology Outpatient Consultation"
+            }
+          ],
+          "planningHorizon": {
+            "start": "2026-05-01T09:00:00+05:30",
+            "end": "2026-05-31T17:00:00+05:30"
+          },
+          "comment": "Cardiology OP schedule for May 2026"
+        }
+      ]
+    },
+
+    {
+      "step": 5,
+      "name": "Slot Creation",
+      "description": "Individual 15-minute appointment windows under the schedule.",
+      "api": "POST /slots",
+      "resources": [
+        {
+          "resourceType": "Slot",
+          "id": "220001",
+          "schedule": { "reference": "Schedule/200001" },
+          "status": "free",
+          "start": "2026-05-20T10:00:00+05:30",
+          "end": "2026-05-20T10:15:00+05:30",
+          "comment": "Cardiology OP slot — Dr. Arjun Kumar, 20 May 2026 10:00 AM"
+        },
+        {
+          "resourceType": "Slot",
+          "id": "220002",
+          "schedule": { "reference": "Schedule/200001" },
+          "status": "free",
+          "start": "2026-05-20T10:15:00+05:30",
+          "end": "2026-05-20T10:30:00+05:30",
+          "comment": "Cardiology OP slot — Dr. Arjun Kumar, 20 May 2026 10:15 AM"
+        },
+        {
+          "resourceType": "Slot",
+          "id": "220003",
+          "schedule": { "reference": "Schedule/200001" },
+          "status": "free",
+          "start": "2026-05-20T10:30:00+05:30",
+          "end": "2026-05-20T10:45:00+05:30",
+          "comment": "Cardiology OP slot — Dr. Arjun Kumar, 20 May 2026 10:30 AM"
+        }
+      ]
+    },
+
+    {
+      "step": 6,
+      "name": "Patient Registration",
+      "description": "Patient demographic record created at first visit or self-registration.",
+      "api": "POST /patients",
+      "resources": [
+        {
+          "resourceType": "Patient",
+          "id": "10001",
+          "active": true,
+          "name": [
+            {
+              "use": "official",
+              "given": ["Rahul"],
+              "family": "Sharma",
+              "text": "Rahul Sharma"
+            }
+          ],
+          "gender": "male",
+          "birthDate": "1995-04-12",
+          "telecom": [
+            { "system": "phone", "value": "+91-9988776655" },
+            { "system": "email", "value": "rahul.sharma@example.com" }
+          ],
+          "address": [
+            {
+              "line": ["45, T Nagar"],
+              "city": "Chennai",
+              "state": "Tamil Nadu",
+              "postalCode": "600017",
+              "country": "India"
+            }
+          ],
+          "identifier": [
+            { "system": "https://citycarehosp.in/mrn", "value": "MRN-100001" }
+          ]
+        }
+      ]
+    },
+
+    {
+      "step": 7,
+      "name": "Intake Form Submission",
+      "description": "Patient fills out pre-consultation form — chief complaint, history, consent.",
+      "api": "POST /questionnaire-responses",
+      "resources": [
+        {
+          "resourceType": "QuestionnaireResponse",
+          "id": "60001",
+          "status": "completed",
+          "subject": {
+            "reference": "Patient/10001",
+            "display": "Rahul Sharma"
+          },
+          "authored": "2026-05-20T09:30:00+05:30",
+          "item": [
+            {
+              "linkId": "1",
+              "text": "Chief Complaint",
+              "answer": [{ "valueString": "Chest pain for the past 2 days" }]
+            },
+            {
+              "linkId": "2",
+              "text": "Pain location",
+              "answer": [
+                { "valueString": "Central chest, radiates to left arm" }
+              ]
+            },
+            {
+              "linkId": "3",
+              "text": "Pain severity (1-10)",
+              "answer": [{ "valueInteger": 6 }]
+            },
+            {
+              "linkId": "4",
+              "text": "Previous medical history",
+              "answer": [
+                {
+                  "valueString": "No known chronic conditions. Father has hypertension."
+                }
+              ]
+            },
+            {
+              "linkId": "5",
+              "text": "Current medications",
+              "answer": [{ "valueString": "None" }]
+            },
+            {
+              "linkId": "6",
+              "text": "Allergies",
+              "answer": [{ "valueString": "No known drug allergies" }]
+            },
+            {
+              "linkId": "7",
+              "text": "Consent to treatment",
+              "answer": [{ "valueBoolean": true }]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "step": 8,
+      "name": "Appointment Booking",
+      "description": "Patient books the 10:00 AM slot with Dr. Arjun Kumar. Slot status changes to busy.",
+      "api": "POST /appointments  |  PATCH /slots/220001 (status: busy)",
+      "resources": [
+        {
+          "resourceType": "Appointment",
+          "id": "40001",
+          "status": "booked",
+          "serviceType": [{ "text": "Cardiology Consultation" }],
+          "specialty": [{ "text": "Cardiology" }],
+          "reasonCode": [{ "text": "Chest pain evaluation" }],
+          "slot": [{ "reference": "Slot/220001" }],
+          "start": "2026-05-20T10:00:00+05:30",
+          "end": "2026-05-20T10:15:00+05:30",
+          "created": "2026-05-19T18:00:00+05:30",
+          "comment": "Patient reports 2-day history of chest pain",
+          "participant": [
+            {
+              "actor": {
+                "reference": "Patient/10001",
+                "display": "Rahul Sharma"
+              },
+              "required": "required",
+              "status": "accepted"
+            },
+            {
+              "actor": {
+                "reference": "Practitioner/30001",
+                "display": "Dr. Arjun Kumar"
+              },
+              "required": "required",
+              "status": "accepted"
+            },
+            {
+              "actor": {
+                "reference": "HealthcareService/150001",
+                "display": "Cardiology Outpatient Consultation"
+              },
+              "required": "information-only",
+              "status": "accepted"
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "step": 9,
+      "name": "Patient Check-in — Appointment Status Update",
+      "description": "Patient arrives. Appointment status updated to arrived/fulfilled. Encounter is then created.",
+      "api": "PATCH /appointments/40001",
+      "resources": [
+        {
+          "resourceType": "Appointment",
+          "id": "40001",
+          "status": "arrived",
+          "_note": "PATCH: update status from 'booked' to 'arrived' when patient checks in at front desk"
+        }
+      ]
+    },
+
+    {
+      "step": 10,
+      "name": "Encounter Creation",
+      "description": "Actual clinical visit begins. Encounter links the appointment, patient, provider, and organization.",
+      "api": "POST /encounters",
+      "resources": [
+        {
+          "resourceType": "Encounter",
+          "id": "20001",
+          "status": "in-progress",
+          "class": { "code": "AMB", "display": "Ambulatory" },
+          "type": [{ "text": "Outpatient Consultation" }],
+          "subject": {
+            "reference": "Patient/10001",
+            "display": "Rahul Sharma"
+          },
+          "appointment": [{ "reference": "Appointment/40001" }],
+          "participant": [
+            {
+              "type": [{ "text": "Primary Performer" }],
+              "individual": {
+                "reference": "Practitioner/30001",
+                "display": "Dr. Arjun Kumar"
+              }
+            }
+          ],
+          "serviceProvider": {
+            "reference": "Organization/190001",
+            "display": "City Care Hospital"
+          },
+          "period": { "start": "2026-05-20T10:05:00+05:30" },
+          "reasonCode": [{ "text": "Chest pain" }],
+          "priority": { "text": "routine" }
+        }
+      ]
+    },
+
+    {
+      "step": 11,
+      "name": "Vitals Collection",
+      "description": "Nurse records vitals: BP, pulse, weight, temperature, SpO2. All linked to the encounter.",
+      "api": "POST /observations  (5 separate calls)",
+      "resources": [
+        {
+          "resourceType": "Observation",
+          "id": "160001",
+          "status": "final",
+          "category": [
+            { "coding": [{ "code": "vital-signs" }], "text": "Vital Signs" }
+          ],
+          "code": {
+            "coding": [{ "code": "55284-4", "display": "Blood Pressure" }],
+            "text": "Blood Pressure"
+          },
+          "subject": {
+            "reference": "Patient/10001",
+            "display": "Rahul Sharma"
+          },
+          "encounter": { "reference": "Encounter/20001" },
+          "effectiveDateTime": "2026-05-20T10:10:00+05:30",
+          "performer": [{ "reference": "Practitioner/30001" }],
+          "component": [
+            {
+              "code": { "text": "Systolic Blood Pressure" },
+              "valueQuantity": {
+                "value": 148,
+                "unit": "mmHg",
+                "system": "http://unitsofmeasure.org",
+                "code": "mm[Hg]"
+              }
+            },
+            {
+              "code": { "text": "Diastolic Blood Pressure" },
+              "valueQuantity": {
+                "value": 94,
+                "unit": "mmHg",
+                "system": "http://unitsofmeasure.org",
+                "code": "mm[Hg]"
+              }
+            }
+          ]
+        },
+        {
+          "resourceType": "Observation",
+          "id": "160002",
+          "status": "final",
+          "category": [
+            { "coding": [{ "code": "vital-signs" }], "text": "Vital Signs" }
+          ],
+          "code": {
+            "coding": [{ "code": "8867-4", "display": "Heart rate" }],
+            "text": "Pulse / Heart Rate"
+          },
+          "subject": { "reference": "Patient/10001" },
+          "encounter": { "reference": "Encounter/20001" },
+          "effectiveDateTime": "2026-05-20T10:10:00+05:30",
+          "valueQuantity": {
+            "value": 92,
+            "unit": "beats/min",
+            "system": "http://unitsofmeasure.org",
+            "code": "/min"
+          }
+        },
+        {
+          "resourceType": "Observation",
+          "id": "160003",
+          "status": "final",
+          "category": [
+            { "coding": [{ "code": "vital-signs" }], "text": "Vital Signs" }
+          ],
+          "code": {
+            "coding": [{ "code": "29463-7", "display": "Body weight" }],
+            "text": "Body Weight"
+          },
+          "subject": { "reference": "Patient/10001" },
+          "encounter": { "reference": "Encounter/20001" },
+          "effectiveDateTime": "2026-05-20T10:10:00+05:30",
+          "valueQuantity": {
+            "value": 78,
+            "unit": "kg",
+            "system": "http://unitsofmeasure.org",
+            "code": "kg"
+          }
+        },
+        {
+          "resourceType": "Observation",
+          "id": "160004",
+          "status": "final",
+          "category": [
+            { "coding": [{ "code": "vital-signs" }], "text": "Vital Signs" }
+          ],
+          "code": {
+            "coding": [{ "code": "8310-5", "display": "Body temperature" }],
+            "text": "Body Temperature"
+          },
+          "subject": { "reference": "Patient/10001" },
+          "encounter": { "reference": "Encounter/20001" },
+          "effectiveDateTime": "2026-05-20T10:10:00+05:30",
+          "valueQuantity": {
+            "value": 98.4,
+            "unit": "°F",
+            "system": "http://unitsofmeasure.org",
+            "code": "[degF]"
+          }
+        },
+        {
+          "resourceType": "Observation",
+          "id": "160005",
+          "status": "final",
+          "category": [
+            { "coding": [{ "code": "vital-signs" }], "text": "Vital Signs" }
+          ],
+          "code": {
+            "coding": [{ "code": "59408-5", "display": "Oxygen saturation" }],
+            "text": "SpO2 / Oxygen Saturation"
+          },
+          "subject": { "reference": "Patient/10001" },
+          "encounter": { "reference": "Encounter/20001" },
+          "effectiveDateTime": "2026-05-20T10:10:00+05:30",
+          "valueQuantity": {
+            "value": 98,
+            "unit": "%",
+            "system": "http://unitsofmeasure.org",
+            "code": "%"
+          }
+        }
+      ]
+    },
+
+    {
+      "step": 12,
+      "name": "Diagnosis Recording",
+      "description": "Doctor records Hypertension as the primary diagnosis during the encounter.",
+      "api": "POST /conditions",
+      "resources": [
+        {
+          "resourceType": "Condition",
+          "id": "120001",
+          "clinicalStatus": {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                "code": "active"
+              }
+            ],
+            "text": "active"
+          },
+          "verificationStatus": {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+                "code": "confirmed"
+              }
+            ],
+            "text": "confirmed"
+          },
+          "category": [{ "text": "encounter-diagnosis" }],
+          "severity": { "text": "Moderate" },
+          "code": {
+            "coding": [
+              {
+                "system": "http://hl7.org/fhir/sid/icd-10",
+                "code": "I10",
+                "display": "Essential (primary) hypertension"
+              }
+            ],
+            "text": "Hypertension"
+          },
+          "subject": {
+            "reference": "Patient/10001",
+            "display": "Rahul Sharma"
+          },
+          "encounter": { "reference": "Encounter/20001" },
+          "onsetDateTime": "2026-05-20",
+          "recordedDate": "2026-05-20",
+          "recorder": {
+            "reference": "Practitioner/30001",
+            "display": "Dr. Arjun Kumar"
+          },
+          "note": [
+            {
+              "text": "BP 148/94 on presentation. Family history of hypertension. Likely new onset."
+            }
+          ]
+        },
+        {
+          "resourceType": "Condition",
+          "id": "120002",
+          "clinicalStatus": { "text": "active" },
+          "verificationStatus": { "text": "provisional" },
+          "category": [{ "text": "encounter-diagnosis" }],
+          "code": {
+            "coding": [
+              {
+                "system": "http://hl7.org/fhir/sid/icd-10",
+                "code": "R07.9",
+                "display": "Chest pain, unspecified"
+              }
+            ],
+            "text": "Chest pain — under evaluation"
+          },
+          "subject": { "reference": "Patient/10001" },
+          "encounter": { "reference": "Encounter/20001" },
+          "onsetDateTime": "2026-05-18",
+          "recorder": { "reference": "Practitioner/30001" }
+        }
+      ]
+    },
+
+    {
+      "step": 13,
+      "name": "Orders — Lab and ECG",
+      "description": "Doctor orders CBC blood test and ECG. Two ServiceRequests created.",
+      "api": "POST /service-requests  (2 calls)",
+      "resources": [
+        {
+          "resourceType": "ServiceRequest",
+          "id": "80001",
+          "status": "active",
+          "intent": "order",
+          "category": [{ "text": "Laboratory procedure" }],
+          "code": {
+            "coding": [
+              {
+                "system": "http://loinc.org",
+                "code": "58410-2",
+                "display": "Complete blood count (CBC) panel"
+              }
+            ],
+            "text": "Complete Blood Count (CBC)"
+          },
+          "subject": {
+            "reference": "Patient/10001",
+            "display": "Rahul Sharma"
+          },
+          "encounter": { "reference": "Encounter/20001" },
+          "requester": {
+            "reference": "Practitioner/30001",
+            "display": "Dr. Arjun Kumar"
+          },
+          "performer": [
+            {
+              "reference": "Organization/190001",
+              "display": "City Care Hospital Lab"
+            }
+          ],
+          "reasonCode": [
+            { "text": "Chest pain — rule out infection, anaemia" }
+          ],
+          "authoredOn": "2026-05-20T10:25:00+05:30",
+          "priority": "routine",
+          "note": [{ "text": "Fasting not required. Collect EDTA tube." }]
+        },
+        {
+          "resourceType": "ServiceRequest",
+          "id": "80002",
+          "status": "active",
+          "intent": "order",
+          "category": [{ "text": "Diagnostic procedure" }],
+          "code": {
+            "coding": [
+              {
+                "system": "http://loinc.org",
+                "code": "11524-6",
+                "display": "EKG study"
+              }
+            ],
+            "text": "ECG / Electrocardiogram"
+          },
+          "subject": { "reference": "Patient/10001" },
+          "encounter": { "reference": "Encounter/20001" },
+          "requester": { "reference": "Practitioner/30001" },
+          "reasonCode": [{ "text": "Chest pain — rule out cardiac event" }],
+          "authoredOn": "2026-05-20T10:25:00+05:30",
+          "priority": "urgent"
+        }
+      ]
+    },
+
+    {
+      "step": 14,
+      "name": "Lab Results — CBC Observations",
+      "description": "Lab technician records individual CBC result values as Observations.",
+      "api": "POST /observations  (3 calls)",
+      "resources": [
+        {
+          "resourceType": "Observation",
+          "id": "160006",
+          "status": "final",
+          "category": [
+            { "coding": [{ "code": "laboratory" }], "text": "Laboratory" }
+          ],
+          "code": {
+            "coding": [
+              {
+                "system": "http://loinc.org",
+                "code": "718-7",
+                "display": "Hemoglobin [Mass/volume] in Blood"
+              }
+            ],
+            "text": "Hemoglobin"
+          },
+          "subject": { "reference": "Patient/10001" },
+          "encounter": { "reference": "Encounter/20001" },
+          "effectiveDateTime": "2026-05-20T11:30:00+05:30",
+          "issued": "2026-05-20T11:45:00+05:30",
+          "valueQuantity": { "value": 13.2, "unit": "g/dL" },
+          "referenceRange": [
+            {
+              "low": { "value": 13.5, "unit": "g/dL" },
+              "high": { "value": 17.5, "unit": "g/dL" },
+              "text": "Normal: 13.5–17.5 g/dL"
+            }
+          ],
+          "interpretation": [
+            {
+              "coding": [{ "code": "L", "display": "Low" }],
+              "text": "Slightly Low"
+            }
+          ],
+          "basedOn": [{ "reference": "ServiceRequest/80001" }]
+        },
+        {
+          "resourceType": "Observation",
+          "id": "160007",
+          "status": "final",
+          "category": [
+            { "coding": [{ "code": "laboratory" }], "text": "Laboratory" }
+          ],
+          "code": {
+            "coding": [
+              {
+                "system": "http://loinc.org",
+                "code": "6690-2",
+                "display": "Leukocytes [#/volume] in Blood by Automated count"
+              }
+            ],
+            "text": "WBC Count"
+          },
+          "subject": { "reference": "Patient/10001" },
+          "encounter": { "reference": "Encounter/20001" },
+          "effectiveDateTime": "2026-05-20T11:30:00+05:30",
+          "valueQuantity": { "value": 9200, "unit": "cells/µL" },
+          "referenceRange": [{ "text": "Normal: 4000–11000 cells/µL" }],
+          "interpretation": [{ "text": "Normal" }],
+          "basedOn": [{ "reference": "ServiceRequest/80001" }]
+        },
+        {
+          "resourceType": "Observation",
+          "id": "160008",
+          "status": "final",
+          "category": [
+            { "coding": [{ "code": "laboratory" }], "text": "Laboratory" }
+          ],
+          "code": {
+            "coding": [
+              {
+                "system": "http://loinc.org",
+                "code": "777-3",
+                "display": "Platelets [#/volume] in Blood by Automated count"
+              }
+            ],
+            "text": "Platelet Count"
+          },
+          "subject": { "reference": "Patient/10001" },
+          "encounter": { "reference": "Encounter/20001" },
+          "effectiveDateTime": "2026-05-20T11:30:00+05:30",
+          "valueQuantity": { "value": 245000, "unit": "cells/µL" },
+          "referenceRange": [{ "text": "Normal: 150000–400000 cells/µL" }],
+          "interpretation": [{ "text": "Normal" }],
+          "basedOn": [{ "reference": "ServiceRequest/80001" }]
+        }
+      ]
+    },
+
+    {
+      "step": 15,
+      "name": "Diagnostic Report — CBC",
+      "description": "Lab generates a DiagnosticReport summarising all CBC observations. Based on the ServiceRequest.",
+      "api": "POST /diagnostic-reports",
+      "resources": [
+        {
+          "resourceType": "DiagnosticReport",
+          "id": "110001",
+          "status": "final",
+          "category": [{ "coding": [{ "code": "LAB" }], "text": "Laboratory" }],
+          "code": {
+            "coding": [
+              {
+                "system": "http://loinc.org",
+                "code": "58410-2",
+                "display": "CBC panel"
+              }
+            ],
+            "text": "Complete Blood Count (CBC)"
+          },
+          "subject": {
+            "reference": "Patient/10001",
+            "display": "Rahul Sharma"
+          },
+          "encounter": { "reference": "Encounter/20001" },
+          "effectiveDateTime": "2026-05-20T11:30:00+05:30",
+          "issued": "2026-05-20T11:50:00+05:30",
+          "performer": [
+            {
+              "reference": "Organization/190001",
+              "display": "City Care Hospital Lab"
+            }
+          ],
+          "basedOn": [{ "reference": "ServiceRequest/80001" }],
+          "result": [
+            { "reference": "Observation/160006", "display": "Hemoglobin" },
+            { "reference": "Observation/160007", "display": "WBC Count" },
+            { "reference": "Observation/160008", "display": "Platelet Count" }
+          ],
+          "conclusion": "CBC shows mildly low haemoglobin (13.2 g/dL). WBC and platelets within normal limits. No acute infection or thrombocytopenia."
+        }
+      ]
+    },
+
+    {
+      "step": 16,
+      "name": "ECG Procedure Performed",
+      "description": "ECG is performed in the cardiac diagnostic room. Recorded as a Procedure.",
+      "api": "POST /procedures",
+      "resources": [
+        {
+          "resourceType": "Procedure",
+          "id": "100001",
+          "status": "completed",
+          "category": { "text": "Diagnostic procedure" },
+          "code": {
+            "coding": [
+              {
+                "system": "http://snomed.info/sct",
+                "code": "164847006",
+                "display": "Standard electrocardiogram"
+              }
+            ],
+            "text": "ECG — 12 Lead"
+          },
+          "subject": {
+            "reference": "Patient/10001",
+            "display": "Rahul Sharma"
+          },
+          "encounter": { "reference": "Encounter/20001" },
+          "performedDateTime": "2026-05-20T10:40:00+05:30",
+          "performer": [
+            {
+              "function": { "text": "Primary Performer" },
+              "actor": {
+                "reference": "Practitioner/30001",
+                "display": "Dr. Arjun Kumar"
+              }
+            }
+          ],
+          "basedOn": [{ "reference": "ServiceRequest/80002" }],
+          "outcome": {
+            "text": "Sinus rhythm. No ST elevation or depression. Left ventricular hypertrophy pattern consistent with hypertension."
+          },
+          "note": [{ "text": "Patient was resting supine. No artefact." }]
+        }
+      ]
+    },
+
+    {
+      "step": 17,
+      "name": "Medication Prescription",
+      "description": "Doctor prescribes Amlodipine 5mg for hypertension and Aspirin 75mg for chest pain management.",
+      "api": "POST /medication-requests  (2 calls)",
+      "resources": [
+        {
+          "resourceType": "MedicationRequest",
+          "id": "90001",
+          "status": "active",
+          "intent": "order",
+          "medicationCodeableConcept": {
+            "coding": [
+              {
+                "system": "http://www.whocc.no/atc",
+                "code": "C08CA01",
+                "display": "Amlodipine"
+              }
+            ],
+            "text": "Amlodipine 5mg tablet"
+          },
+          "subject": {
+            "reference": "Patient/10001",
+            "display": "Rahul Sharma"
+          },
+          "encounter": { "reference": "Encounter/20001" },
+          "authoredOn": "2026-05-20T11:55:00+05:30",
+          "requester": {
+            "reference": "Practitioner/30001",
+            "display": "Dr. Arjun Kumar"
+          },
+          "reasonReference": [
+            { "reference": "Condition/120001", "display": "Hypertension" }
+          ],
+          "dosageInstruction": [
+            {
+              "text": "Take 1 tablet once daily after dinner",
+              "timing": {
+                "repeat": { "frequency": 1, "period": 1, "periodUnit": "d" }
+              },
+              "doseAndRate": [{ "doseQuantity": { "value": 5, "unit": "mg" } }]
+            }
+          ],
+          "dispenseRequest": {
+            "numberOfRepeatsAllowed": 2,
+            "quantity": { "value": 30, "unit": "tablet" },
+            "expectedSupplyDuration": { "value": 30, "unit": "days" }
+          },
+          "note": [
+            { "text": "Review BP after 4 weeks. Titrate dose if needed." }
+          ]
+        },
+        {
+          "resourceType": "MedicationRequest",
+          "id": "90002",
+          "status": "active",
+          "intent": "order",
+          "medicationCodeableConcept": {
+            "coding": [
+              {
+                "system": "http://www.whocc.no/atc",
+                "code": "B01AC06",
+                "display": "Acetylsalicylic acid"
+              }
+            ],
+            "text": "Aspirin 75mg tablet (enteric coated)"
+          },
+          "subject": { "reference": "Patient/10001" },
+          "encounter": { "reference": "Encounter/20001" },
+          "authoredOn": "2026-05-20T11:55:00+05:30",
+          "requester": { "reference": "Practitioner/30001" },
+          "reasonCode": [{ "text": "Chest pain — cardiac risk reduction" }],
+          "dosageInstruction": [
+            {
+              "text": "Take 1 tablet once daily after breakfast",
+              "timing": {
+                "repeat": { "frequency": 1, "period": 1, "periodUnit": "d" }
+              },
+              "doseAndRate": [{ "doseQuantity": { "value": 75, "unit": "mg" } }]
+            }
+          ],
+          "dispenseRequest": {
+            "quantity": { "value": 30, "unit": "tablet" }
+          }
+        }
+      ]
+    },
+
+    {
+      "step": 18,
+      "name": "Device Order",
+      "description": "Doctor prescribes a blood glucose monitor for home monitoring (risk of diabetes with hypertension).",
+      "api": "POST /device-requests",
+      "resources": [
+        {
+          "resourceType": "DeviceRequest",
+          "id": "130001",
+          "status": "active",
+          "intent": "order",
+          "codeCodeableConcept": {
+            "coding": [
+              {
+                "system": "http://snomed.info/sct",
+                "code": "43396009",
+                "display": "Haemoglobin A1c measurement"
+              }
+            ],
+            "text": "Blood Glucose Monitor (glucometer) — home use"
+          },
+          "subject": {
+            "reference": "Patient/10001",
+            "display": "Rahul Sharma"
+          },
+          "encounter": { "reference": "Encounter/20001" },
+          "authoredOn": "2026-05-20T12:00:00+05:30",
+          "requester": {
+            "reference": "Practitioner/30001",
+            "display": "Dr. Arjun Kumar"
+          },
+          "reasonCode": [
+            {
+              "text": "Monitor fasting and post-prandial glucose — hypertension patient at metabolic risk"
+            }
+          ],
+          "note": [
+            {
+              "text": "Patient instructed to log morning fasting glucose daily and bring readings at follow-up."
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "step": 19,
+      "name": "Invoice Generation",
+      "description": "Billing team generates invoice covering consultation, lab, procedure, and medication charges.",
+      "api": "POST /invoices",
+      "resources": [
+        {
+          "resourceType": "Invoice",
+          "id": "210001",
+          "status": "issued",
+          "type": { "text": "Outpatient Consultation Bill" },
+          "subject": {
+            "reference": "Patient/10001",
+            "display": "Rahul Sharma"
+          },
+          "participant": [
+            {
+              "role": { "text": "Issuer" },
+              "actor": {
+                "reference": "Organization/190001",
+                "display": "City Care Hospital"
+              }
+            }
+          ],
+          "date": "2026-05-20T12:15:00+05:30",
+          "lineItem": [
+            {
+              "sequence": 1,
+              "chargeItemCodeableConcept": {
+                "text": "Cardiology Consultation Fee — Dr. Arjun Kumar"
+              },
+              "priceComponent": [
+                {
+                  "type": "base",
+                  "amount": { "value": 800, "currency": "INR" }
+                }
+              ]
+            },
+            {
+              "sequence": 2,
+              "chargeItemCodeableConcept": {
+                "text": "CBC — Complete Blood Count"
+              },
+              "priceComponent": [
+                {
+                  "type": "base",
+                  "amount": { "value": 350, "currency": "INR" }
+                }
+              ]
+            },
+            {
+              "sequence": 3,
+              "chargeItemCodeableConcept": { "text": "ECG — 12 Lead" },
+              "priceComponent": [
+                {
+                  "type": "base",
+                  "amount": { "value": 250, "currency": "INR" }
+                }
+              ]
+            },
+            {
+              "sequence": 4,
+              "chargeItemCodeableConcept": {
+                "text": "Amlodipine 5mg x 30 tablets"
+              },
+              "priceComponent": [
+                {
+                  "type": "base",
+                  "amount": { "value": 180, "currency": "INR" }
+                }
+              ]
+            },
+            {
+              "sequence": 5,
+              "chargeItemCodeableConcept": {
+                "text": "Aspirin 75mg x 30 tablets"
+              },
+              "priceComponent": [
+                { "type": "base", "amount": { "value": 60, "currency": "INR" } }
+              ]
+            },
+            {
+              "sequence": 6,
+              "chargeItemCodeableConcept": {
+                "text": "Blood Glucose Monitor (glucometer)"
+              },
+              "priceComponent": [
+                {
+                  "type": "base",
+                  "amount": { "value": 1200, "currency": "INR" }
+                }
+              ]
+            }
+          ],
+          "totalNet": { "value": 2840, "currency": "INR" },
+          "totalGross": { "value": 2840, "currency": "INR" },
+          "note": [
+            {
+              "text": "Payment due within 30 days. Insurance claim filed separately."
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "step": 20,
+      "name": "Insurance Claim",
+      "description": "Hospital submits a claim to the insurance payer on behalf of the patient.",
+      "api": "POST /claims",
+      "resources": [
+        {
+          "resourceType": "Claim",
+          "id": "170001",
+          "status": "active",
+          "type": {
+            "coding": [{ "code": "professional" }],
+            "text": "Professional"
+          },
+          "use": "claim",
+          "patient": {
+            "reference": "Patient/10001",
+            "display": "Rahul Sharma"
+          },
+          "created": "2026-05-20",
+          "provider": {
+            "reference": "Organization/190001",
+            "display": "City Care Hospital"
+          },
+          "priority": { "coding": [{ "code": "normal" }] },
+          "diagnosis": [
+            {
+              "sequence": 1,
+              "diagnosisCodeableConcept": {
+                "coding": [
+                  {
+                    "system": "http://hl7.org/fhir/sid/icd-10",
+                    "code": "I10",
+                    "display": "Essential hypertension"
+                  }
+                ],
+                "text": "Hypertension"
+              }
+            }
+          ],
+          "procedure": [
+            {
+              "sequence": 1,
+              "procedureCodeableConcept": { "text": "ECG 12 Lead" },
+              "date": "2026-05-20"
+            }
+          ],
+          "item": [
+            {
+              "sequence": 1,
+              "productOrService": { "text": "Cardiology Consultation" },
+              "servicedDate": "2026-05-20",
+              "unitPrice": { "value": 800, "currency": "INR" },
+              "quantity": { "value": 1 },
+              "net": { "value": 800, "currency": "INR" }
+            },
+            {
+              "sequence": 2,
+              "productOrService": { "text": "CBC Lab Test" },
+              "servicedDate": "2026-05-20",
+              "unitPrice": { "value": 350, "currency": "INR" },
+              "quantity": { "value": 1 },
+              "net": { "value": 350, "currency": "INR" }
+            },
+            {
+              "sequence": 3,
+              "productOrService": { "text": "ECG Procedure" },
+              "servicedDate": "2026-05-20",
+              "unitPrice": { "value": 250, "currency": "INR" },
+              "quantity": { "value": 1 },
+              "net": { "value": 250, "currency": "INR" }
+            }
+          ],
+          "total": { "value": 1400, "currency": "INR" }
+        }
+      ]
+    },
+
+    {
+      "step": 21,
+      "name": "Claim Response — Insurance Adjudication",
+      "description": "Insurance payer responds approving the claim with payment details.",
+      "api": "POST /claim-responses",
+      "resources": [
+        {
+          "resourceType": "ClaimResponse",
+          "id": "180001",
+          "status": "active",
+          "type": {
+            "coding": [{ "code": "professional" }],
+            "text": "Professional"
+          },
+          "use": "claim",
+          "patient": {
+            "reference": "Patient/10001",
+            "display": "Rahul Sharma"
+          },
+          "created": "2026-05-20",
+          "insurer": { "display": "Star Health Insurance" },
+          "request": { "reference": "Claim/170001" },
+          "outcome": "complete",
+          "disposition": "Claim approved. Full payment of eligible items.",
+          "item": [
+            {
+              "itemSequence": 1,
+              "adjudication": [
+                {
+                  "category": { "text": "Approved" },
+                  "amount": { "value": 800, "currency": "INR" }
+                }
+              ]
+            },
+            {
+              "itemSequence": 2,
+              "adjudication": [
+                {
+                  "category": { "text": "Approved" },
+                  "amount": { "value": 350, "currency": "INR" }
+                }
+              ]
+            },
+            {
+              "itemSequence": 3,
+              "adjudication": [
+                {
+                  "category": { "text": "Approved" },
+                  "amount": { "value": 250, "currency": "INR" }
+                }
+              ]
+            }
+          ],
+          "total": [
+            {
+              "category": { "text": "Submitted" },
+              "amount": { "value": 1400, "currency": "INR" }
+            },
+            {
+              "category": { "text": "Benefit" },
+              "amount": { "value": 1400, "currency": "INR" }
+            }
+          ],
+          "payment": {
+            "type": { "text": "complete" },
+            "date": "2026-05-22",
+            "amount": { "value": 1400, "currency": "INR" }
+          }
+        }
+      ]
+    },
+
+    {
+      "step": 22,
+      "name": "Encounter Completion",
+      "description": "Doctor closes the encounter. Status changes to finished. Period end time set.",
+      "api": "PATCH /encounters/20001",
+      "resources": [
+        {
+          "resourceType": "Encounter",
+          "id": "20001",
+          "status": "finished",
+          "period": {
+            "start": "2026-05-20T10:05:00+05:30",
+            "end": "2026-05-20T12:30:00+05:30"
+          },
+          "_note": "PATCH: update status to 'finished' and set period.end when doctor closes the visit"
+        }
+      ]
+    }
+  ],
+
+  "resource_id_map": {
+    "_note": "All IDs below are the public sequence IDs exposed by the API",
+    "Organization": { "City Care Hospital": 190001 },
+    "Practitioner": { "Dr. Arjun Kumar": 30001 },
+    "PractitionerRole": { "Arjun Kumar — Cardiology at City Care": 140001 },
+    "HealthcareService": { "Cardiology Outpatient Consultation": 150001 },
+    "Schedule": { "Dr. Arjun Kumar May 2026": 200001 },
+    "Slot": { "10:00 AM": 220001, "10:15 AM": 220002, "10:30 AM": 220003 },
+    "Patient": { "Rahul Sharma": 10001 },
+    "QuestionnaireResponse": { "Intake form — Rahul Sharma": 60001 },
+    "Appointment": { "Cardiology OP — Rahul 20 May": 40001 },
+    "Encounter": { "Rahul Sharma OP visit 20 May": 20001 },
+    "Observation": {
+      "Blood Pressure": 160001,
+      "Pulse": 160002,
+      "Body Weight": 160003,
+      "Temperature": 160004,
+      "SpO2": 160005,
+      "Hemoglobin (CBC)": 160006,
+      "WBC Count (CBC)": 160007,
+      "Platelet Count (CBC)": 160008
+    },
+    "Condition": {
+      "Hypertension": 120001,
+      "Chest pain — provisional": 120002
+    },
+    "ServiceRequest": {
+      "CBC Order": 80001,
+      "ECG Order": 80002
+    },
+    "DiagnosticReport": { "CBC Report": 110001 },
+    "MedicationRequest": {
+      "Amlodipine 5mg": 90001,
+      "Aspirin 75mg": 90002
+    },
+    "Procedure": { "ECG 12 Lead": 100001 },
+    "DeviceRequest": { "Blood Glucose Monitor": 130001 },
+    "Invoice": { "OP Bill — Rahul Sharma 20 May": 210001 },
+    "Claim": { "Insurance claim — Rahul Sharma": 170001 },
+    "ClaimResponse": { "Claim approved — Star Health": 180001 }
+  },
+
+  "reference_graph": {
+    "_description": "Shows which resources reference which others",
+    "PractitionerRole/140001": ["Practitioner/30001", "Organization/190001"],
+    "Schedule/200001": ["Practitioner/30001", "HealthcareService/150001"],
+    "Slot/220001": ["Schedule/200001"],
+    "Slot/220002": ["Schedule/200001"],
+    "Slot/220003": ["Schedule/200001"],
+    "QuestionnaireResponse/60001": ["Patient/10001"],
+    "Appointment/40001": [
+      "Patient/10001",
+      "Practitioner/30001",
+      "HealthcareService/150001",
+      "Slot/220001"
+    ],
+    "Encounter/20001": [
+      "Patient/10001",
+      "Appointment/40001",
+      "Practitioner/30001",
+      "Organization/190001"
+    ],
+    "Observation/160001": ["Patient/10001", "Encounter/20001"],
+    "Observation/160002": ["Patient/10001", "Encounter/20001"],
+    "Observation/160003": ["Patient/10001", "Encounter/20001"],
+    "Observation/160004": ["Patient/10001", "Encounter/20001"],
+    "Observation/160005": ["Patient/10001", "Encounter/20001"],
+    "Condition/120001": [
+      "Patient/10001",
+      "Encounter/20001",
+      "Practitioner/30001"
+    ],
+    "Condition/120002": [
+      "Patient/10001",
+      "Encounter/20001",
+      "Practitioner/30001"
+    ],
+    "ServiceRequest/80001": [
+      "Patient/10001",
+      "Encounter/20001",
+      "Practitioner/30001"
+    ],
+    "ServiceRequest/80002": [
+      "Patient/10001",
+      "Encounter/20001",
+      "Practitioner/30001"
+    ],
+    "Observation/160006": [
+      "Patient/10001",
+      "Encounter/20001",
+      "ServiceRequest/80001"
+    ],
+    "Observation/160007": [
+      "Patient/10001",
+      "Encounter/20001",
+      "ServiceRequest/80001"
+    ],
+    "Observation/160008": [
+      "Patient/10001",
+      "Encounter/20001",
+      "ServiceRequest/80001"
+    ],
+    "DiagnosticReport/110001": [
+      "Patient/10001",
+      "Encounter/20001",
+      "ServiceRequest/80001",
+      "Observation/160006",
+      "Observation/160007",
+      "Observation/160008"
+    ],
+    "Procedure/100001": [
+      "Patient/10001",
+      "Encounter/20001",
+      "Practitioner/30001",
+      "ServiceRequest/80002"
+    ],
+    "MedicationRequest/90001": [
+      "Patient/10001",
+      "Encounter/20001",
+      "Practitioner/30001",
+      "Condition/120001"
+    ],
+    "MedicationRequest/90002": [
+      "Patient/10001",
+      "Encounter/20001",
+      "Practitioner/30001"
+    ],
+    "DeviceRequest/130001": [
+      "Patient/10001",
+      "Encounter/20001",
+      "Practitioner/30001"
+    ],
+    "Invoice/210001": ["Patient/10001", "Organization/190001"],
+    "Claim/170001": ["Patient/10001", "Organization/190001"],
+    "ClaimResponse/180001": ["Patient/10001", "Claim/170001"]
+  },
+
+  "creation_order": {
+    "_description": "Strict order to POST resources so references resolve correctly",
+    "phase_1_admin": [
+      "Organization",
+      "Practitioner",
+      "PractitionerRole",
+      "HealthcareService"
+    ],
+    "phase_2_scheduling": ["Schedule", "Slot (x3)"],
+    "phase_3_patient": ["Patient"],
+    "phase_4_pre_visit": ["QuestionnaireResponse", "Appointment"],
+    "phase_5_clinical": [
+      "Encounter",
+      "Observation (vitals x5)",
+      "Condition (x2)",
+      "ServiceRequest (CBC + ECG)",
+      "Observation (lab x3)",
+      "DiagnosticReport",
+      "Procedure (ECG)",
+      "MedicationRequest (x2)",
+      "DeviceRequest"
+    ],
+    "phase_6_billing": ["Invoice", "Claim", "ClaimResponse"],
+    "phase_7_close": ["PATCH Encounter (status=finished)"]
+  }
+}

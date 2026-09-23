@@ -1,0 +1,194 @@
+---
+title: React Native SDK
+description: Watcher24 SDK for React Native — public token, AppState background flush, and React hooks.
+---
+
+# React Native SDK
+
+The `@watcher/react-native` package works with React Native 0.73+ and Expo. It reuses the same `@watcher/core` client, `EventBuffer`, and React hooks as the browser SDK — the only difference is a React Native-specific transport and an `AppState` background flush instead of `visibilitychange`.
+
+## Installation
+
+```bash
+pnpm add @watcher/react-native
+# or
+npx expo install @watcher/react-native
+```
+
+## Public token — required for mobile
+
+<Callout type="warning" title="Never use a secret key in a mobile app">
+Mobile app binaries can be decompiled. Always use a **public token** (`wpub_` prefix) — create one in **Settings → API Keys → Public Tokens**.
+
+Public tokens are write-only and rate-limited. A leaked public token cannot read your data or be used at scale. Secret keys (`wtch_`) must only exist on servers.
+</Callout>
+
+## Initialisation
+
+Create a singleton client in `lib/watcher.ts` and wrap your app root with `WatcherProvider`.
+
+```typescript
+// lib/watcher.ts
+import { createReactNativeClient } from "@watcher/react-native";
+
+export const watcher = createReactNativeClient({
+  apiKey:      process.env.EXPO_PUBLIC_W24_PUBLIC_TOKEN ?? "",
+  appId:       process.env.EXPO_PUBLIC_W24_APP_ID,
+  serviceName: "my-rn-app",
+  environment: __DEV__ ? "development" : "production",
+});
+```
+
+```tsx
+// App.tsx
+import { WatcherProvider } from "@watcher/react-native";
+import { watcher } from "./lib/watcher";
+
+export default function App() {
+  return (
+    <WatcherProvider client={watcher}>
+      <RootNavigator />
+    </WatcherProvider>
+  );
+}
+```
+
+| Option | Type | Required | Description |
+|--------|------|----------|-------------|
+| `apiKey` | `string` | **Yes** | Public token (`wpub_` prefix) from Settings → API Keys → Public Tokens |
+| `appId` | `string` | No | Links events to a registered application. Get the ID from Settings → Apps. |
+| `serviceName` | `string` | No | Component label (e.g. `"my-rn-app"`). Sent as `X-Service-Name`. |
+| `environment` | `string` | No | Deployment stage. Default: `"production"` |
+| `gatewayUrl` | `string` | No | Override for self-hosted deployments. Default: `https://ingest.watcher24.io` |
+| `flushInterval` | `number` | No | How often the background flusher sends events (ms). Default: `500` |
+| `flushAt` | `number` | No | Buffer size that triggers an immediate flush. Default: `100` |
+| `maxBuffer` | `number` | No | Maximum events held in memory; oldest dropped when full. Default: `10 000` |
+
+## Using hooks
+
+All hooks are available from `@watcher/react-native` — no separate import needed.
+
+```tsx
+import { useAudit, useLog, useTrace, useMetric } from "@watcher/react-native";
+
+function HomeScreen() {
+  const audit  = useAudit();
+  const log    = useLog();
+  const trace  = useTrace();
+  const metric = useMetric();
+
+  useEffect(() => {
+    // Track screen views
+    audit("screen.viewed", { payload: { screen: "Home" } });
+  }, []);
+
+  function handleCheckout(userId: string) {
+    audit("checkout.started", {
+      userId,
+      payload: { cart_items: 3, total_cents: 4999 },
+    });
+  }
+
+  function handleApiCall() {
+    const traceId = `trace-${Date.now()}`;
+    trace("api.request", {
+      traceId,
+      spanId: "span-root",
+      payload: { endpoint: "/api/orders", method: "POST" },
+    });
+  }
+
+  return (/* ... */);
+}
+```
+
+## Audit events
+
+```typescript
+const audit = useAudit();
+
+// User actions
+audit("user.login",      { userId, payload: { method: "biometric" } });
+audit("purchase.completed", { userId, payload: { order_id: "o_001", amount_cents: 9900 } });
+audit("screen.viewed",   { payload: { screen: "ProductDetail", product_id: "p_123" } });
+```
+
+## Logs
+
+```typescript
+const log = useLog();
+
+log("info",  "app.started",       { payload: { version: "2.1.0" } });
+log("error", "api.request.failed", { payload: { endpoint: "/cart", status: 500 } });
+log("warn",  "network.slow",       { payload: { latency_ms: 4200 } });
+```
+
+Severity levels: `"debug"` · `"info"` · `"warn"` · `"error"` · `"critical"`
+
+## Traces
+
+```typescript
+const trace = useTrace();
+const traceId = `trace-${Date.now()}`;
+
+trace("screen.render", {
+  traceId,
+  spanId: "span-root",
+  payload: { screen: "Cart", render_ms: 42 },
+});
+
+trace("api.fetch_cart", {
+  traceId,
+  spanId:       "span-api",
+  parentSpanId: "span-root",
+  payload:      { latency_ms: 280 },
+});
+```
+
+## Metrics
+
+```typescript
+const metric = useMetric();
+
+metric("app.session_duration_ms", { payload: { value: 94000 } });
+metric("screen.load_ms",          { payload: { value: 380, screen: "Home" } });
+metric("api.latency_ms",          { payload: { p50: 120, p99: 480 } });
+```
+
+## Background flush — AppState
+
+`createReactNativeClient` automatically registers an `AppState` listener that flushes buffered events when the app goes to background or inactive state. This is equivalent to the browser SDK's `sendBeacon` on `visibilitychange`.
+
+```
+App active       → events buffer normally
+App → background → flush() called immediately
+                 → OS may suspend process at any point after this
+```
+
+You don't need to do anything — this is handled automatically. If you need to flush explicitly (e.g. before sign-out):
+
+```typescript
+// Direct client reference for explicit flush
+import { watcher } from "./lib/watcher";
+
+async function handleSignOut() {
+  audit("user.logout", { userId });
+  await watcher.flush(); // ensure the event is sent before navigating away
+  router.replace("/login");
+}
+```
+
+## Environment variables (Expo)
+
+```bash
+# .env
+# EXPO_PUBLIC_* variables are bundled into the app at build time.
+# Never put secret keys here — only public tokens.
+
+EXPO_PUBLIC_W24_PUBLIC_TOKEN=wpub_...      # required
+EXPO_PUBLIC_W24_APP_ID=your_app_id_here   # optional — from Settings → Apps
+```
+
+<Callout type="note">
+In bare React Native (non-Expo), use `react-native-config` or a similar package to load environment variables. Reference the token the same way: `Config.W24_PUBLIC_TOKEN`.
+</Callout>

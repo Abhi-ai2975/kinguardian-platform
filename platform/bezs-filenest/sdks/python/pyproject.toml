@@ -1,0 +1,28 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "filenest"
+version = "0.1.0"
+description = "FileNest SDK for Python — sync and async client for file infrastructure"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = [
+    "httpx>=0.27",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+django = ["django>=4.2"]
+fastapi = ["fastapi>=0.100"]
+dev = ["pytest", "pytest-asyncio", "respx", "python-dotenv"]
+
+[project.urls]
+homepage = "https://filenest.io"
+repository = "https://github.com/filenest/filenest-python"
+documentation = "https://docs.filenest.io/sdks/python"
+
+[tool.hatch.build.targets.wheel]
+packages = ["filenest"]

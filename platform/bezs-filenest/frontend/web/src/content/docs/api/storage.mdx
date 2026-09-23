@@ -1,0 +1,108 @@
+---
+title: "Storage Config API"
+description: "Read and update storage configuration for a FileNest project."
+---
+
+# Storage Config API
+
+## Get storage config
+
+```
+GET /v1/projects/{project_id}/storage
+```
+
+**Required scope:** `projects:read`
+
+Returns non-sensitive fields only. Credentials are never returned after being saved.
+
+**Response `200`:**
+
+```json
+{
+  "project_id": "proj_01j...",
+  "storage_mode": "byob",
+  "provider": "s3",
+  "bucket_name": "my-company-files",
+  "region": "us-east-1",
+  "endpoint_url": null,
+  "sse_enabled": true,
+  "server_side_encryption": "AES256",
+  "status": "verified"
+}
+```
+
+## Update storage config (BYOB credentials)
+
+```
+PATCH /v1/projects/{project_id}/storage
+```
+
+**Required scope:** `projects:update`
+
+Save or update BYOB credentials. Credentials are encrypted with AES-256-GCM before storage. Setting new credentials resets the status to `pending_verification`.
+
+**Request body (S3 example):**
+
+```json
+{
+  "provider": "s3",
+  "storage_mode": "byob",
+  "bucket_name": "my-company-files",
+  "region": "us-east-1",
+  "access_key_id": "AKIA...",
+  "secret_access_key": "..."
+}
+```
+
+See provider guides for field names per provider: [S3](/docs/storage/s3) · [Azure](/docs/storage/azure) · [GCS](/docs/storage/gcs) · [MinIO](/docs/storage/minio) · [R2](/docs/storage/r2) · [RustFS](/docs/storage/rustfs).
+
+## Verify connectivity
+
+```
+POST /v1/projects/{project_id}/storage/verify
+```
+
+**Required scope:** `projects:update`
+
+Writes and immediately deletes a probe object to confirm read/write access. Marks the config as `verified` on success.
+
+**Response `200`:**
+
+```json
+{ "ok": true, "latency_ms": 87 }
+```
+
+**Response `200` (failure):**
+
+```json
+{ "ok": false, "latency_ms": null, "error": "Access Denied" }
+```
+
+## Toggle server-side encryption
+
+```
+PATCH /v1/projects/{project_id}/storage/sse
+```
+
+**Required scope:** `projects:update`
+
+Available for MinIO and RustFS projects only. S3, R2, Azure, and GCS always have encryption enforced and cannot be toggled.
+
+**Request body:**
+
+```json
+{ "sse_enabled": true }
+```
+
+**Response `200`:** full `StorageConfig` object with updated `sse_enabled`.
+
+**Error `422`:** if the provider does not support SSE toggling.
+
+```json
+{
+  "error": {
+    "code": "validation_error",
+    "message": "SSE toggle is only available for minio and rustfs providers"
+  }
+}
+```

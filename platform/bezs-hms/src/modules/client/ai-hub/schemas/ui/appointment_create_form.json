@@ -1,0 +1,131 @@
+{
+  "id": "appointment-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "appointment-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_appointment" },
+        "submitLabel": { "literalString": "Book Appointment" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Book an Appointment" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Select a practitioner from your organisation's directory, choose a date and time, and confirm the booking." },
+              "usageHint": "caption"
+            }
+          },
+          {
+            "id": "divider-top",
+            "type": "Divider",
+            "properties": {}
+          },
+          {
+            "id": "patient_id",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Patient ID" },
+              "placeholder": { "literalString": "e.g. 10001" },
+              "textFieldType": "number"
+            }
+          },
+          {
+            "id": "practitioner",
+            "type": "DataSelect",
+            "properties": {
+              "label": { "literalString": "Practitioner" },
+              "placeholder": { "literalString": "Search practitioners…" },
+              "items": "$booking_practitioners.data",
+              "labelPath": "practitioner_detail.name.text",
+              "descriptionPath": "specialty.0.coding_display",
+              "emits": [
+                { "key": "ref_id", "path": "practitioner_ref_id" },
+                { "key": "display", "path": "practitioner_detail.name.text" }
+              ]
+            }
+          },
+          {
+            "id": "status",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Status" },
+              "placeholder": { "literalString": "Search status…" },
+              "items": "$appointment_status_concepts.concepts",
+              "valueType": { "literalString": "code" }
+            }
+          },
+          {
+            "id": "appointment_type",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Appointment Type (optional)" },
+              "placeholder": { "literalString": "Search appointment type…" },
+              "items": "$appointment_type_concepts.concepts",
+              "valueType": { "literalString": "CodeableConcept" }
+            }
+          },
+          {
+            "id": "start-end-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "start",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Start Date & Time" },
+                    "enableDate": true,
+                    "enableTime": true
+                  }
+                },
+                {
+                  "id": "end",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "End Date & Time (optional)" },
+                    "enableDate": true,
+                    "enableTime": true
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "minutes_duration",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Duration in Minutes (optional — alternative to end time)" },
+              "placeholder": { "literalString": "e.g. 30" },
+              "textFieldType": "number"
+            }
+          },
+          {
+            "id": "description",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Description (optional)" },
+              "placeholder": { "literalString": "e.g. Follow-up visit for hypertension management" },
+              "textFieldType": "longText"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

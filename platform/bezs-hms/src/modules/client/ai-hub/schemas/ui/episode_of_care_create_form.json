@@ -1,0 +1,134 @@
+{
+  "id": "eoc-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "eoc-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_episode_of_care" },
+        "submitLabel": { "literalString": "Create Episode of Care" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "eoc-form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Step 1: Episode of Care (Optional)" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "eoc-form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "This step is optional. Skip if this encounter is not part of a long-term care episode." },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "eoc-divider-top", "type": "Divider", "properties": {} },
+          {
+            "id": "eoc-section-status",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Episode Details" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "eoc_status",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Status" },
+              "placeholder": { "literalString": "Select episode status…" },
+              "items": "$status_concepts.concepts",
+              "valueType": { "literalString": "code" }
+            }
+          },
+          {
+            "id": "eoc_type",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Type (optional)" },
+              "placeholder": { "literalString": "Select episode type…" },
+              "items": "$type_concepts.concepts",
+              "valueType": { "literalString": "CodeableConcept" }
+            }
+          },
+          { "id": "eoc-divider-org", "type": "Divider", "properties": {} },
+          {
+            "id": "eoc-section-org",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Managing Organisation" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "eoc_org",
+            "type": "DataSelect",
+            "properties": {
+              "label": { "literalString": "Managing Organisation (optional)" },
+              "placeholder": { "literalString": "Select organisation…" },
+              "items": "$my_organizations.data",
+              "labelPath": "name",
+              "emits": [
+                { "key": "ref_id", "path": "id" },
+                { "key": "display", "path": "name" }
+              ]
+            }
+          },
+          { "id": "eoc-divider-period", "type": "Divider", "properties": {} },
+          {
+            "id": "eoc-section-period",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Episode Period" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "eoc-period-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "period_start",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Period Start" },
+                    "enableDate": true,
+                    "enableTime": false
+                  }
+                },
+                {
+                  "id": "period_end",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Period End (optional)" },
+                    "enableDate": true,
+                    "enableTime": false
+                  }
+                }
+              ]
+            }
+          },
+          { "id": "eoc-divider-note", "type": "Divider", "properties": {} },
+          {
+            "id": "eoc-patient-note",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Note: Patient is resolved automatically from your session." },
+              "usageHint": "caption"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

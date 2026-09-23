@@ -1,0 +1,106 @@
+{
+  "id": "record_allergy_intolerance",
+  "name": "Record Allergy / Intolerance",
+  "description": "Record a patient allergy or intolerance with clinical classification, substance coding, criticality, and optional reaction details.",
+  "version": "1.0.0",
+  "tags": ["fhir", "clinical", "allergy", "intolerance", "create"],
+  "llm_hints": {
+    "intent_examples": [
+      "Record an allergy",
+      "Add an allergy intolerance",
+      "Document a drug allergy",
+      "Record food intolerance",
+      "Add penicillin allergy for patient"
+    ],
+    "when_to_use": [
+      "User wants to record a new AllergyIntolerance resource",
+      "User wants to document a patient's allergy or intolerance to a substance"
+    ],
+    "when_not_to_use": [
+      "User wants to record a diagnosis or condition",
+      "User wants to record a medication order or prescription"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you record a patient allergy or intolerance — substance code, clinical classification, criticality, and timeline.",
+  "completion": {
+    "message": "Allergy / intolerance recorded successfully.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "record_allergy_intolerance_step",
+      "name": "Record Allergy / Intolerance",
+      "step_type": "form",
+      "description": "Enter the allergy or intolerance details including substance, clinical status, and criticality.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "field": "me_patient.id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Resolve the current patient from session.",
+          "context_key": "me_patient",
+          "tool_name": "get_my_patient",
+          "url": "$fhir_gql_url/patients/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch clinical status value set for AllergyIntolerance.",
+          "context_key": "clinical_status_concepts",
+          "tool_name": "get_allergy_clinical_status",
+          "url": "$fhir_gql_url/terminology/concepts?resource=AllergyIntolerance&field=clinicalStatus",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch verification status value set for AllergyIntolerance.",
+          "context_key": "verification_status_concepts",
+          "tool_name": "get_allergy_verification_status",
+          "url": "$fhir_gql_url/terminology/concepts?resource=AllergyIntolerance&field=verificationStatus",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch criticality value set for AllergyIntolerance.",
+          "context_key": "criticality_concepts",
+          "tool_name": "get_allergy_criticality",
+          "url": "$fhir_gql_url/terminology/concepts?resource=AllergyIntolerance&field=criticality",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "allergy_intolerance_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_allergy_intolerance",
+          "tool_name": "create_allergy_intolerance",
+          "url": "$fhir_gql_url/allergy-intolerances/",
+          "method": "POST",
+          "validation_schema": "allergy_intolerance_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "user_id": "user-admin-001",
+  "org_id": "0fb41e50-82a4-461e-96c7-bd11359d892d",
+  "active": true,
+  "comment": "Dr. Sarah K. Patel — Neurology clinic schedule, Mon/Wed/Fri",
+  "planning_horizon_start": "2026-06-01T00:00:00Z",
+  "planning_horizon_end": "2026-12-31T23:59:59Z",
+  "service_category": [
+    {
+      "coding_system": "http://terminology.hl7.org/CodeSystem/service-category",
+      "coding_code": "27",
+      "coding_display": "Specialist Medical"
+    }
+  ],
+  "service_type": [
+    {
+      "coding_system": "http://terminology.hl7.org/CodeSystem/service-type",
+      "coding_code": "177",
+      "coding_display": "Neurology"
+    }
+  ],
+  "specialty": [
+    {
+      "coding_system": "http://snomed.info/sct",
+      "coding_code": "394591006",
+      "coding_display": "Neurology"
+    }
+  ],
+  "actor": [
+    {
+      "reference": "Practitioner/30001",
+      "reference_display": "Dr. Sarah K. Patel"
+    },
+    {
+      "reference": "PractitionerRole/140001",
+      "reference_display": "Dr. Patel — Neurologist"
+    },
+    {
+      "reference": "Location/230000",
+      "reference_display": "Sunrise Medical Center — Main Clinic"
+    }
+  ]
+}

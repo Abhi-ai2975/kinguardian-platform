@@ -1,0 +1,107 @@
+version: '3.8'
+
+services:
+  # ── PostgreSQL Database ───────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: kinguardian-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kinguardian_user
+      POSTGRES_PASSWORD: kinguardian_password
+      POSTGRES_DB: kinguardian_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kinguardian_user -d kinguardian_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis Cache & Distributed Lock ────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: kinguardian-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── NATS Event Streaming Bus ──────────────────────────────────────────────
+  nats:
+    image: nats:2.10-alpine
+    container_name: kinguardian-nats-dev
+    restart: unless-stopped
+    ports:
+      - "4222:4222"   # Client connections
+      - "8222:8222"   # HTTP monitoring
+    command: ["-js", "-m", "8222"]
+
+  # ── KinGuardian Backend API (Hot Reloading) ──────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kinguardian-api-dev
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+asyncpg://kinguardian_user:kinguardian_password@postgres:5432/kinguardian_db
+      REDIS_URL: redis://redis:6379/0
+      NATS_URL: nats://nats:4222
+      IAM_JWKS_URL: ${IAM_JWKS_URL:-http://host.docker.internal:5001/api/auth/jwks}
+      IAM_ISSUER: ${IAM_ISSUER:-http://host.docker.internal:5001}
+      FHIR_API_URL: ${FHIR_API_URL:-http://host.docker.internal:8006/api/v1}
+      FHIR_GQL_URL: ${FHIR_GQL_URL:-http://host.docker.internal:8005/api/v1}
+      FILENEST_URL: ${FILENEST_URL:-http://host.docker.internal:8000}
+      FILENEST_API_KEY: ${FILENEST_API_KEY:-dev_key}
+      FILENEST_PROJECT_ID: ${FILENEST_PROJECT_ID:-dev_proj}
+      AGENT_SERVICE_URL: ${AGENT_SERVICE_URL:-http://host.docker.internal:8000}
+      OBSERVABILITY_URL: ${OBSERVABILITY_URL:-http://host.docker.internal:4318}
+      SQL_QUERY_LOGGING: "true"
+    volumes:
+      - .:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "alembic upgrade head &&
+             python scripts/seed_development_data.py &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  # ── KinGuardian Outbox & Scheduled Job Worker ────────────────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kinguardian-worker-dev
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+asyncpg://kinguardian_user:kinguardian_password@postgres:5432/kinguardian_db
+      REDIS_URL: redis://redis:6379/0
+      NATS_URL: nats://nats:4222
+    volumes:
+      - .:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["python", "-m", "app.workers.outbox_worker"]
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:

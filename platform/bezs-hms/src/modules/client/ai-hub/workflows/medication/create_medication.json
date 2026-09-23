@@ -1,0 +1,84 @@
+{
+  "id": "create_medication",
+  "name": "Create Medication",
+  "description": "Register a Medication resource in the FHIR server, including drug code (RxNorm/SNOMED), status, dose form, and batch/lot details.",
+  "version": "1.0.0",
+  "tags": ["fhir", "medication", "create", "crud", "pharmacy"],
+  "llm_hints": {
+    "intent_examples": [
+      "Create a medication",
+      "Add a new drug",
+      "Register a medication",
+      "Add a medication to the formulary",
+      "Create a drug record"
+    ],
+    "when_to_use": [
+      "User wants to create a Medication resource",
+      "User wants to register a drug in the system",
+      "User wants to add a medication to the formulary"
+    ],
+    "when_not_to_use": [
+      "User wants to prescribe a medication (use MedicationRequest)",
+      "User wants to dispense medication (use MedicationDispense)",
+      "User wants to record medication administration"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you register a new medication — including its drug code, status, dose form, and batch information.",
+  "completion": {
+    "message": "Medication registered successfully.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "create_medication_resource",
+      "name": "Create Medication",
+      "step_type": "form",
+      "description": "Search for the drug by RxNorm or SNOMED code, set the status and dose form, and optionally record batch details.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "medication_id": {
+            "type": "integer",
+            "resource": "Medication",
+            "field": "id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Fetch medication-status value set.",
+          "context_key": "status_concepts",
+          "tool_name": "get_medication_status_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Medication&field=status",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "medication_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_medication",
+          "tool_name": "create_medication",
+          "url": "$fhir_gql_url/medications/",
+          "method": "POST",
+          "validation_schema": "medication_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    }
+  ]
+}

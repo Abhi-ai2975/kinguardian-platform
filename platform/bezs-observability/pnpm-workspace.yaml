@@ -1,0 +1,15 @@
+packages:
+  - "apps/console"
+  - "apps/iam"
+  - "sdk/js/packages/*"
+  - "examples/nextjs"
+  - "examples/react-node/client"
+  - "examples/react-node/server"
+allowBuilds:
+  '@parcel/watcher': true
+  '@prisma/engines': true
+  '@swc/core': true
+  esbuild: true
+  prisma: true
+  sharp: true
+  unrs-resolver: true

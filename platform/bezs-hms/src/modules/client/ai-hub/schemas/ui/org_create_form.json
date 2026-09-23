@@ -1,0 +1,267 @@
+{
+  "id": "org-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "org-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_organization" },
+        "submitLabel": { "literalString": "Create Organisation" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Step 1: Create Organisation" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": {
+                "literalString": "Enter the organisation's name, type, contact details, and address. A physical location will be added in the next step."
+              },
+              "usageHint": "caption"
+            }
+          },
+          {
+            "id": "divider-top",
+            "type": "Divider",
+            "properties": {}
+          },
+          {
+            "id": "section-core",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Organisation Details" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "org-name-active-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "name",
+                  "type": "TextField",
+                  "weight": 3,
+                  "properties": {
+                    "label": { "literalString": "Organisation Name" },
+                    "placeholder": { "literalString": "e.g. General Hospital" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "active",
+                  "type": "CheckBox",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Active" },
+                    "value": { "literalBoolean": true }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "org_type",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Organisation Type (optional)" },
+              "placeholder": { "literalString": "Search organisation type…" },
+              "items": "$org_type_concepts.concepts",
+              "valueType": { "literalString": "CodeableConcept" }
+            }
+          },
+          {
+            "id": "alias_value",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Alias / Trading Name (optional)" },
+              "placeholder": { "literalString": "e.g. Gen Hosp" },
+              "textFieldType": "shortText"
+            }
+          },
+          {
+            "id": "partof_org",
+            "type": "DynamicSelect",
+            "properties": {
+              "label": {
+                "literalString": "Part of — Parent Organisation (optional)"
+              },
+              "placeholder": {
+                "literalString": "Search parent organisations…"
+              },
+              "source": {
+                "url": "$fhir_gql_url/organizations/",
+                "staticParams": {
+                  "org_id": { "path": "org_id" }
+                },
+                "searchParam": "name",
+                "responsePath": "data",
+                "minChars": 0,
+                "debounceMs": 300,
+                "pageSize": 10,
+                "limitParam": "limit",
+                "offsetParam": "offset"
+              },
+              "display": {
+                "label": { "path": "name" },
+                "description": { "template": "Organization/{id}" }
+              },
+              "emits": [
+                { "key": "partof", "template": "Organization/{id}" },
+                { "key": "partof_display", "path": "name" }
+              ]
+            }
+          },
+          {
+            "id": "divider-telecom",
+            "type": "Divider",
+            "properties": {}
+          },
+          {
+            "id": "section-telecom",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Contact (optional)" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "org-telecom-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "telecom_system",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Contact Type" },
+                    "placeholder": { "literalString": "e.g. phone…" },
+                    "items": "$telecom_system_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "telecom_value",
+                  "type": "TextField",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "Contact Value" },
+                    "placeholder": { "literalString": "e.g. +1-555-0100" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "telecom_use",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Use" },
+                    "placeholder": { "literalString": "e.g. work…" },
+                    "items": "$telecom_use_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "divider-address",
+            "type": "Divider",
+            "properties": {}
+          },
+          {
+            "id": "section-address",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Address (optional)" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "address_line",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Street Address" },
+              "placeholder": { "literalString": "e.g. 123 Main Street" },
+              "textFieldType": "shortText"
+            }
+          },
+          {
+            "id": "org-city-state-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "address_city",
+                  "type": "TextField",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "City" },
+                    "placeholder": { "literalString": "City" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "address_state",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "State" },
+                    "placeholder": { "literalString": "State" },
+                    "textFieldType": "shortText"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "org-postal-country-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "address_postal_code",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Postal Code" },
+                    "placeholder": { "literalString": "ZIP / Postal code" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "address_country",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Country" },
+                    "placeholder": { "literalString": "e.g. US" },
+                    "textFieldType": "shortText"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

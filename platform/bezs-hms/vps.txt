@@ -1,0 +1,253 @@
+================================================================================
+  DrGodly — VPS Deployment Guide
+  Image registry : GitHub Container Registry (ghcr.io)
+  Runtime        : Docker + Compose
+================================================================================
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  PART 1 — ONE-TIME SETUP (local machine)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 1 — Create a GitHub Personal Access Token (PAT)
+─────────────────────────────────────────────────────
+1. Go to: GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)
+2. Click "Generate new token (classic)"
+3. Give it a name: e.g. "drgodly-docker"
+4. Select scopes:
+     ✅ write:packages
+     ✅ read:packages
+     ✅ delete:packages   (optional, for cleanup)
+5. Click "Generate token"
+6. Copy and save the token — you will not see it again.
+
+   Your GitHub username : naveenraj-g
+   Your repo/image name : drgodly
+   Full image path      : ghcr.io/naveenraj-g/drgodly:latest
+
+
+STEP 2 — Login to ghcr.io on your local machine
+─────────────────────────────────────────────────
+   echo YOUR_GITHUB_PAT | docker login ghcr.io -u naveenraj-g --password-stdin
+
+   You should see: "Login Succeeded"
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  PART 2 — BUILD & PUSH (every new release, on your local machine)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 3 — Make sure your .env has all NEXT_PUBLIC_* values filled in
+────────────────────────────────────────────────────────────────────
+   The build script reads these from .env and bakes them into the client bundle.
+   At minimum set:
+
+     NEXT_PUBLIC_APP_URL=https://yourdomain.com
+     NEXT_PUBLIC_BETTER_AUTH_URL=https://yourdomain.com
+     NEXT_PUBLIC_BETTER_AUTH_CLIENT_ID=<your-client-id>
+     NEXT_PUBLIC_LIVEKIT_URL=wss://your-livekit-host
+     NEXT_PUBLIC_LIVEKIT_AGENT_URL=https://your-livekit-agent
+     NEXT_PUBLIC_VAPI_PUBLIC_KEY=<your-vapi-key>
+     NEXT_PUBLIC_VAPI_AGENT_ID=<your-vapi-agent-id>
+
+
+STEP 4 — Build the Docker image
+────────────────────────────────
+   chmod +x docker-build.sh
+
+   ./docker-build.sh .env ghcr.io/naveenraj-g/drgodly:latest
+
+   # To tag a versioned release as well:
+   ./docker-build.sh .env ghcr.io/naveenraj-g/drgodly:1.0.0
+
+   This will take a few minutes on first build (installs all deps, runs next build).
+
+
+STEP 5 — Push the image to ghcr.io
+────────────────────────────────────
+   docker push ghcr.io/naveenraj-g/drgodly:latest
+
+   # If you also tagged a version:
+   docker push ghcr.io/naveenraj-g/drgodly:1.0.0
+
+   After push, the image is visible at:
+   https://github.com/naveenraj-g?tab=packages
+
+
+STEP 6 — Make the package public (one-time, optional)
+──────────────────────────────────────────────────────
+   By default ghcr.io packages are private. To pull on VPS without login:
+   1. Go to: https://github.com/naveenraj-g/drgodly/pkgs/container/drgodly
+   2. Click "Package settings"
+   3. Scroll to "Danger Zone" → Change visibility → Public
+
+   If you keep it private, you must also login to ghcr.io on the VPS (Step 9).
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  PART 3 — VPS FIRST-TIME SETUP (do this once on the server)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 7 — Install Docker on the VPS
+────────────────────────────────────
+   SSH into your VPS, then:
+
+   # Ubuntu / Debian
+   curl -fsSL https://get.docker.com | sh
+   sudo usermod -aG docker $USER
+   newgrp docker
+
+   # Verify
+   docker --version
+
+
+STEP 8 — Create the Docker network
+────────────────────────────────────
+   docker network create drgodly-net
+
+   (compose.vps.yml expects this external network to exist)
+
+
+STEP 9 — Login to ghcr.io on the VPS (skip if package is public)
+──────────────────────────────────────────────────────────────────
+   echo YOUR_GITHUB_PAT | docker login ghcr.io -u naveenraj-g --password-stdin
+
+
+STEP 10 — Create the app directory and env file
+────────────────────────────────────────────────
+   mkdir -p /root/drgodly
+   cd /root/drgodly
+
+   # Upload compose.vps.yml from your local machine:
+   #   scp compose.vps.yml root@YOUR_VPS_IP:/root/drgodly/
+
+   # Create the runtime env file (server-side secrets only — no NEXT_PUBLIC_*):
+   nano .env.vps
+
+   Paste and fill in all server-side variables:
+
+     DATABASE_URL=postgresql://drgodly:YOUR_DB_PASSWORD@drgodly-postgres:5432/drgodly_telemedicine
+     BETTER_AUTH_SECRET=<long-random-secret>
+     BETTER_AUTH_URL=https://yourdomain.com
+     BETTER_AUTH_CLIENT_ID=<your-client-id>
+     BETTER_AUTH_CLIENT_SECRET=<your-client-secret>
+     FHIR_SERVER_URL=https://your-fhir-server
+     FHIR_SERVER_TOKEN=<fhir-token>
+     INTAKE_AGENT_URL=https://your-intake-agent
+     CONSULTATION_AGENT_URL=https://your-consultation-agent
+     DB_PASSWORD=YOUR_DB_PASSWORD
+
+   Save and exit (Ctrl+O, Enter, Ctrl+X in nano).
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  PART 4 — RUN THE APP (first deploy and every update)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 11 — Pull the latest image on the VPS
+────────────────────────────────────────────
+   docker pull ghcr.io/naveenraj-g/drgodly:latest
+
+
+STEP 12 — Start the stack
+──────────────────────────
+   cd /root/drgodly
+
+   docker compose -f compose.vps.yml up -d
+
+   This starts:
+     - drgodly-postgres  (postgres:16-alpine, internal only)
+     - drgodly           (the Next.js app on port 3000)
+
+   On first start, postgres will automatically create the drgodly_telemedicine
+   database via the init SQL. The app waits for postgres to be healthy, then
+   docker-entrypoint.sh runs "prisma db push" to sync the schema, then starts
+   the server.
+
+
+STEP 13 — Check logs
+─────────────────────
+   # App logs
+   docker logs -f drgodly
+
+   # Postgres logs
+   docker logs -f drgodly-postgres
+
+   # Entrypoint output (db push + startup)
+   docker logs drgodly 2>&1 | head -30
+
+
+STEP 14 — (Optional) Reverse proxy with Nginx
+──────────────────────────────────────────────
+   The app runs on port 3000 inside drgodly-net. To expose it on port 80/443:
+
+   Option A — Nginx Proxy Manager (recommended, GUI-based):
+     - Add the drgodly container as a proxy host
+     - Point it to host: drgodly, port: 3000
+     - Enable SSL via Let's Encrypt
+
+   Option B — Plain Nginx:
+     server {
+       listen 80;
+       server_name yourdomain.com;
+       location / {
+         proxy_pass http://localhost:3000;
+         proxy_http_version 1.1;
+         proxy_set_header Upgrade $http_upgrade;
+         proxy_set_header Connection 'upgrade';
+         proxy_set_header Host $host;
+         proxy_cache_bypass $http_upgrade;
+       }
+     }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  PART 5 — UPDATING THE APP (every new release)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+On your LOCAL machine:
+  1. Make your code changes
+  2. ./docker-build.sh .env ghcr.io/naveenraj-g/drgodly:latest
+  3. docker push ghcr.io/naveenraj-g/drgodly:latest
+
+On the VPS:
+  4. docker pull ghcr.io/naveenraj-g/drgodly:latest
+  5. docker compose -f compose.vps.yml up -d --force-recreate app
+
+  The --force-recreate flag restarts only the app container with the new image.
+  Postgres keeps running and data is preserved in the postgres_data volume.
+  The entrypoint runs "prisma db push" again on startup — any schema changes
+  are applied automatically.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  QUICK REFERENCE — USEFUL COMMANDS ON VPS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  # View running containers
+  docker ps
+
+  # Stop the stack
+  docker compose -f compose.vps.yml down
+
+  # Stop and wipe the database volume (DESTRUCTIVE — deletes all data)
+  docker compose -f compose.vps.yml down -v
+
+  # Restart only the app (e.g. after env change)
+  docker compose -f compose.vps.yml restart app
+
+  # Connect to postgres directly
+  docker exec -it drgodly-postgres psql -U drgodly -d drgodly_telemedicine
+
+  # Shell into the running app container
+  docker exec -it drgodly sh
+
+  # Check disk usage
+  docker system df
+
+  # Remove unused images to free space
+  docker image prune -f
+
+================================================================================
+
+./docker-build.sh .env ghcr.io/naveenraj-g/drgodly:latest

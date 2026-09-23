@@ -1,0 +1,127 @@
+{
+  "id": "diag-report-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "diag-report-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_diagnostic_report" },
+        "submitLabel": { "literalString": "Create Report" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "dr-title",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Step 1: Create Diagnostic Report" }, "usageHint": "h2" }
+          },
+          {
+            "id": "dr-subtitle",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Patient, encounter, and specimen resolved from session." }, "usageHint": "caption" }
+          },
+          { "id": "dr-divider-top", "type": "Divider", "properties": {} },
+          {
+            "id": "code",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Report Code (LOINC)" },
+              "placeholder": { "literalString": "Search LOINC…" },
+              "valueType": { "literalString": "CodeableConcept" },
+              "serverSearch": {
+                "system": "http://loinc.org",
+                "minChars": 2,
+                "debounceMs": 200
+              }
+            }
+          },
+          {
+            "id": "dr-status-category-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "status",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Status" },
+                    "placeholder": { "literalString": "Select status…" },
+                    "items": "$status_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "category",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Category (optional)" },
+                    "placeholder": { "literalString": "Select category…" },
+                    "items": "$category_concepts.concepts",
+                    "valueType": { "literalString": "CodeableConcept" }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "performer",
+            "type": "DataSelect",
+            "properties": {
+              "label": { "literalString": "Performer (optional)" },
+              "placeholder": { "literalString": "Select practitioner…" },
+              "items": "$booking_practitioners.data",
+              "labelPath": "practitioner_detail.name.text",
+              "emits": [
+                { "key": "ref_id", "path": "practitioner_ref_id" }
+              ]
+            }
+          },
+          {
+            "id": "dr-dates-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "effective_datetime",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Effective Date/Time (optional)" },
+                    "enableDate": true,
+                    "enableTime": true
+                  }
+                },
+                {
+                  "id": "issued",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Issued Date/Time (optional)" },
+                    "enableDate": true,
+                    "enableTime": true
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "conclusion",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Conclusion (optional)" },
+              "placeholder": { "literalString": "Enter clinical conclusion…" },
+              "textFieldType": "longText"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

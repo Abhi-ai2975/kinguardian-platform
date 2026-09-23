@@ -1,0 +1,119 @@
+{
+  "id": "create_schedule_with_slots",
+  "name": "Create Schedule with Slots",
+  "description": "Set up an availability schedule with practitioner roles, locations, and healthcare services as actors, then add individual bookable time slots in two steps.",
+  "version": "1.0.0",
+  "tags": ["fhir", "schedule", "slot", "create", "scheduling"],
+  "required_permissions": ["schedule:create", "slot:create"],
+  "llm_hints": {
+    "intent_examples": [
+      "Create a schedule",
+      "Set up a practitioner's schedule",
+      "Add appointment slots",
+      "Create time slots for a doctor",
+      "Set up availability for a practitioner"
+    ],
+    "when_to_use": [
+      "User wants to create a Schedule resource",
+      "User wants to add appointment slots for a practitioner",
+      "User wants to set up availability for booking"
+    ],
+    "when_not_to_use": [
+      "User wants to book an appointment (use book_appointment)",
+      "User wants to create a practitioner"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you create a schedule and add bookable slots in 2 steps.",
+  "completion": {
+    "message": "Schedule and slots created. Practitioners are now bookable.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "create_schedule_resource",
+      "name": "Create Schedule",
+      "step_type": "form",
+      "description": "Define the planning horizon and assign actor resources (practitioner roles, locations, healthcare services).",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "schedule_id": {
+            "type": "integer",
+            "resource": "Schedule",
+            "field": "id"
+          },
+          "planning_horizon_start": {
+            "type": "string",
+            "resource": "Schedule",
+            "field": "planning_horizon_start"
+          },
+          "planning_horizon_end": {
+            "type": "string",
+            "resource": "Schedule",
+            "field": "planning_horizon_end"
+          }
+        }
+      },
+      "context_resolvers": [],
+      "ui": {
+        "schema": "schedule_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_schedule",
+          "tool_name": "create_schedule",
+          "url": "$fhir_gql_url/schedules/",
+          "method": "POST",
+          "validation_schema": "schedule_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    },
+    {
+      "sequence_number": 2,
+      "id": "add_slots",
+      "name": "Add Slots",
+      "step_type": "form",
+      "description": "Add individual bookable time slots for this schedule.",
+      "context": {
+        "inputs": {
+          "schedule_id": { "type": "integer", "source": "workflow" },
+          "planning_horizon_start": { "type": "string", "source": "workflow" },
+          "planning_horizon_end": { "type": "string", "source": "workflow" }
+        },
+        "outputs": {}
+      },
+      "context_resolvers": [],
+      "ui": {
+        "schema": "generate_slots_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "generate_slots",
+          "tool_name": "generate_slots",
+          "url": "$fhir_gql_url/slots/generate",
+          "method": "POST",
+          "validation_schema": "generate_slots_schema",
+          "retryable": false,
+          "timeout_ms": 30000
+        }
+      ]
+    }
+  ]
+}

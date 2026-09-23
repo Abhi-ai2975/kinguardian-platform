@@ -1,0 +1,21 @@
+services:
+  api:
+    image: ghcr.io/naveenraj-g/fhir-gql:latest
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    # Joins the fhir-server's shared network so this service can reach
+    # the fhir-server and its Redis instance by their internal hostnames.
+    networks:
+      - fhir-net
+    restart: unless-stopped
+
+# Attach to the network that fhir-server's compose created.
+# Both stacks share the same Redis — no separate Redis container needed here.
+# Make sure REDIS_URL in .env uses the internal hostname, e.g.:
+#   REDIS_URL=redis://redis:6379/0
+networks:
+  fhir-net:
+    external: true
+    name: fhir-server_fhir-net

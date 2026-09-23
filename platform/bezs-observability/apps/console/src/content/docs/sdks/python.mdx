@@ -1,0 +1,279 @@
+---
+title: Python SDK
+description: Reference for the watcher-sdk Python package.
+---
+
+# Python SDK
+
+The `watcher-sdk` package supports Python 3.9+ and works in synchronous and async applications.
+
+## Installation
+
+<PackageTabs pkg="watcher-sdk" python />
+
+## Initialisation
+
+Create a module-level singleton client. Never instantiate inside a request handler.
+
+```python
+# watcher.py
+import os
+from watcher_sdk import Client
+
+client = Client(
+    api_key=os.environ["W24_API_KEY"],
+    app_id=os.environ.get("W24_APP_ID"),      # links events to a registered app
+    # service_name labels the sending component — shown in the Service column
+    # in the dashboard. Examples: "payment-api", "auth-worker", "ai-agent".
+    service_name=os.environ.get("W24_SERVICE_NAME", ""),  # optional
+    environment=os.environ.get("W24_ENVIRONMENT", "production"),
+    # gateway_url defaults to https://ingest.watcher24.io — only set for local dev or self-hosted.
+    gateway_url=os.environ.get("W24_GATEWAY_URL"),
+)
+```
+
+Register a shutdown hook in your entry point:
+
+```python
+import atexit
+from watcher import client
+
+atexit.register(client.shutdown)
+```
+
+| Option | Type | Required | Description |
+|--------|------|----------|-------------|
+| `api_key` | `str` | Yes | Secret key (`wtch_` prefix) from Settings → API Keys |
+| `app_id` | `str` | No | Links events to a registered application in the dashboard. Get the ID from Settings → Apps. |
+| `service_name` | `str` | No | Label the sending component (e.g. `"payment-api"`, `"ai-agent"`). Stored for filtering in the dashboard. |
+| `environment` | `str` | No | Defaults to `"production"` |
+| `gateway_url` | `str` | No | Override the ingest endpoint. Defaults to <GatewayUrl />. Only needed for self-hosted deployments or local dev. |
+| `flush_interval` | `float` | No | How often the background thread sends events (seconds). Default: `0.5` |
+| `flush_at` | `int` | No | Buffer size that triggers an immediate flush. Default: `100` |
+| `max_buffer` | `int` | No | Maximum events held in memory; oldest dropped when full. Default: `10 000` |
+
+## Audit events
+
+Record user actions and compliance events. Always include `user_id`.
+
+```python
+client.audit(
+    "user.login",
+    user_id=user_id,
+    payload={"email": email, "ip": request.client.host},
+)
+
+client.audit(
+    "document.deleted",
+    user_id=user_id,
+    payload={"doc_id": doc_id, "reason": "gdpr_request"},
+)
+```
+
+## Logs
+
+Application log events with a severity level.
+
+```python
+client.log("info", "server.started", payload={"port": 8000})
+client.log("error", "db.query.failed", payload={"error": str(exc)})
+client.log("warn", "rate_limit.approaching", payload={"used": 9_800, "limit": 10_000})
+```
+
+Severity levels: `"debug"` · `"info"` · `"warn"` · `"error"` · `"critical"`
+
+## Traces
+
+Distributed trace spans. Pass a shared `trace_id` to correlate spans across services.
+
+```python
+import time, uuid
+
+start = time.perf_counter()
+result = await db.query(sql)
+duration_ms = round((time.perf_counter() - start) * 1000, 2)
+
+client.trace(
+    "db.query",
+    trace_id=request_trace_id,
+    span_id=str(uuid.uuid4()),
+    payload={"query": "get_user", "duration_ms": duration_ms},
+)
+```
+
+## Metrics
+
+Numeric measurements. Always include `{"value": number}` in `payload`.
+
+```python
+client.metric("orders.total", payload={"value": 1_042})
+client.metric("response.latency_ms", payload={"value": 120})
+```
+
+## AI events
+
+Record AI agent telemetry — LLM calls, tool calls, workflow steps, retrievals, and evals.
+Always include a structured `payload` with a `kind` field so the console can display AI-specific columns (model, tokens, cost, latency) and the workflow waterfall.
+
+```python
+import time, uuid
+
+trace_id = str(uuid.uuid4())
+
+# LLM call
+start = time.perf_counter()
+response = openai_client.chat.completions.create(
+    model="gpt-4o",
+    messages=[{"role": "user", "content": prompt}],
+)
+latency_ms = round((time.perf_counter() - start) * 1000)
+
+client.ai("info", "llm.call.completed",
+    trace_id=trace_id,
+    span_id=f"llm-{int(time.time() * 1000)}",
+    payload={
+        "kind":              "llm_call",
+        "provider":          "openai",
+        "model":             "gpt-4o",
+        "prompt_tokens":     response.usage.prompt_tokens,
+        "completion_tokens": response.usage.completion_tokens,
+        "total_tokens":      response.usage.total_tokens,
+        "latency_ms":        latency_ms,
+        "cost_usd":          round(
+            (response.usage.prompt_tokens * 0.0000025) +
+            (response.usage.completion_tokens * 0.000010), 6
+        ),
+        "finish_reason":     response.choices[0].finish_reason,
+    }
+)
+
+# Tool call
+client.ai("info", "tool.call.completed",
+    trace_id=trace_id,
+    payload={
+        "kind":           "tool_call",
+        "tool_name":      "web_search",
+        "latency_ms":     340,
+        "success":        True,
+        "output_summary": "Found 5 results",
+    }
+)
+```
+
+The `EVENT_TYPE_AI` constant is also exported for callers that prefer the constant over the literal string:
+
+```python
+from watcher_sdk import EVENT_TYPE_AI  # "ai"
+```
+
+See the [AI Agent Observability guide →](/docs/ai/overview) for the full payload schema for all AI event kinds.
+
+## FastAPI — lifespan pattern (recommended)
+
+```python
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+from watcher import client
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    client.log("info", "server.started")
+    yield
+    client.shutdown()
+
+app = FastAPI(lifespan=lifespan)
+```
+
+## FastAPI — auto-trace middleware
+
+```python
+from watcher_sdk.integrations.fastapi import instrument
+from watcher import client
+
+instrument(app, client)
+# Every request now produces a trace event with method, path, status_code, duration_ms
+```
+
+## Method signatures
+
+```python
+# Audit — user actions, compliance trail
+client.audit(
+    message: str,
+    *,
+    user_id: str = "",
+    session_id: str = "",
+    trace_id: str = "",
+    span_id: str = "",
+    payload: dict | None = None,
+) -> None
+
+# Log — application events
+client.log(
+    severity: str,   # "debug" | "info" | "warn" | "error" | "critical"
+    message: str,
+    *,
+    trace_id: str = "",
+    span_id: str = "",
+    payload: dict | None = None,
+) -> None
+
+# Trace — distributed spans
+client.trace(
+    message: str,
+    *,
+    trace_id: str = "",
+    span_id: str = "",
+    parent_span_id: str = "",
+    payload: dict | None = None,
+) -> None
+
+# Metric — numeric measurements
+client.metric(
+    message: str,
+    *,
+    payload: dict | None = None,  # always include {"value": number}
+) -> None
+
+# AI — agent events (LLM calls, tool calls, workflow steps, evals)
+client.ai(
+    severity: str,   # "debug" | "info" | "warn" | "error" | "critical"
+    message: str,
+    *,
+    trace_id: str = "",
+    span_id: str = "",
+    parent_span_id: str = "",
+    payload: dict | None = None,  # always include {"kind": str}
+) -> None
+
+# Lifecycle
+client.flush() -> None    # blocks until all buffered events are sent
+client.shutdown() -> None # flush then stop the background thread
+```
+
+<Callout type="note">
+All options after `message` are keyword-only. Use `payload={"port": 3000}` — not a positional argument.
+</Callout>
+
+## Environment variables
+
+```bash
+W24_API_KEY=wtch_...            # required — secret key from Settings → API Keys
+W24_APP_ID=your_app_id_here    # optional — from Settings → Apps
+W24_SERVICE_NAME=my-service    # optional — component label for filtering
+W24_ENVIRONMENT=production     # optional
+
+# Only needed for local dev or self-hosted (SDK defaults to https://ingest.watcher24.io)
+# W24_GATEWAY_URL=http://localhost:8080
+```
+
+Load with python-dotenv:
+
+```python
+from dotenv import load_dotenv
+load_dotenv()  # call before importing watcher.py
+```
+
+<Callout type="note">
+In serverless environments (AWS Lambda, Cloud Run), call `client.flush()` explicitly at the end of your handler — the process may be frozen before the background flush thread runs.
+</Callout>

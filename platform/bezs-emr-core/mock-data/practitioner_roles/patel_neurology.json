@@ -1,0 +1,63 @@
+{
+  "user_id": "user-admin-001",
+  "org_id": "0fb41e50-82a4-461e-96c7-bd11359d892d",
+  "practitioner": "Practitioner/30001",
+  "practitioner_display": "Dr. Sarah K. Patel",
+  "organization": "Organization/190000",
+  "organization_display": "Sunrise Medical Center",
+  "active": true,
+  "period_start": "2018-03-15T00:00:00Z",
+  "availability_exceptions": "Not available on Massachusetts public holidays. Research commitments every 2nd Wednesday.",
+  "code": [
+    {
+      "coding_system": "http://snomed.info/sct",
+      "coding_code": "56397003",
+      "coding_display": "Neurologist",
+      "text": "Neurologist"
+    }
+  ],
+  "specialty": [
+    {
+      "coding_system": "http://snomed.info/sct",
+      "coding_code": "394591006",
+      "coding_display": "Neurology",
+      "text": "Neurology"
+    }
+  ],
+  "location": [
+    {
+      "reference": "Location/230000",
+      "reference_display": "Sunrise Medical Center — Main Clinic"
+    }
+  ],
+  "healthcare_service": [
+    {
+      "reference": "HealthcareService/150001",
+      "reference_display": "Neurology Consultation"
+    }
+  ],
+  "availability": [
+    {
+      "available_times": [
+        {
+          "days_of_week": ["mon", "wed", "fri"],
+          "all_day": false,
+          "available_start_time": "08:00:00",
+          "available_end_time": "12:00:00"
+        },
+        {
+          "days_of_week": ["mon", "wed", "fri"],
+          "all_day": false,
+          "available_start_time": "14:00:00",
+          "available_end_time": "16:00:00"
+        }
+      ],
+      "not_available_times": []
+    }
+  ],
+  "identifier": [],
+  "characteristic": [],
+  "communication": [],
+  "contact": [],
+  "endpoint": []
+}

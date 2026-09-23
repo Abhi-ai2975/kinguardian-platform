@@ -1,0 +1,43 @@
+{
+  "user_id": "VsHqNde5bO7NsoLddPX2NljS7hhZRd4Y",
+  "org_id": "0fb41e50-82a4-461e-96c7-bd11359d892d",
+  "active": true,
+  "comment": "Dr. Priya R. Sharma — General Practice schedule, Mon–Fri",
+  "planning_horizon_start": "2026-06-15T00:00:00Z",
+  "planning_horizon_end": "2026-12-31T23:59:59Z",
+  "service_category": [
+    {
+      "coding_system": "http://terminology.hl7.org/CodeSystem/service-category",
+      "coding_code": "17",
+      "coding_display": "General Practice"
+    }
+  ],
+  "service_type": [
+    {
+      "coding_system": "http://terminology.hl7.org/CodeSystem/service-type",
+      "coding_code": "124",
+      "coding_display": "General Practice / GP (Doctor)"
+    }
+  ],
+  "specialty": [
+    {
+      "coding_system": "http://snomed.info/sct",
+      "coding_code": "394814009",
+      "coding_display": "General practice"
+    }
+  ],
+  "actor": [
+    {
+      "reference": "Practitioner/30003",
+      "reference_display": "Dr. Priya R. Sharma"
+    },
+    {
+      "reference": "PractitionerRole/140003",
+      "reference_display": "Dr. Sharma — GP"
+    },
+    {
+      "reference": "Location/230001",
+      "reference_display": "City Health Clinic — Main Branch"
+    }
+  ]
+}

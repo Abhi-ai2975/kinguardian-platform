@@ -1,0 +1,287 @@
+{
+  "id": "rp-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "rp-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_related_person" },
+        "submitLabel": { "literalString": "Register Related Person" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "form-title",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Register Related Person" }, "usageHint": "h2" }
+          },
+          {
+            "id": "form-subtitle",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Add a next of kin, guardian, or emergency contact linked to the current patient." }, "usageHint": "caption" }
+          },
+          { "id": "divider-top", "type": "Divider", "properties": {} },
+
+          {
+            "id": "section-patient",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Patient" }, "usageHint": "h4" }
+          },
+          {
+            "id": "patient-info",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Patient resolved automatically from your session." }, "usageHint": "caption" }
+          },
+
+          { "id": "divider-relationship", "type": "Divider", "properties": {} },
+          {
+            "id": "section-relationship",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Relationship" }, "usageHint": "h4" }
+          },
+          {
+            "id": "relationship",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Relationship to Patient" },
+              "placeholder": { "literalString": "Select relationship…" },
+              "items": "$relationship_concepts.concepts",
+              "valueType": { "literalString": "CodeableConcept" }
+            }
+          },
+          {
+            "id": "relationship_description",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Description (optional)" },
+              "placeholder": { "literalString": "e.g. Primary emergency contact" },
+              "textFieldType": "shortText"
+            }
+          },
+          {
+            "id": "active",
+            "type": "CheckBox",
+            "properties": { "label": { "literalString": "Active" }, "value": { "literalBoolean": true } }
+          },
+
+          { "id": "divider-name", "type": "Divider", "properties": {} },
+          {
+            "id": "section-name",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Name" }, "usageHint": "h4" }
+          },
+          {
+            "id": "rp-name-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "family_name",
+                  "type": "TextField",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "Family Name" },
+                    "placeholder": { "literalString": "e.g. Smith" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "given_name",
+                  "type": "TextField",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "Given Name" },
+                    "placeholder": { "literalString": "e.g. Jane" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "name_prefix",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Prefix (optional)" },
+                    "placeholder": { "literalString": "e.g. Ms." },
+                    "textFieldType": "shortText"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "name_use",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Name Use (optional)" },
+              "placeholder": { "literalString": "Select name use…" },
+              "items": "$name_use_concepts.concepts",
+              "valueType": { "literalString": "code" }
+            }
+          },
+
+          { "id": "divider-contact", "type": "Divider", "properties": {} },
+          {
+            "id": "section-contact",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Contact & Demographics" }, "usageHint": "h4" }
+          },
+          {
+            "id": "rp-contact-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "phone",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Phone (optional)" },
+                    "placeholder": { "literalString": "e.g. +1-555-0100" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "email",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Email (optional)" },
+                    "placeholder": { "literalString": "e.g. jane.smith@example.com" },
+                    "textFieldType": "shortText"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "gender",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Gender (optional)" },
+              "placeholder": { "literalString": "Select gender…" },
+              "items": "$gender_concepts.concepts",
+              "valueType": { "literalString": "code" }
+            }
+          },
+
+          { "id": "divider-dates", "type": "Divider", "properties": {} },
+          {
+            "id": "section-dates",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Dates" }, "usageHint": "h4" }
+          },
+          {
+            "id": "birth_date",
+            "type": "DateTimeInput",
+            "properties": {
+              "label": { "literalString": "Date of Birth (optional)" },
+              "enableDate": true,
+              "enableTime": false
+            }
+          },
+          {
+            "id": "rp-period-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "period_start",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Relationship Period Start (optional)" },
+                    "enableDate": true,
+                    "enableTime": true
+                  }
+                },
+                {
+                  "id": "period_end",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Relationship Period End (optional)" },
+                    "enableDate": true,
+                    "enableTime": true
+                  }
+                }
+              ]
+            }
+          },
+
+          { "id": "divider-address", "type": "Divider", "properties": {} },
+          {
+            "id": "section-address",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Address (optional)" }, "usageHint": "h4" }
+          },
+          {
+            "id": "address_text",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Address Line" },
+              "placeholder": { "literalString": "e.g. 123 Main Street" },
+              "textFieldType": "shortText"
+            }
+          },
+          {
+            "id": "rp-address-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "city",
+                  "type": "TextField",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "City" },
+                    "placeholder": { "literalString": "e.g. Boston" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "state",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "State" },
+                    "placeholder": { "literalString": "e.g. MA" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "postal_code",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Postal Code" },
+                    "placeholder": { "literalString": "e.g. 02101" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "country",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Country" },
+                    "placeholder": { "literalString": "e.g. US" },
+                    "textFieldType": "shortText"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

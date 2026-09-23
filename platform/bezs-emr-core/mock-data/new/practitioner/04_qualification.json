@@ -1,0 +1,21 @@
+{
+  "code_system": "http://terminology.hl7.org/CodeSystem/v2-0360",
+  "code_code": "MD",
+  "code_display": "Doctor of Medicine",
+  "code_text": "MD — General Practice",
+  "status_system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+  "status_code": "active",
+  "status_display": "Active",
+  "period_start": "2014-05-20T00:00:00Z",
+  "issuer_display": "All India Institute of Medical Sciences (AIIMS), New Delhi",
+  "identifier": [
+    {
+      "use": "official",
+      "system": "http://hl7.org/fhir/sid/us-npi",
+      "value": "4567890123",
+      "type_code": "NPI",
+      "type_display": "National Provider Identifier",
+      "assigner": "CMS"
+    }
+  ]
+}

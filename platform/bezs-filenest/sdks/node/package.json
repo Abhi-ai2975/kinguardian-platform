@@ -1,0 +1,34 @@
+{
+  "name": "@filenest/node",
+  "version": "0.1.0",
+  "description": "FileNest SDK for Node.js — server-side file infrastructure client",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "@filenest/core": "workspace:*"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

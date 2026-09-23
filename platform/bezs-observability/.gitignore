@@ -1,0 +1,56 @@
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.uv/
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+dist/
+
+# Build outputs
+build/
+out/
+.next/
+target/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes (never commit these)
+infrastructure/clickhouse/data/
+infrastructure/postgres/data/
+
+.agents
+.claude
+skills-lock.json
+
+# Allow project-level Claude skills so they are shared with the team
+!sdk/.claude/
+!sdk/.claude/skills/
+!sdk/.claude/skills/**
+
+/logs
+logs
+
+.commandcode

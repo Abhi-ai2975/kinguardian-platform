@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hybrid Diarization Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0b1120;
+            color: #e2e8f0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 2rem;
+        }
+
+        .container {
+            width: 800px;
+            max-width: 100%;
+        }
+
+        .card {
+            background: #111827;
+            border: 1px solid #1e293b;
+            padding: 28px;
+            border-radius: 16px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.4rem;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #64748b;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+        }
+
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 10px 14px;
+            background: #0f172a;
+            border-radius: 10px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #64748b;
+            flex-shrink: 0;
+        }
+
+        .dot.connected {
+            background: #22c55e;
+        }
+
+        .dot.recording {
+            background: #ef4444;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .status-label {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .status-msg {
+            color: #94a3b8;
+            font-size: 0.8rem;
+            margin-left: auto;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        button {
+            border: none;
+            padding: 12px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: opacity 0.15s;
+        }
+
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-start {
+            background: #16a34a;
+            color: #fff;
+        }
+
+        .btn-start:hover:not(:disabled) {
+            background: #15803d;
+        }
+
+        .btn-stop {
+            background: #dc2626;
+            color: #fff;
+        }
+
+        .btn-stop:hover:not(:disabled) {
+            background: #b91c1c;
+        }
+
+        .panel {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 16px;
+        }
+
+        .panel h3 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #64748b;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel h3 .badge {
+            font-size: 0.65rem;
+            background: #1e293b;
+            color: #94a3b8;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-weight: 400;
+        }
+
+        .content {
+            min-height: 50px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            color: #cbd5e1;
+        }
+
+        .content.draft {
+            color: #64748b;
+            font-style: italic;
+        }
+
+        .final-transcript {
+            background: linear-gradient(135deg, #1e293b 0%, #172033 100%);
+            border: 1px solid #334155;
+            border-radius: 14px;
+            padding: 20px;
+            margin-top: 8px;
+        }
+
+        .final-transcript h3 {
+            color: #22c55e;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 14px;
+        }
+
+        .final-transcript .content {
+            max-height: 500px;
+            line-height: 1.8;
+        }
+
+        .doctor-line {
+            color: #60a5fa;
+        }
+
+        .patient-line {
+            color: #c084fc;
+        }
+
+        .unknown-line {
+            color: #94a3b8;
+        }
+
+        .lang-tag {
+            display: inline-block;
+            background: #334155;
+            color: #94a3b8;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            margin-bottom: 8px;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>Hybrid Streaming + Batch Diarization</h1>
+            <p class="subtitle">Live transcription preview → silence timeout → batch diarization with speaker labels</p>
+
+            <div class="status-row">
+                <div class="dot" id="dot"></div>
+                <span class="status-label" id="statusLabel">Disconnected</span>
+                <span class="status-msg" id="statusMsg"></span>
+            </div>
+
+            <div class="controls">
+                <button class="btn-start" id="btnStart" onclick="startSession()">Start Recording</button>
+                <button class="btn-stop" id="btnStop" onclick="stopSession()" disabled>Stop & Diarize</button>
+            </div>
+
+            <div class="panel">
+                <h3>Live Draft <span class="badge" id="langTag" style="display:none"></span></h3>
+                <div class="content draft" id="draftContent">Waiting for speech...</div>
+            </div>
+
+            <div class="panel">
+                <h3>Partial Transcripts</h3>
+                <div class="content" id="partialContent"></div>
+            </div>
+
+            <div class="final-transcript hidden" id="finalPanel">
+                <h3>Final Diarized Transcript</h3>
+                <div class="content" id="finalContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_HOST = window.location.hostname || 'localhost';
+        const WS_URL = `ws://${API_HOST}:8000/ws/diarize`;
+
+        const TOKEN = "eyJhbGciOiJFZERTQSIsImtpZCI6InZlcnlNMnFSTFRRMWlFSWp4ajdiVE9Sejg2VFdJSUhVIn0.eyJpYXQiOjE3ODM0OTU5NTEsIm5hbWUiOiJQYXRpZW50MSIsImVtYWlsIjoicGF0aWVudDFAZ21haWwuY29tIiwiZW1haWxWZXJpZmllZCI6ZmFsc2UsImltYWdlIjpudWxsLCJjcmVhdGVkQXQiOiIyMDI2LTA1LTA3VDEzOjI5OjEwLjI5MloiLCJ1cGRhdGVkQXQiOiIyMDI2LTA1LTA3VDEzOjI5OjEwLjI5MloiLCJ1c2VybmFtZSI6InBhdGllbnQxIiwiZGlzcGxheVVzZXJuYW1lIjoicGF0aWVudDEiLCJ0d29GYWN0b3JFbmFibGVkIjpmYWxzZSwicm9sZSI6Imd1ZXN0IiwiYmFubmVkIjpmYWxzZSwiYmFuUmVhc29uIjpudWxsLCJiYW5FeHBpcmVzIjpudWxsLCJpZCI6InpEUVpmS2pWZXNoMTVpOFlYeTlFV21VWlU0OXdxZHQ2IiwiYWN0aXZlT3JnYW5pemF0aW9uSWQiOiIwZmI0MWU1MC04MmE0LTQ2MWUtOTZjNy1iZDExMzU5ZDg5MmQiLCJhY3RpdmVUZWFtSWQiOm51bGwsImFwcHMiOlt7ImlkIjoiY21vdmZkMXFwMDAwMDQ1dDc3ZXJoMjhkNiIsIm5hbWUiOiJUZWxlbWVkaWNpbmUiLCJzbHVnIjoidGVsZW1lZGljaW5lIiwibWVudXMiOlt7ImlkIjoiY21vdmZkMXU3MDAwMTQ1dDdyM3VhMDRzdyIsImxhYmVsIjoiUEFUSUVOVCIsInNsdWciOiJwYXRpZW50IiwiaWNvbiI6bnVsbCwiaHJlZiI6bnVsbCwidHlwZSI6IkdST1VQIiwicGVybWlzc2lvbktleXMiOltdLCJjaGlsZHJlbiI6W3siaWQiOiJjbW92ZmQxdmIwMDAyNDV0N216NTk3Z3NqIiwibGFiZWwiOiJEYXNoYm9hcmQiLCJzbHVnIjoicGF0aWVudC1kYXNoYm9hcmQiLCJpY29uIjoibGF5b3V0LWRhc2hib2FyZCIsImhyZWYiOiIvYmV6cy90ZWxlbWVkaWNpbmUvcGF0aWVudCIsInR5cGUiOiJJVEVNIiwicGVybWlzc2lvbktleXMiOlsicGF0aWVudC1kYXNoYm9hcmQ6cmVhZCJdLCJjaGlsZHJlbiI6W119LHsiaWQiOiJjbW92ZmQxdm8wMDAzNDV0N3U4YmdnMHVtIiwibGFiZWwiOiJQcm9maWxlIiwic2x1ZyI6InBhdGllbnQtcHJvZmlsZSIsImljb24iOiJ1c2VyLWNvZyIsImhyZWYiOiIvYmV6cy90ZWxlbWVkaWNpbmUvcGF0aWVudC9wcm9maWxlIiwidHlwZSI6IklURU0iLCJwZXJtaXNzaW9uS2V5cyI6WyJwYXRpZW50LXByb2ZpbGU6cmVhZCJdLCJjaGlsZHJlbiI6W119LHsiaWQiOiJjbW92ZmQxd2YwMDA0NDV0N2twZTIzOHFjIiwibGFiZWwiOiJBcHBvaW50bWVudHMiLCJzbHVnIjoicGF0aWVudC1hcHBvaW50bWVudHMtZ3JvdXAiLCJpY29uIjoiY2FsZW5kYXIiLCJocmVmIjpudWxsLCJ0eXBlIjoiR1JPVVAiLCJwZXJtaXNzaW9uS2V5cyI6W10sImNoaWxkcmVuIjpbeyJpZCI6ImNtb3ZmZDF3dzAwMDU0NXQ3Nm1nMTJzM2giLCJsYWJlbCI6IkFsbCBBcHBvaW50bWVudHMiLCJzbHVnIjoicGF0aWVudC1hcHBvaW50bWVudHMiLCJpY29uIjoiY2FsZW5kYXItY2xvY2siLCJocmVmIjoiL2JlenMvdGVsZW1lZGljaW5lL3BhdGllbnQvYXBwb2ludG1lbnRzIiwidHlwZSI6IklURU0iLCJwZXJtaXNzaW9uS2V5cyI6WyJwYXRpZW50LWFwcG9pbnRtZW50czpyZWFkIl0sImNoaWxkcmVuIjpbXX0seyJpZCI6ImNtb3ZmZDF4aDAwMDY0NXQ3emhraWI0Y20iLCJsYWJlbCI6IkJvb2sgQXBwb2ludG1lbnQiLCJzbHVnIjoicGF0aWVudC1ib29rLWFwcG9pbnRtZW50IiwiaWNvbiI6ImNhbGVuZGFyLXBsdXMiLCJocmVmIjoiL2JlenMvdGVsZW1lZGljaW5lL3BhdGllbnQvYXBwb2ludG1lbnRzL2Jvb2siLCJ0eXBlIjoiSVRFTSIsInBlcm1pc3Npb25LZXlzIjpbInBhdGllbnQtYm9vay1hcHBvaW50bWVudDpyZWFkIl0sImNoaWxkcmVuIjpbXX1dfSx7ImlkIjoiY21vdmZkMXh3MDAwNzQ1dDdvMzF2ZmF0bSIsImxhYmVsIjoiQUkgSW50YWtlIiwic2x1ZyI6InBhdGllbnQtYWktaW50YWtlLWdyb3VwIiwiaWNvbiI6ImNsaXBib2FyZC1saXN0IiwiaHJlZiI6bnVsbCwidHlwZSI6IkdST1VQIiwicGVybWlzc2lvbktleXMiOltdLCJjaGlsZHJlbiI6W3siaWQiOiJjbW92ZmQxeWYwMDA4NDV0N2Z1NGNnNmNqIiwibGFiZWwiOiJWb2ljZSBJbnRha2UiLCJzbHVnIjoicGF0aWVudC1pbnRha2Utdm9pY2UiLCJpY29uIjoibWljIiwiaHJlZiI6Ii9iZXpzL3RlbGVtZWRpY2luZS9wYXRpZW50L2FwcG9pbnRtZW50cy9pbnRha2UiLCJ0eXBlIjoiSVRFTSIsInBlcm1pc3Npb25LZXlzIjpbInBhdGllbnQtaW50YWtlLXZvaWNlOnJlYWQiXSwiY2hpbGRyZW4iOltdfSx7ImlkIjoiY21vdmZkMXl1MDAwOTQ1dDc1eTNjYjhjZyIsImxhYmVsIjoiQ2hhdCBJbnRha2UiLCJzbHVnIjoicGF0aWVudC1pbnRha2UtY2hhdCIsImljb24iOiJtZXNzYWdlLXNxdWFyZSIsImhyZWYiOiIvYmV6cy90ZWxlbWVkaWNpbmUvcGF0aWVudC9pbnRha2UiLCJ0eXBlIjoiSVRFTSIsInBlcm1pc3Npb25LZXlzIjpbInBhdGllbnQtaW50YWtlLWNoYXQ6cmVhZCJdLCJjaGlsZHJlbiI6W119XX0seyJpZCI6ImNtb3ZmZDF6YjAwMGE0NXQ3c2V4OWdvMXkiLCJsYWJlbCI6IkFJIENvbnN1bHRhdGlvbiIsInNsdWciOiJwYXRpZW50LWFpLWNvbnN1bHRhdGlvbi1ncm91cCIsImljb24iOiJzdGV0aG9zY29wZSIsImhyZWYiOm51bGwsInR5cGUiOiJHUk9VUCIsInBlcm1pc3Npb25LZXlzIjpbXSwiY2hpbGRyZW4iOlt7ImlkIjoiY21vdmZkMXp0MDAwYjQ1dDcwZTNzYTV6bSIsImxhYmVsIjoiVm9pY2UgQ29uc3VsdGF0aW9uIiwic2x1ZyI6InBhdGllbnQtYWktY29uc3VsdGF0aW9uLXZvaWNlIiwiaWNvbiI6InBob25lIiwiaHJlZiI6Ii9iZXpzL3RlbGVtZWRpY2luZS9wYXRpZW50L2NvbnN1bHRhdGlvbi92b2ljZSIsInR5cGUiOiJJVEVNIiwicGVybWlzc2lvbktleXMiOlsicGF0aWVudC1haS1jb25zdWx0YXRpb24tdm9pY2U6cmVhZCJdLCJjaGlsZHJlbiI6W119LHsiaWQiOiJjbW92ZmQyMDYwMDBjNDV0Nzg3dGY3b2QxIiwibGFiZWwiOiJDaGF0IENvbnN1bHRhdGlvbiIsInNsdWciOiJwYXRpZW50LWFpLWNvbnN1bHRhdGlvbi1jaGF0IiwiaWNvbiI6Im1lc3NhZ2UtY2lyY2xlIiwiaHJlZiI6Ii9iZXpzL3RlbGVtZWRpY2luZS9wYXRpZW50L2NvbnN1bHRhdGlvbi9jaGF0IiwidHlwZSI6IklURU0iLCJwZXJtaXNzaW9uS2V5cyI6WyJwYXRpZW50LWFpLWNvbnN1bHRhdGlvbi1jaGF0OnJlYWQiXSwiY2hpbGRyZW4iOltdfV19XX1dfV0sInBlcm1pc3Npb25zIjpbInBhdGllbnQtZGFzaGJvYXJkOnJlYWQiLCJwYXRpZW50LXByb2ZpbGU6cmVhZCIsInBhdGllbnQtYXBwb2ludG1lbnRzOnJlYWQiLCJwYXRpZW50LWJvb2stYXBwb2ludG1lbnQ6cmVhZCIsInBhdGllbnQtaW50YWtlLXZvaWNlOnJlYWQiLCJwYXRpZW50LWludGFrZS1jaGF0OnJlYWQiLCJwYXRpZW50LWFpLWNvbnN1bHRhdGlvbi12b2ljZTpyZWFkIiwicGF0aWVudC1haS1jb25zdWx0YXRpb24tY2hhdDpyZWFkIiwicGF0aWVudDpjcmVhdGUiLCJwYXRpZW50OnJlYWQiLCJwYXRpZW50OnVwZGF0ZSIsInBhdGllbnQ6ZGVsZXRlIiwiYXBwb2ludG1lbnQ6Y3JlYXRlIiwiYXBwb2ludG1lbnQ6cmVhZCIsImFwcG9pbnRtZW50OnVwZGF0ZSIsImFwcG9pbnRtZW50OmRlbGV0ZSIsImVuY291bnRlcjpjcmVhdGUiLCJlbmNvdW50ZXI6cmVhZCIsImVuY291bnRlcjp1cGRhdGUiLCJlbmNvdW50ZXI6ZGVsZXRlIiwicXVlc3Rpb25uYWlyZV9yZXNwb25zZTpjcmVhdGUiLCJxdWVzdGlvbm5haXJlX3Jlc3BvbnNlOnJlYWQiLCJxdWVzdGlvbm5haXJlX3Jlc3BvbnNlOnVwZGF0ZSIsInF1ZXN0aW9ubmFpcmVfcmVzcG9uc2U6ZGVsZXRlIiwiY29uc3VsdGFnZW50OmNoYXQiLCJhZ2VudDpjaGF0IiwiY29uZGl0aW9uOmNyZWF0ZSIsImNvbmRpdGlvbjpkZWxldGUiLCJjb25kaXRpb246cmVhZCIsImNvbmRpdGlvbjp1cGRhdGUiLCJtZWRpY2F0aW9uX3JlcXVlc3Q6Y3JlYXRlIiwibWVkaWNhdGlvbl9yZXF1ZXN0OmRlbGV0ZSIsIm1lZGljYXRpb25fcmVxdWVzdDpyZWFkIiwibWVkaWNhdGlvbl9yZXF1ZXN0OnVwZGF0ZSIsIm9ic2VydmF0aW9uOmNyZWF0ZSIsIm9ic2VydmF0aW9uOmRlbGV0ZSIsIm9ic2VydmF0aW9uOnJlYWQiLCJvYnNlcnZhdGlvbjp1cGRhdGUiLCJvcmc6Y3JlYXRlIiwib3JnOmRlbGV0ZSIsIm9yZzpyZWFkIiwib3JnOnVwZGF0ZSIsInNlcnZpY2VfcmVxdWVzdDpjcmVhdGUiLCJzZXJ2aWNlX3JlcXVlc3Q6ZGVsZXRlIiwic2VydmljZV9yZXF1ZXN0OnJlYWQiLCJzZXJ2aWNlX3JlcXVlc3Q6dXBkYXRlIiwic2xvdDpjcmVhdGUiLCJzbG90OmRlbGV0ZSIsInNsb3Q6cmVhZCIsInNsb3Q6dXBkYXRlIiwidGVybWlub2xvZ3k6cmVhZCIsInByYWN0aXRpb25lcl9yb2xlOmRlbGV0ZSIsInByYWN0aXRpb25lcl9yb2xlOmNyZWF0ZSIsInByYWN0aXRpb25lcl9yb2xlOnVwZGF0ZSIsInByYWN0aXRpb25lcl9yb2xlOnJlYWQiLCJwcmFjdGl0aW9uZXI6Y3JlYXRlIiwicHJhY3RpdGlvbmVyOmRlbGV0ZSIsInByYWN0aXRpb25lcjpyZWFkIiwicHJhY3RpdGlvbmVyOnVwZGF0ZSJdLCJvcmdhbml6YXRpb25zIjpbeyJpZCI6IjBmYjQxZTUwLTgyYTQtNDYxZS05NmM3LWJkMTEzNTlkODkyZCIsIm5hbWUiOiJkcmdvZGx5Iiwic2x1ZyI6ImRyZ29kbHkiLCJsb2dvIjpudWxsfV0sImFjdGl2ZU9yZ2FuaXphdGlvblJvbGVzIjpbInBhdGllbnQiXSwiYWN0aXZlUm9sZUlkIjoiNWNkODU2MjEtOTRjNy00NWY5LWI3NTUtODdjZmUxOTdiYzBkIiwiYWN0aXZlUm9sZSI6InBhdGllbnQiLCJhY3RpdmVSb2xlUmVkaXJlY3RVcmwiOiIvYmV6cy90ZWxlbWVkaWNpbmUvcGF0aWVudCIsInN1YiI6InpEUVpmS2pWZXNoMTVpOFlYeTlFV21VWlU0OXdxZHQ2IiwiZXhwIjoxNzgzNDk2ODUxLCJpc3MiOiJodHRwczovL2lhbS5kcmdvZGx5LmNvbSIsImF1ZCI6Imh0dHBzOi8vaWFtLmRyZ29kbHkuY29tIn0.CdxUQPTYT25qZhQxdI06cAcm4vJ8hxKGxfZnL8c7wxcxNpT8C3x7N863WWRJSuwRXBqdI3XZu8ocU3QXQVjSDQ";
+
+        let ws = null;
+        let audioCtx = null;
+        let micStream = null;
+        let scriptNode = null;
+        let source = null;
+
+        const dot = document.getElementById('dot');
+        const statusLabel = document.getElementById('statusLabel');
+        const statusMsg = document.getElementById('statusMsg');
+        const btnStart = document.getElementById('btnStart');
+        const btnStop = document.getElementById('btnStop');
+        const draftContent = document.getElementById('draftContent');
+        const partialContent = document.getElementById('partialContent');
+        const langTag = document.getElementById('langTag');
+        const finalPanel = document.getElementById('finalPanel');
+        const finalContent = document.getElementById('finalContent');
+
+        function setStatus(label, msg, cls) {
+            statusLabel.textContent = label;
+            statusMsg.textContent = msg || '';
+            dot.className = 'dot ' + (cls || '');
+        }
+
+        async function startSession() {
+            if (ws) return;
+
+            draftContent.textContent = 'Waiting for speech...';
+            partialContent.textContent = '';
+            finalPanel.classList.add('hidden');
+            finalContent.textContent = '';
+            langTag.style.display = 'none';
+
+            try {
+                micStream = await navigator.mediaDevices.getUserMedia({
+                    audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true }
+                });
+            } catch (e) {
+                setStatus('Error', 'Microphone access denied', '');
+                alert('Microphone access required: ' + e.message);
+                return;
+            }
+
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+
+            ws = new WebSocket(`${WS_URL}?token=${encodeURIComponent(TOKEN)}`);
+
+            ws.binaryType = 'arraybuffer';
+
+            ws.onopen = () => {
+                setStatus('Connected', 'Streaming audio...', 'connected recording');
+
+                source = audioCtx.createMediaStreamSource(micStream);
+                scriptNode = audioCtx.createScriptProcessor(4096, 1, 1);
+
+                source.connect(scriptNode);
+                scriptNode.connect(audioCtx.destination);
+
+                scriptNode.onaudioprocess = (event) => {
+                    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+                    const input = event.inputBuffer.getChannelData(0);
+                    const pcm = new Int16Array(input.length);
+                    for (let i = 0; i < input.length; i++) {
+                        let s = Math.max(-1, Math.min(1, input[i]));
+                        pcm[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                    }
+                    ws.send(pcm.buffer);
+                };
+
+                btnStart.disabled = true;
+                btnStop.disabled = false;
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+
+                    if (data.type === 'partial') {
+                        partialContent.textContent += data.text + '\n';
+                        partialContent.scrollTop = partialContent.scrollHeight;
+                    }
+
+                    if (data.type === 'language') {
+                        langTag.style.display = 'inline-block';
+                        langTag.textContent = data.code;
+                    }
+
+                    if (data.type === 'final') {
+                        setStatus('Complete', 'Diarization finished', 'connected');
+                        finalPanel.classList.remove('hidden');
+                        finalContent.textContent = '';
+                        renderFinalTranscript(data.transcript);
+                        cleanup();
+                    }
+
+                    if (data.type === 'error') {
+                        setStatus('Error', data.message, '');
+                    }
+                } catch (e) {
+                    // Non-JSON messages: may be streaming draft text or binary
+                    if (event.data instanceof ArrayBuffer || event.data instanceof Blob) {
+                        return;
+                    }
+                    draftContent.textContent = event.data;
+                }
+            };
+
+            ws.onerror = () => {
+                setStatus('Error', 'WebSocket error', '');
+                cleanup();
+            };
+
+            ws.onclose = () => {
+                if (statusLabel.textContent !== 'Complete') {
+                    setStatus('Disconnected', 'Connection closed', '');
+                }
+                cleanup();
+            };
+        }
+
+        function renderFinalTranscript(transcript) {
+            if (!transcript) return;
+            const lines = transcript.split('\n');
+            for (const line of lines) {
+                const div = document.createElement('div');
+                if (line.startsWith('Doctor:')) {
+                    div.className = 'doctor-line';
+                } else if (line.startsWith('Patient:')) {
+                    div.className = 'patient-line';
+                } else {
+                    div.className = 'unknown-line';
+                }
+                div.textContent = line;
+                finalContent.appendChild(div);
+            }
+            finalContent.scrollTop = finalContent.scrollHeight;
+        }
+
+        function stopSession() {
+            // Stop the microphone stream — this creates silence which triggers
+            // the server-side VAD timeout → diarization finalization → 'final' event
+            if (scriptNode) {
+                scriptNode.disconnect();
+                scriptNode = null;
+            }
+            if (source) {
+                source.disconnect();
+                source = null;
+            }
+            if (micStream) {
+                micStream.getTracks().forEach(t => t.stop());
+                micStream = null;
+            }
+            if (audioCtx && audioCtx.state !== 'closed') {
+                audioCtx.close();
+                audioCtx = null;
+            }
+
+            // The WS stays open — server will detect silence, diarize, and send the 'final' event
+            setStatus('Finalizing', 'Silence detected — processing diarization...', 'connected');
+            btnStop.disabled = true;
+        }
+
+        function cleanup() {
+            if (scriptNode) {
+                scriptNode.disconnect();
+                scriptNode = null;
+            }
+            if (source) {
+                source.disconnect();
+                source = null;
+            }
+            if (micStream) {
+                micStream.getTracks().forEach(t => t.stop());
+                micStream = null;
+            }
+            if (audioCtx && audioCtx.state !== 'closed') {
+                audioCtx.close();
+                audioCtx = null;
+            }
+            if (ws) {
+                ws.onmessage = null;
+                ws.onerror = null;
+                ws.onclose = null;
+                if (ws.readyState === WebSocket.OPEN) {
+                    ws.close();
+                }
+                ws = null;
+            }
+            btnStart.disabled = false;
+            btnStop.disabled = true;
+            dot.className = 'dot';
+        }
+    </script>
+</body>
+
+</html>

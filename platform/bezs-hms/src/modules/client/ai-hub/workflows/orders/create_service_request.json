@@ -1,0 +1,133 @@
+{
+  "id": "create_service_request",
+  "name": "Create Service Request",
+  "description": "Place a new FHIR ServiceRequest (procedure, lab, or imaging order) for the current patient, specifying code, status, intent, priority, and optional category, requester, and notes.",
+  "version": "1.0.0",
+  "tags": ["fhir", "orders", "service-request", "procedure", "lab", "imaging"],
+  "llm_hints": {
+    "intent_examples": [
+      "Order a lab test",
+      "Place a procedure order",
+      "Create a service request for imaging",
+      "Order an MRI for the patient",
+      "Request a blood panel",
+      "Place a pathology order",
+      "Order a chest X-ray",
+      "Create a referral order"
+    ],
+    "when_to_use": [
+      "User wants to order a procedure, lab test, or imaging study",
+      "User wants to create a referral or clinical service request",
+      "User is placing a FHIR ServiceRequest for a patient"
+    ],
+    "when_not_to_use": [
+      "User wants to order medication (use create_medication_request instead)",
+      "User wants to request a device (use create_device_request instead)",
+      "User wants to record an immunization (use record_immunization instead)",
+      "User wants to view existing orders"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you place a service request order. Fill in the procedure or lab code, classification, and optional requester details.",
+  "completion": {
+    "message": "Service request placed successfully. The order has been recorded in the patient's FHIR record.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "create_service_request_step",
+      "name": "Place Service Request",
+      "step_type": "form",
+      "description": "Enter the procedure or lab code, classify the order, and optionally assign a requester.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "field": "me_patient.id"
+          },
+          "service_request_id": {
+            "type": "integer",
+            "resource": "ServiceRequest",
+            "field": "id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Resolve the logged-in user's Patient record so patient_id is available automatically.",
+          "context_key": "me_patient",
+          "tool_name": "get_my_patient",
+          "url": "$fhir_gql_url/patients/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch allowed status codes for ServiceRequest.",
+          "context_key": "status_concepts",
+          "tool_name": "get_service_request_status",
+          "url": "$fhir_gql_url/terminology/concepts?resource=ServiceRequest&field=status",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch allowed intent codes for ServiceRequest.",
+          "context_key": "intent_concepts",
+          "tool_name": "get_service_request_intent",
+          "url": "$fhir_gql_url/terminology/concepts?resource=ServiceRequest&field=intent",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch allowed priority codes for ServiceRequest.",
+          "context_key": "priority_concepts",
+          "tool_name": "get_service_request_priority",
+          "url": "$fhir_gql_url/terminology/concepts?resource=ServiceRequest&field=priority",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch allowed category codes for ServiceRequest.",
+          "context_key": "category_concepts",
+          "tool_name": "get_service_request_category",
+          "url": "$fhir_gql_url/terminology/concepts?resource=ServiceRequest&field=category",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Load practitioners available for booking to populate the requester select.",
+          "context_key": "booking_practitioners",
+          "tool_name": "list_practitioners",
+          "url": "$fhir_gql_url/practitioner-roles/booking",
+          "method": "GET",
+          "timeout_ms": 10000
+        }
+      ],
+      "ui": {
+        "schema": "service_request_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_service_request",
+          "tool_name": "create_service_request",
+          "url": "$fhir_gql_url/service-requests/",
+          "method": "POST",
+          "validation_schema": "service_request_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    }
+  ]
+}

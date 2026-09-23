@@ -1,0 +1,53 @@
+---
+title: Overview
+description: Watcher is a multi-tenant observability platform for ingesting, exploring, and alerting on application telemetry.
+---
+
+# Overview
+
+Watcher is an open-source observability platform built for modern applications. It ingests logs, metrics, traces, and audit events from your applications and gives your team a single place to explore and monitor them in real time.
+
+## What is Watcher?
+
+Watcher consists of three main layers:
+
+| Layer | What it does |
+|---|---|
+| **Gateway** | Receives events via HTTP or gRPC from your SDKs and agents |
+| **Pipeline** | Enriches, validates, and stores events in ClickHouse |
+| **Console** | The web UI where your team explores data, manages settings, and configures alerts |
+
+## Key features
+
+- **Real-time event stream** — watch logs, errors, and audit events scroll in live
+- **Multi-tenancy** — every organisation has isolated data; members, roles, and API keys are managed per-organisation
+- **Structured events** — all events have a type (`log`, `trace`, `metric`, `audit`), severity, message, and arbitrary JSON payload
+- **Plan-based limits** — usage is metered per calendar month; the free tier includes 100k events
+
+## Architecture overview
+
+```
+Your App
+  │
+  ▼  (HTTPS)
+Gateway (Go)          ← validates API key, enriches event
+  │
+  ▼  (Redis Streams)
+Pipeline (Python)     ← normalises, deduplicates, writes to ClickHouse
+  │
+  ▼  (WebSocket)
+Realtime (Go)         ← fans out events to connected console clients
+  │
+  ▼
+Console (Next.js)     ← your team uses this
+```
+
+## Quick links
+
+- [Quickstart →](/docs/quickstart)
+- [JavaScript SDK →](/docs/sdks/javascript)
+- [Python SDK →](/docs/sdks/python)
+- [Go SDK →](/docs/sdks/go)
+- [Rust SDK →](/docs/sdks/rust)
+- [React Native SDK →](/docs/sdks/react-native)
+- [Event Ingestion API →](/docs/api/ingestion)

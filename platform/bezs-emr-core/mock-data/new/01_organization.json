@@ -1,0 +1,36 @@
+{
+  "user_id": "VsHqNde5bO7NsoLddPX2NljS7hhZRd4Y",
+  "org_id": "0fb41e50-82a4-461e-96c7-bd11359d892d",
+  "active": true,
+  "name": "City Health Clinic",
+  "alias": [{ "value": "CHC" }],
+  "type": [
+    {
+      "coding_system": "http://terminology.hl7.org/CodeSystem/organization-type",
+      "coding_code": "prov",
+      "coding_display": "Healthcare Provider",
+      "text": "Healthcare Provider"
+    }
+  ],
+  "telecom": [
+    { "system": "phone", "value": "+1-555-200-3000", "use": "work", "rank": 1 },
+    {
+      "system": "email",
+      "value": "info@cityhealthclinic.example.com",
+      "use": "work",
+      "rank": 2
+    }
+  ],
+  "address": [
+    {
+      "use": "work",
+      "type": "both",
+      "text": "12 Wellness Avenue, Mumbai, MH 400001, IN",
+      "line": ["12 Wellness Avenue"],
+      "city": "Mumbai",
+      "state": "MH",
+      "postal_code": "400001",
+      "country": "IN"
+    }
+  ]
+}

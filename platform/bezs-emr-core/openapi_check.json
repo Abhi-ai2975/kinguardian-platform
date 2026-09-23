@@ -1,0 +1,2460 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "FHIR Server",
+    "description": "\nA FHIR R4-compliant REST API server for managing healthcare resources.\n\nThis server provides CRUD operations for core FHIR resources including Patient,\nPractitioner, and Encounter. All resources are validated against the HL7 FHIR R4\nspecification using the `fhir.resources` library.\n\nDesigned for integration with AI agents via FastMCP dynamic tool generation.\n",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/fhir/v1/patient/": {
+      "get": {
+        "tags": [
+          "Patient"
+        ],
+        "summary": "List all Patient resources",
+        "description": "Retrieve a list of all FHIR Patient resources stored in the system.\n\nReturns an array of complete Patient resources. Each resource includes all demographics,\nidentifiers, contact information, and addresses. Requires `patient:read` permission.\n\nReturns an empty array if no patients exist.",
+        "operationId": "list_patients",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the list of patients.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Patient"
+                  },
+                  "type": "array",
+                  "title": "Response List Patients"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required \u2014 missing or invalid authorization credentials."
+          },
+          "403": {
+            "description": "Insufficient permissions \u2014 requires patient:read permission."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Patient"
+        ],
+        "summary": "Create a new FHIR Patient resource",
+        "description": "Create a new FHIR Patient resource in the system.\n\nThis endpoint accepts a structured Patient payload conforming to the HL7 FHIR R4 specification,\nvalidates it against the FHIR Patient schema, and persists it to the database. The server\nauto-generates a unique internal ID for the resource.\n\nThe payload must include a `resourceType` of \"Patient\". Recommended fields include at least\none `name` with `use: \"official\"`, a `gender`, and a `birthDate`. Additional fields such as\n`identifier`, `telecom`, and `address` provide richer demographic data.\n\nReturns the complete FHIR Patient resource including the server-assigned `id`.",
+        "operationId": "create_patient",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatientCreateSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Patient successfully created and persisted to the database.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Patient"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid FHIR Patient payload \u2014 the request body failed FHIR schema validation."
+          },
+          "401": {
+            "description": "Authentication required \u2014 missing or invalid authorization credentials."
+          },
+          "422": {
+            "description": "Validation error \u2014 the request body is malformed or missing required fields."
+          }
+        }
+      }
+    },
+    "/api/fhir/v1/patient/{id}": {
+      "get": {
+        "tags": [
+          "Patient"
+        ],
+        "summary": "Retrieve a Patient resource by ID",
+        "description": "Retrieve a single FHIR Patient resource by its internal database ID.\n\nReturns the full Patient resource including all demographics, identifiers, contact\ninformation, and addresses. Returns 404 if no patient exists with the given ID.",
+        "operationId": "get_patient_by_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Patient ID",
+              "description": "The internal database identifier of the Patient resource. Must be a positive integer."
+            },
+            "description": "The internal database identifier of the Patient resource. Must be a positive integer.",
+            "example": 123
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Patient resource found and returned successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Patient"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No Patient resource exists with the specified ID."
+          },
+          "401": {
+            "description": "Authentication required \u2014 missing or invalid authorization credentials."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Patient"
+        ],
+        "summary": "Update an existing Patient resource (full replacement)",
+        "description": "Update an existing FHIR Patient resource by replacing it entirely with the provided payload.\n\nThis implements FHIR-standard PUT semantics \u2014 the entire resource is replaced, not merged.\nAny fields not included in the request body will be removed from the resource. To preserve\nexisting data, include all current fields in the request.\n\nThe `id` path parameter identifies the patient to update. The request body must be a valid\nFHIR Patient resource. Returns 404 if no patient exists with the given ID.",
+        "operationId": "update_patient",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Patient ID",
+              "description": "The internal database identifier of the Patient resource to update. Must be a positive integer."
+            },
+            "description": "The internal database identifier of the Patient resource to update. Must be a positive integer.",
+            "example": 123
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatientCreateSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Patient resource successfully updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Patient"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid FHIR Patient payload \u2014 failed FHIR schema validation."
+          },
+          "404": {
+            "description": "No Patient resource exists with the specified ID."
+          },
+          "401": {
+            "description": "Authentication required \u2014 missing or invalid authorization credentials."
+          },
+          "422": {
+            "description": "Validation error \u2014 the request body is malformed or missing required fields."
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Patient"
+        ],
+        "summary": "Delete a Patient resource by ID",
+        "description": "Permanently delete a FHIR Patient resource by its internal database ID.\n\nThis operation is irreversible. All associated data (identifiers, names, telecoms,\naddresses) will also be deleted via cascade. Returns 404 if no patient exists with the given ID.\n\nReturns no content on successful deletion (HTTP 204).",
+        "operationId": "delete_patient",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Patient ID",
+              "description": "The internal database identifier of the Patient resource to delete. Must be a positive integer."
+            },
+            "description": "The internal database identifier of the Patient resource to delete. Must be a positive integer.",
+            "example": 123
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Patient resource successfully deleted."
+          },
+          "404": {
+            "description": "No Patient resource exists with the specified ID."
+          },
+          "401": {
+            "description": "Authentication required \u2014 missing or invalid authorization credentials."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fhir/v1/practitioner/": {
+      "get": {
+        "tags": [
+          "Practitioner"
+        ],
+        "summary": "List all Practitioner resources",
+        "description": "Retrieve a list of all FHIR Practitioner resources stored in the system.\n\nReturns an array of complete Practitioner resources. Each resource includes all demographics,\nidentifiers, contact information, addresses, and professional qualifications.\n\nReturns an empty array if no practitioners exist.",
+        "operationId": "list_practitioners",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the list of practitioners.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Practitioner"
+                  },
+                  "type": "array",
+                  "title": "Response List Practitioners"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required \u2014 missing or invalid authorization credentials."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Practitioner"
+        ],
+        "summary": "Create a new FHIR Practitioner resource",
+        "description": "Create a new FHIR Practitioner resource in the system.\n\nThis endpoint accepts a structured Practitioner payload conforming to the HL7 FHIR R4\nspecification, validates it against the FHIR Practitioner schema, and persists it to the\ndatabase. The server auto-generates a unique internal ID for the resource.\n\nA Practitioner represents a person who is directly or indirectly involved in the\nprovisioning of healthcare \u2014 including physicians, nurses, pharmacists, and administrative staff.\n\nRecommended fields include at least one `name` with professional prefix (e.g., \"Dr.\"),\n`gender`, `telecom` (work phone/email), and `qualification` entries.\n\nReturns the complete FHIR Practitioner resource including the server-assigned `id`.",
+        "operationId": "create_practitioner",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PractitionerCreateSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Practitioner successfully created and persisted to the database.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Practitioner"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid FHIR Practitioner payload \u2014 failed FHIR schema validation."
+          },
+          "401": {
+            "description": "Authentication required \u2014 missing or invalid authorization credentials."
+          },
+          "422": {
+            "description": "Validation error \u2014 the request body is malformed or missing required fields."
+          }
+        }
+      }
+    },
+    "/api/fhir/v1/practitioner/{id}": {
+      "get": {
+        "tags": [
+          "Practitioner"
+        ],
+        "summary": "Retrieve a Practitioner resource by ID",
+        "description": "Retrieve a single FHIR Practitioner resource by its internal database ID.\n\nReturns the full Practitioner resource including all demographics, identifiers, contact\ninformation, addresses, and professional qualifications. Returns 404 if no practitioner\nexists with the given ID.",
+        "operationId": "get_practitioner_by_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Practitioner ID",
+              "description": "The internal database identifier of the Practitioner resource. Must be a positive integer."
+            },
+            "description": "The internal database identifier of the Practitioner resource. Must be a positive integer.",
+            "example": 456
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Practitioner resource found and returned successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Practitioner"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No Practitioner resource exists with the specified ID."
+          },
+          "401": {
+            "description": "Authentication required \u2014 missing or invalid authorization credentials."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Practitioner"
+        ],
+        "summary": "Update an existing Practitioner resource (full replacement)",
+        "description": "Update an existing FHIR Practitioner resource by replacing it entirely with the provided payload.\n\nThis implements FHIR-standard PUT semantics \u2014 the entire resource is replaced, not merged.\nAny fields not included in the request body will be removed from the resource. To preserve\nexisting data, include all current fields in the request.\n\nThe `id` path parameter identifies the practitioner to update. Returns 404 if no\npractitioner exists with the given ID.",
+        "operationId": "update_practitioner",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Practitioner ID",
+              "description": "The internal database identifier of the Practitioner resource to update. Must be a positive integer."
+            },
+            "description": "The internal database identifier of the Practitioner resource to update. Must be a positive integer.",
+            "example": 456
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PractitionerCreateSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Practitioner resource successfully updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Practitioner"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid FHIR Practitioner payload \u2014 failed FHIR schema validation."
+          },
+          "404": {
+            "description": "No Practitioner resource exists with the specified ID."
+          },
+          "401": {
+            "description": "Authentication required \u2014 missing or invalid authorization credentials."
+          },
+          "422": {
+            "description": "Validation error \u2014 the request body is malformed or missing required fields."
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Practitioner"
+        ],
+        "summary": "Delete a Practitioner resource by ID",
+        "description": "Permanently delete a FHIR Practitioner resource by its internal database ID.\n\nThis operation is irreversible. All associated data (identifiers, names, telecoms,\naddresses, qualifications) will also be deleted via cascade. Returns 404 if no\npractitioner exists with the given ID.\n\nReturns no content on successful deletion (HTTP 204).",
+        "operationId": "delete_practitioner",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Practitioner ID",
+              "description": "The internal database identifier of the Practitioner resource to delete. Must be a positive integer."
+            },
+            "description": "The internal database identifier of the Practitioner resource to delete. Must be a positive integer.",
+            "example": 456
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Practitioner resource successfully deleted."
+          },
+          "404": {
+            "description": "No Practitioner resource exists with the specified ID."
+          },
+          "401": {
+            "description": "Authentication required \u2014 missing or invalid authorization credentials."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fhir/v1/encounter/": {
+      "get": {
+        "tags": [
+          "Encounter"
+        ],
+        "summary": "List all Encounter resources",
+        "description": "Retrieve a list of all FHIR Encounter resources stored in the system.\n\nReturns an array of complete Encounter resources. Each resource includes status,\nclassification, subject, participants, diagnoses, locations, and time period.\n\nReturns an empty array if no encounters exist.",
+        "operationId": "list_encounters",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved the list of encounters.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required \u2014 missing or invalid authorization credentials."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Encounter"
+        ],
+        "summary": "Create a new FHIR Encounter resource",
+        "description": "Create a new FHIR Encounter resource representing a clinical interaction.\n\nAn Encounter documents a patient's visit to a healthcare facility \u2014 including clinic visits,\nhospital admissions, emergency department visits, and telehealth sessions. The server\nvalidates the payload against the FHIR Encounter schema before persisting.\n\nRequired fields: `status` (the encounter lifecycle state) and `class` (the care setting\nclassification such as \"inpatient\", \"outpatient\", or \"emergency\").\n\nRecommended: Include a `subject` reference to the Patient (e.g., \"Patient/123\"),\nat least one `participant` with a Practitioner reference, and a `period` with start/end times.\n\nReturns the complete FHIR Encounter resource including the server-assigned `id`.",
+        "operationId": "create_encounter",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EncounterCreateSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Encounter successfully created and persisted to the database.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid FHIR Encounter payload \u2014 failed FHIR schema validation."
+          },
+          "401": {
+            "description": "Authentication required \u2014 missing or invalid authorization credentials."
+          },
+          "422": {
+            "description": "Validation error \u2014 the request body is malformed or missing required fields."
+          }
+        }
+      }
+    },
+    "/api/fhir/v1/encounter/{id}": {
+      "get": {
+        "tags": [
+          "Encounter"
+        ],
+        "summary": "Retrieve an Encounter resource by ID",
+        "description": "Retrieve a single FHIR Encounter resource by its internal database ID.\n\nReturns the full Encounter resource including status, classification, subject reference,\nparticipants, diagnoses, locations, reason codes, and time period. Returns 404 if no\nencounter exists with the given ID.",
+        "operationId": "get_encounter_by_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Encounter ID",
+              "description": "The internal database identifier of the Encounter resource. Must be a positive integer."
+            },
+            "description": "The internal database identifier of the Encounter resource. Must be a positive integer.",
+            "example": 789
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Encounter resource found and returned successfully.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "404": {
+            "description": "No Encounter resource exists with the specified ID."
+          },
+          "401": {
+            "description": "Authentication required \u2014 missing or invalid authorization credentials."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Encounter"
+        ],
+        "summary": "Update an existing Encounter resource (full replacement)",
+        "description": "Update an existing FHIR Encounter resource by replacing it entirely with the provided payload.\n\nThis implements FHIR-standard PUT semantics \u2014 the entire resource is replaced, not merged.\nAny fields not included in the request body will be removed from the resource. To preserve\nexisting data, include all current fields in the request.\n\nRequired fields: `status` and `class`. The `id` path parameter identifies the encounter\nto update. Returns 404 if no encounter exists with the given ID.",
+        "operationId": "update_encounter",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Encounter ID",
+              "description": "The internal database identifier of the Encounter resource to update. Must be a positive integer."
+            },
+            "description": "The internal database identifier of the Encounter resource to update. Must be a positive integer.",
+            "example": 789
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EncounterCreateSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Encounter resource successfully updated.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid FHIR Encounter payload \u2014 failed FHIR schema validation."
+          },
+          "404": {
+            "description": "No Encounter resource exists with the specified ID."
+          },
+          "401": {
+            "description": "Authentication required \u2014 missing or invalid authorization credentials."
+          },
+          "422": {
+            "description": "Validation error \u2014 the request body is malformed or missing required fields."
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Encounter"
+        ],
+        "summary": "Delete an Encounter resource by ID",
+        "description": "Permanently delete a FHIR Encounter resource by its internal database ID.\n\nThis operation is irreversible. All associated data (types, participants, diagnoses,\nlocations, reason codes) will also be deleted via cascade. Returns 404 if no encounter\nexists with the given ID.\n\nReturns no content on successful deletion (HTTP 204).",
+        "operationId": "delete_encounter",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Encounter ID",
+              "description": "The internal database identifier of the Encounter resource to delete. Must be a positive integer."
+            },
+            "description": "The internal database identifier of the Encounter resource to delete. Must be a positive integer.",
+            "example": 789
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Encounter resource successfully deleted."
+          },
+          "404": {
+            "description": "No Encounter resource exists with the specified ID."
+          },
+          "401": {
+            "description": "Authentication required \u2014 missing or invalid authorization credentials."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CodeableConcept": {
+        "properties": {
+          "coding": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Coding"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Codings",
+            "description": "A list of codes from terminology systems that represent this concept. Multiple codings can represent the same concept in different code systems."
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text Description",
+            "description": "A human-readable plain text representation of the concept, used as a fallback when no coding is available.",
+            "example": "Consultation"
+          }
+        },
+        "type": "object",
+        "title": "CodeableConcept",
+        "description": "A concept that may be defined by one or more coding systems, plus optional free text."
+      },
+      "Coding": {
+        "properties": {
+          "system": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code System URI",
+            "description": "The identification of the code system that defines the meaning of the code. Common systems include 'http://snomed.info/sct' (SNOMED CT) and 'http://loinc.org' (LOINC).",
+            "example": "http://snomed.info/sct"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code Value",
+            "description": "The code from the code system that represents the concept.",
+            "example": "185349003"
+          },
+          "display": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Text",
+            "description": "A human-readable representation of the code for display purposes.",
+            "example": "Consultation"
+          }
+        },
+        "type": "object",
+        "title": "Coding",
+        "description": "A reference to a code defined by a terminology system (e.g., SNOMED CT, ICD-10, LOINC)."
+      },
+      "EncounterClass": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Class Code",
+            "description": "The classification code for the encounter. Common values: 'inpatient' (hospital admission), 'outpatient' (clinic visit), 'emergency' (ER visit), 'virtual' (telehealth).",
+            "example": "outpatient"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "title": "EncounterClass",
+        "description": "The classification of the encounter \u2014 determines the care setting."
+      },
+      "EncounterCreateSchema": {
+        "properties": {
+          "resourceType": {
+            "type": "string",
+            "pattern": "^Encounter$",
+            "title": "Resource Type",
+            "description": "The FHIR resource type. Must always be 'Encounter' for this schema.",
+            "default": "Encounter",
+            "example": "Encounter"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "planned",
+              "in-progress",
+              "onleave",
+              "finished",
+              "cancelled",
+              "entered-in-error",
+              "unknown"
+            ],
+            "title": "Encounter Status",
+            "description": "The current state of the encounter lifecycle. 'planned' for scheduled visits, 'in-progress' for active encounters, 'finished' for completed visits, 'cancelled' for cancelled appointments, 'entered-in-error' for mistaken entries.",
+            "example": "finished"
+          },
+          "class": {
+            "$ref": "#/components/schemas/EncounterClass",
+            "title": "Encounter Classification",
+            "description": "The classification of the encounter which determines the care setting. This field uses the FHIR alias 'class'. Provide as {'code': 'outpatient'} or similar."
+          },
+          "type": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/CodeableConcept"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Encounter Type",
+            "description": "The specific type of encounter \u2014 e.g. 'Consultation', 'Follow-up', 'Annual physical'. Use SNOMED CT codes when available."
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Reference"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Patient Reference",
+            "description": "A FHIR reference to the Patient who is the subject of this encounter, in the format 'Patient/ID'. This is the patient being seen."
+          },
+          "participant": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/EncounterParticipant"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Encounter Participants",
+            "description": "Healthcare providers who participated in the encounter. Include at least the primary attending physician."
+          },
+          "period": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Period"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Encounter Period",
+            "description": "The start and end time of the encounter. For ongoing encounters, only 'start' is set."
+          },
+          "reasonCode": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/CodeableConcept"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Codes",
+            "description": "The coded reasons for the encounter \u2014 the chief complaint or presenting problem. Use SNOMED CT or ICD-10 codes."
+          },
+          "diagnosis": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/EncounterDiagnosis"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Encounter Diagnoses",
+            "description": "Diagnoses relevant to this encounter. Include at least the primary/chief complaint diagnosis with rank 1."
+          },
+          "location": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/EncounterLocation"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Encounter Locations",
+            "description": "Physical locations where the encounter took place \u2014 rooms, wards, beds, etc."
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CodeableConcept"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Encounter Priority",
+            "description": "The priority of the encounter \u2014 indicates urgency (e.g., 'routine', 'urgent', 'emergency')."
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "class"
+        ],
+        "title": "EncounterCreateSchema",
+        "description": "Schema for creating a FHIR Encounter resource.\n\nAn Encounter is an interaction between a patient and healthcare provider(s) for the\npurpose of providing healthcare services or assessing the health status of a patient.\nThis includes clinic visits, hospital admissions, emergency department visits, and\ntelehealth sessions. All fields follow the HL7 FHIR R4 Encounter specification.\n\nRequired fields: 'status' and 'class' (encounter classification).",
+        "example": {
+          "class": {
+            "code": "outpatient"
+          },
+          "diagnosis": [
+            {
+              "condition": {
+                "reference": "Condition/99999"
+              },
+              "rank": 1,
+              "use": {
+                "text": "Chief complaint"
+              }
+            }
+          ],
+          "location": [
+            {
+              "location": {
+                "reference": "Location/room-3"
+              },
+              "status": "completed"
+            }
+          ],
+          "participant": [
+            {
+              "individual": {
+                "reference": "Practitioner/67890"
+              },
+              "type": [
+                {
+                  "text": "Primary Physician"
+                }
+              ]
+            }
+          ],
+          "period": {
+            "end": "2024-01-15T09:30:00Z",
+            "start": "2024-01-15T09:00:00Z"
+          },
+          "reasonCode": [
+            {
+              "coding": [
+                {
+                  "code": "25064002",
+                  "display": "Headache",
+                  "system": "http://snomed.info/sct"
+                }
+              ],
+              "text": "Headache"
+            }
+          ],
+          "resourceType": "Encounter",
+          "status": "finished",
+          "subject": {
+            "reference": "Patient/12345"
+          },
+          "type": [
+            {
+              "coding": [
+                {
+                  "code": "185349003",
+                  "display": "Consultation",
+                  "system": "http://snomed.info/sct"
+                }
+              ],
+              "text": "Consultation"
+            }
+          ]
+        }
+      },
+      "EncounterDiagnosis": {
+        "properties": {
+          "condition": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Reference"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Condition Reference",
+            "description": "A FHIR reference to the Condition resource describing the diagnosis, in the format 'Condition/ID'."
+          },
+          "use": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CodeableConcept"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Diagnosis Role",
+            "description": "The role this diagnosis plays in the encounter \u2014 e.g. 'admission', 'discharge', 'billing', 'chief complaint'."
+          },
+          "rank": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Diagnosis Rank",
+            "description": "Ranking of the diagnosis for this encounter. 1 = primary diagnosis, 2 = secondary, etc.",
+            "example": 1
+          }
+        },
+        "type": "object",
+        "title": "EncounterDiagnosis",
+        "description": "A diagnosis relevant to this encounter."
+      },
+      "EncounterLocation": {
+        "properties": {
+          "location": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Reference"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location Reference",
+            "description": "A FHIR reference to the Location resource, in the format 'Location/ID' or 'Location/room-3'."
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "planned",
+                  "active",
+                  "reserved",
+                  "completed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location Status",
+            "description": "The status of the patient's presence at the location. 'planned' = expected, 'active' = currently there, 'completed' = has left.",
+            "example": "completed"
+          },
+          "period": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Period"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location Period",
+            "description": "The time period during which the patient was at this location."
+          }
+        },
+        "type": "object",
+        "title": "EncounterLocation",
+        "description": "A physical location where the encounter takes place."
+      },
+      "EncounterParticipant": {
+        "properties": {
+          "type": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/CodeableConcept"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Participant Type",
+            "description": "The role of this participant in the encounter, e.g. 'Primary Physician', 'Consulting Physician', 'Nurse'."
+          },
+          "individual": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Reference"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Individual Reference",
+            "description": "A FHIR reference to the Practitioner or Patient who participated, in the format 'Practitioner/ID' or 'Patient/ID'."
+          },
+          "period": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Period"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Participation Period",
+            "description": "The time period during which this individual participated in the encounter."
+          }
+        },
+        "type": "object",
+        "title": "EncounterParticipant",
+        "description": "A healthcare provider or person who participated in the encounter."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Patient": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "PatientCreateSchema": {
+        "properties": {
+          "resourceType": {
+            "type": "string",
+            "title": "Resource Type",
+            "description": "The FHIR resource type. Must always be 'Patient' for this schema.",
+            "default": "Patient",
+            "example": "Patient",
+            "Literal": true
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Status",
+            "description": "Whether this patient record is currently active and in use. Set to false to mark the record as inactive without deleting it.",
+            "default": true,
+            "example": true
+          },
+          "identifier": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/app__schemas__patient__Identifier"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Patient Identifiers",
+            "description": "Business identifiers assigned to this patient \u2014 such as Medical Record Numbers (MRN), Social Security Numbers, or insurance IDs. At least one official identifier is recommended."
+          },
+          "name": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/app__schemas__patient__HumanName"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Patient Names",
+            "description": "The names associated with the patient. A patient may have multiple names (e.g., legal name and nickname). Include at least one 'official' name."
+          },
+          "telecom": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/app__schemas__patient__Telecom"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Points",
+            "description": "Contact details for the patient \u2014 phone numbers, email addresses, etc. Order by preference rank when multiple contacts exist."
+          },
+          "gender": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "male",
+                  "female",
+                  "other",
+                  "unknown"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Administrative Gender",
+            "description": "The administrative gender of the patient for record-keeping purposes. This is not the same as biological sex or gender identity.",
+            "example": "male"
+          },
+          "birthDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date of Birth",
+            "description": "The date of birth of the patient in ISO 8601 format (YYYY-MM-DD).",
+            "example": "1985-04-12"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/app__schemas__patient__Address"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Patient Addresses",
+            "description": "Physical or mailing addresses for the patient. Include at least the primary home address when available."
+          }
+        },
+        "type": "object",
+        "title": "PatientCreateSchema",
+        "description": "Schema for creating a FHIR Patient resource.\n\nA Patient resource covers data about individuals receiving care or other health-related\nservices. This includes demographics, contact details, and administrative information.\nAll fields follow the HL7 FHIR R4 Patient resource specification.",
+        "example": {
+          "active": true,
+          "address": [
+            {
+              "city": "New York",
+              "country": "USA",
+              "line": [
+                "123 Main Street",
+                "Apt 4B"
+              ],
+              "postalCode": "10001",
+              "state": "NY",
+              "type": "both",
+              "use": "home"
+            }
+          ],
+          "birthDate": "1985-04-12",
+          "gender": "male",
+          "identifier": [
+            {
+              "system": "http://hospital.goodhealth.com/mrn",
+              "use": "official",
+              "value": "MRN-123456"
+            }
+          ],
+          "name": [
+            {
+              "family": "Doe",
+              "given": [
+                "John",
+                "A"
+              ],
+              "text": "John A Doe",
+              "use": "official"
+            }
+          ],
+          "resourceType": "Patient",
+          "telecom": [
+            {
+              "rank": 1,
+              "system": "phone",
+              "use": "mobile",
+              "value": "+1-555-123-4567"
+            },
+            {
+              "system": "email",
+              "use": "home",
+              "value": "john.doe@example.com"
+            }
+          ]
+        }
+      },
+      "Period": {
+        "properties": {
+          "start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start DateTime",
+            "description": "The start of the period in ISO 8601 datetime format (YYYY-MM-DDTHH:MM:SSZ). Inclusive boundary.",
+            "example": "2024-01-15T09:00:00Z"
+          },
+          "end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End DateTime",
+            "description": "The end of the period in ISO 8601 datetime format. If absent, the period is ongoing.",
+            "example": "2024-01-15T09:30:00Z"
+          }
+        },
+        "type": "object",
+        "title": "Period",
+        "description": "A time period defined by a start and/or end datetime."
+      },
+      "Practitioner": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "PractitionerCreateSchema": {
+        "properties": {
+          "resourceType": {
+            "type": "string",
+            "pattern": "^Practitioner$",
+            "title": "Resource Type",
+            "description": "The FHIR resource type. Must always be 'Practitioner' for this schema.",
+            "default": "Practitioner",
+            "example": "Practitioner"
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Status",
+            "description": "Whether this practitioner record is currently active. Set to false if the practitioner is no longer practicing or has left the organization.",
+            "default": true,
+            "example": true
+          },
+          "identifier": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/app__schemas__practitioner__Identifier"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Practitioner Identifiers",
+            "description": "Business identifiers for the practitioner \u2014 NPI numbers, medical license numbers, employee IDs, etc."
+          },
+          "name": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/app__schemas__practitioner__HumanName"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Practitioner Names",
+            "description": "The names associated with the practitioner. Include professional prefixes like 'Dr.' and suffixes like 'MD'."
+          },
+          "telecom": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/app__schemas__practitioner__Telecom"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Points",
+            "description": "Contact details for the practitioner \u2014 primarily work phone, email, and pager numbers."
+          },
+          "gender": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "male",
+                  "female",
+                  "other",
+                  "unknown"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Administrative Gender",
+            "description": "The administrative gender of the practitioner for record-keeping purposes.",
+            "example": "female"
+          },
+          "birthDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date of Birth",
+            "description": "The practitioner's date of birth in ISO 8601 format (YYYY-MM-DD).",
+            "example": "1978-03-15"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/app__schemas__practitioner__Address"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Practitioner Addresses",
+            "description": "Addresses associated with the practitioner, typically their practice or hospital location."
+          },
+          "qualification": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Qualification"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Professional Qualifications",
+            "description": "Professional qualifications, certifications, accreditations, and licenses held by the practitioner."
+          }
+        },
+        "type": "object",
+        "title": "PractitionerCreateSchema",
+        "description": "Schema for creating a FHIR Practitioner resource.\n\nA Practitioner is a person who is directly or indirectly involved in the provisioning\nof healthcare. This includes physicians, nurses, pharmacists, therapists, and other\nclinical or administrative staff. All fields follow the HL7 FHIR R4 Practitioner specification.",
+        "example": {
+          "active": true,
+          "address": [
+            {
+              "city": "Boston",
+              "country": "USA",
+              "line": [
+                "456 Hospital Drive",
+                "Suite 200"
+              ],
+              "postalCode": "02101",
+              "state": "MA",
+              "type": "physical",
+              "use": "work"
+            }
+          ],
+          "birthDate": "1978-03-15",
+          "gender": "female",
+          "identifier": [
+            {
+              "system": "http://hospital.goodhealth.com/practitioners",
+              "use": "official",
+              "value": "PRAC-789456"
+            }
+          ],
+          "name": [
+            {
+              "family": "Smith",
+              "given": [
+                "Jane",
+                "Marie"
+              ],
+              "prefix": [
+                "Dr."
+              ],
+              "text": "Dr. Jane Marie Smith",
+              "use": "official"
+            }
+          ],
+          "qualification": [
+            {
+              "code": {
+                "text": "MD - Doctor of Medicine"
+              },
+              "identifier": [
+                {
+                  "system": "http://medical.board.org",
+                  "value": "MD-123456"
+                }
+              ],
+              "issuer": {
+                "display": "American Board of Medical Specialties"
+              }
+            }
+          ],
+          "resourceType": "Practitioner",
+          "telecom": [
+            {
+              "rank": 1,
+              "system": "phone",
+              "use": "work",
+              "value": "+1-555-987-6543"
+            },
+            {
+              "system": "email",
+              "use": "work",
+              "value": "dr.smith@hospital.com"
+            }
+          ]
+        }
+      },
+      "Qualification": {
+        "properties": {
+          "identifier": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/QualificationIdentifier"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qualification Identifiers",
+            "description": "Official identifiers for this qualification \u2014 license numbers, certification IDs, etc."
+          },
+          "code": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QualificationCode"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qualification Code",
+            "description": "The type of qualification \u2014 what degree, certification, or license this represents."
+          },
+          "issuer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QualificationIssuer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issuing Organization",
+            "description": "The organization that issued or certified the qualification."
+          }
+        },
+        "type": "object",
+        "title": "Qualification",
+        "description": "A professional qualification, certification, or accreditation held by the practitioner."
+      },
+      "QualificationCode": {
+        "properties": {
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qualification Description",
+            "description": "A human-readable description of the qualification, e.g. 'MD - Doctor of Medicine', 'Board Certified in Cardiology'.",
+            "example": "MD - Doctor of Medicine"
+          }
+        },
+        "type": "object",
+        "title": "QualificationCode",
+        "description": "A coded representation of the type of qualification."
+      },
+      "QualificationIdentifier": {
+        "properties": {
+          "system": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qualification System",
+            "description": "The namespace URI for the qualification identifier, e.g. the medical board's system URL.",
+            "example": "http://medical.board.org"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qualification Number",
+            "description": "The actual qualification or license number.",
+            "example": "MD-123456"
+          }
+        },
+        "type": "object",
+        "title": "QualificationIdentifier",
+        "description": "An identifier for a professional qualification or certification."
+      },
+      "QualificationIssuer": {
+        "properties": {
+          "display": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issuer Name",
+            "description": "The display name of the organization that issued the qualification, e.g. 'American Board of Medical Specialties'.",
+            "example": "American Board of Medical Specialties"
+          }
+        },
+        "type": "object",
+        "title": "QualificationIssuer",
+        "description": "The organization that issued or certifies the qualification."
+      },
+      "Reference": {
+        "properties": {
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Reference",
+            "description": "A relative reference to another FHIR resource in the format 'ResourceType/ID', e.g. 'Patient/123' or 'Practitioner/456'.",
+            "example": "Patient/12345"
+          },
+          "display": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Text",
+            "description": "A human-readable description of the referenced resource for display purposes.",
+            "example": "John Doe"
+          }
+        },
+        "type": "object",
+        "title": "Reference",
+        "description": "A FHIR reference to another resource, using the format 'ResourceType/ID'."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "app__schemas__patient__Address": {
+        "properties": {
+          "use": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "home",
+                  "work",
+                  "temp",
+                  "old",
+                  "billing"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address Use",
+            "description": "The purpose of this address. 'home' for the patient's residence, 'work' for employer address, 'billing' for billing purposes.",
+            "example": "home"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "postal",
+                  "physical",
+                  "both"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address Type",
+            "description": "Distinguishes between physical addresses (those you can visit) and mailing addresses (PO Boxes). Use 'both' if the address serves both purposes.",
+            "example": "both"
+          },
+          "line": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Street Address Lines",
+            "description": "Street name, number, apartment/suite, PO Box, etc. Each element represents one line of the address.",
+            "example": [
+              "123 Main Street",
+              "Apt 4B"
+            ]
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City",
+            "description": "The name of the city, town, or municipality.",
+            "example": "New York"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State/Province",
+            "description": "The state, province, or region abbreviation or name.",
+            "example": "NY"
+          },
+          "postalCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Postal Code",
+            "description": "The postal or ZIP code for the address.",
+            "example": "10001"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country",
+            "description": "The country name or ISO 3166 country code.",
+            "example": "USA"
+          }
+        },
+        "type": "object",
+        "title": "Address",
+        "description": "A physical or postal address following FHIR Address datatype."
+      },
+      "app__schemas__patient__HumanName": {
+        "properties": {
+          "use": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "usual",
+                  "official",
+                  "temp",
+                  "nickname",
+                  "anonymous",
+                  "old",
+                  "maiden"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Use",
+            "description": "Designates which name to use in a particular context. 'official' is the legal name. 'usual' is the name commonly used. 'nickname' for informal names. 'maiden' for pre-marriage family name.",
+            "example": "official"
+          },
+          "family": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Family Name",
+            "description": "The family name (surname/last name) of the person.",
+            "example": "Doe"
+          },
+          "given": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Given Names",
+            "description": "The given names (first name and middle names) of the person. First element is the primary given name.",
+            "example": [
+              "John",
+              "A"
+            ]
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Name Text",
+            "description": "The complete human-readable name as a single string, typically formatted as 'Given Family'.",
+            "example": "John A Doe"
+          }
+        },
+        "type": "object",
+        "title": "HumanName",
+        "description": "A human name with structured components following FHIR HumanName datatype."
+      },
+      "app__schemas__patient__Identifier": {
+        "properties": {
+          "system": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Identifier System",
+            "description": "The namespace URI for the identifier value. Typically a URL that uniquely identifies the assigning authority, e.g. 'http://hospital.goodhealth.com/mrn'.",
+            "example": "http://hospital.goodhealth.com/mrn"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Identifier Value",
+            "description": "The actual identifier string that uniquely identifies the resource within its system namespace, e.g. a Medical Record Number.",
+            "example": "MRN-123456"
+          },
+          "use": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "usual",
+                  "official",
+                  "temp",
+                  "secondary",
+                  "old"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Identifier Use",
+            "description": "The purpose of this identifier. 'official' means this is the primary identifier used by the organization. 'usual' is the most commonly used. 'temp' for temporary identifiers.",
+            "example": "official"
+          }
+        },
+        "type": "object",
+        "title": "Identifier",
+        "description": "A unique identifier assigned to a resource, such as a Medical Record Number (MRN)."
+      },
+      "app__schemas__patient__Telecom": {
+        "properties": {
+          "system": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "phone",
+                  "fax",
+                  "email",
+                  "pager",
+                  "url",
+                  "sms",
+                  "other"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact System",
+            "description": "The type of communication system. Use 'phone' for landline or mobile numbers, 'email' for email addresses, 'sms' for SMS-capable numbers.",
+            "example": "phone"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Value",
+            "description": "The actual contact point value \u2014 a phone number, email address, or URL depending on the system.",
+            "example": "+1-555-123-4567"
+          },
+          "use": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "home",
+                  "work",
+                  "temp",
+                  "old",
+                  "mobile"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Use",
+            "description": "The purpose of this contact point. 'home' for personal use, 'work' for professional, 'mobile' specifically for mobile phones.",
+            "example": "mobile"
+          },
+          "rank": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preference Rank",
+            "description": "Specifies a preferred order for using this contact. Lower numbers indicate higher preference (1 = most preferred).",
+            "example": 1
+          }
+        },
+        "type": "object",
+        "title": "Telecom",
+        "description": "A contact point for a person \u2014 phone number, email, or other communication channel."
+      },
+      "app__schemas__practitioner__Address": {
+        "properties": {
+          "use": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "home",
+                  "work",
+                  "temp",
+                  "old",
+                  "billing"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address Use",
+            "description": "The purpose of this address. 'work' for the practitioner's practice or hospital address.",
+            "example": "work"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "postal",
+                  "physical",
+                  "both"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address Type",
+            "description": "Distinguishes between a physical location and a mailing address.",
+            "example": "physical"
+          },
+          "line": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Street Address Lines",
+            "description": "Street name, number, suite, building, etc.",
+            "example": [
+              "456 Hospital Drive",
+              "Suite 200"
+            ]
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City",
+            "description": "The name of the city, town, or municipality.",
+            "example": "Boston"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State/Province",
+            "description": "The state, province, or region.",
+            "example": "MA"
+          },
+          "postalCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Postal Code",
+            "description": "The postal or ZIP code.",
+            "example": "02101"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country",
+            "description": "The country name or ISO 3166 country code.",
+            "example": "USA"
+          }
+        },
+        "type": "object",
+        "title": "Address",
+        "description": "A physical or mailing address for the practitioner, typically their practice location."
+      },
+      "app__schemas__practitioner__HumanName": {
+        "properties": {
+          "use": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "usual",
+                  "official",
+                  "temp",
+                  "nickname",
+                  "anonymous",
+                  "old",
+                  "maiden"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Use",
+            "description": "Designates which name to use in a particular context. 'official' is the legal name, 'usual' is the commonly used professional name.",
+            "example": "official"
+          },
+          "family": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Family Name",
+            "description": "The family name (surname/last name) of the practitioner.",
+            "example": "Smith"
+          },
+          "given": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Given Names",
+            "description": "The given names (first name and middle names) of the practitioner.",
+            "example": [
+              "Jane",
+              "Marie"
+            ]
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Name Text",
+            "description": "The complete human-readable name as a single string, including any professional titles.",
+            "example": "Dr. Jane Marie Smith"
+          },
+          "prefix": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Prefixes",
+            "description": "Professional or honorific prefixes such as 'Dr.', 'Prof.', 'Mr.', 'Mrs.'.",
+            "example": [
+              "Dr."
+            ]
+          },
+          "suffix": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Suffixes",
+            "description": "Professional or generational suffixes such as 'Jr.', 'Sr.', 'PhD', 'MD'.",
+            "example": [
+              "MD"
+            ]
+          }
+        },
+        "type": "object",
+        "title": "HumanName",
+        "description": "A practitioner's name including professional prefixes and suffixes."
+      },
+      "app__schemas__practitioner__Identifier": {
+        "properties": {
+          "system": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Identifier System",
+            "description": "The namespace URI for the identifier value. Typically a URL identifying the assigning authority, e.g. 'http://hospital.goodhealth.com/practitioners'.",
+            "example": "http://hospital.goodhealth.com/practitioners"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Identifier Value",
+            "description": "The actual identifier that uniquely identifies this practitioner within the namespace \u2014 e.g., a medical license number or employee ID.",
+            "example": "PRAC-789456"
+          },
+          "use": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "usual",
+                  "official",
+                  "temp",
+                  "secondary",
+                  "old"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Identifier Use",
+            "description": "The purpose of this identifier. 'official' for the primary organizational identifier, 'usual' for commonly used identifiers.",
+            "example": "official"
+          }
+        },
+        "type": "object",
+        "title": "Identifier",
+        "description": "A unique identifier assigned to a practitioner, such as a medical license number or NPI."
+      },
+      "app__schemas__practitioner__Telecom": {
+        "properties": {
+          "system": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "phone",
+                  "fax",
+                  "email",
+                  "pager",
+                  "url",
+                  "sms",
+                  "other"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact System",
+            "description": "The type of communication system. Use 'phone' for phone numbers, 'email' for email addresses, 'pager' for hospital paging systems.",
+            "example": "phone"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Value",
+            "description": "The actual contact point value \u2014 a phone number, email address, or URL.",
+            "example": "+1-555-987-6543"
+          },
+          "use": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "home",
+                  "work",
+                  "temp",
+                  "old",
+                  "mobile"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Use",
+            "description": "The purpose of this contact point. Most practitioner contacts are 'work'. Use 'mobile' for personal mobile numbers.",
+            "example": "work"
+          },
+          "rank": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preference Rank",
+            "description": "Preferred order for using this contact. Lower numbers = higher preference (1 = most preferred).",
+            "example": 1
+          }
+        },
+        "type": "object",
+        "title": "Telecom",
+        "description": "A contact point for the practitioner \u2014 phone, email, or other communication channel."
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Patient",
+      "description": "Operations for managing FHIR Patient resources \u2014 individuals receiving care. Supports create, read, update, list, and delete."
+    },
+    {
+      "name": "Practitioner",
+      "description": "Operations for managing FHIR Practitioner resources \u2014 healthcare providers such as physicians, nurses, and therapists. Supports create, read, update, list, and delete."
+    },
+    {
+      "name": "Encounter",
+      "description": "Operations for managing FHIR Encounter resources \u2014 clinical interactions between patients and providers (visits, admissions, telehealth). Supports create, read, update, list, and delete."
+    }
+  ]
+}

@@ -1,0 +1,442 @@
+{
+  "id": "add_consultation_extractions",
+  "name": "Add Consultation Extractions",
+  "description": "Practitioner selects one of their fulfilled appointments, the encounter is verified automatically, then records any combination of clinical extractions: Condition, Observation, Medication Request, and Service Request.",
+  "version": "2.0.0",
+  "tags": [
+    "fhir",
+    "clinical",
+    "consultation",
+    "practitioner",
+    "condition",
+    "observation",
+    "medication",
+    "service-request"
+  ],
+  "required_permissions": [
+    "appointment:read",
+    "encounter:read",
+    "condition:create",
+    "observation:create",
+    "medication_request:create",
+    "service_request:create"
+  ],
+  "llm_hints": {
+    "intent_examples": [
+      "Add clinical extractions for a consultation",
+      "Record condition and observations from a consultation",
+      "Document consultation findings",
+      "Add post-consultation clinical records",
+      "Record what I found during the appointment"
+    ],
+    "when_to_use": [
+      "Practitioner wants to record clinical findings (Condition, Observation, Medication Request, Service Request) against a specific appointment's encounter",
+      "Doctor wants to document all clinical extractions after a consultation in one guided workflow"
+    ],
+    "when_not_to_use": [
+      "User wants to record a single condition only (use record_condition instead)",
+      "User wants to prescribe a medication only (use create_medication_request instead)",
+      "User is a patient, not a practitioner"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll guide you through adding clinical extractions for a consultation in up to 6 steps: select an appointment, choose what to add, then record your chosen types (Condition, Observation, Medication Request, Service Request). Unselected types are skipped automatically.",
+  "completion": {
+    "message": "Consultation extractions recorded successfully. All selected clinical records have been saved to the encounter.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "select_appointment",
+      "name": "Select Appointment",
+      "step_type": "form",
+      "description": "Search and select one of your fulfilled appointments. The encounter is resolved automatically — if no encounter exists for the selected appointment, the workflow stops here.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "encounter_id": {
+            "type": "integer",
+            "resource": "Encounter",
+            "field": "data.0.id",
+            "error_message": "No encounter found for this appointment. Please select an appointment that has an associated encounter before continuing."
+          }
+        },
+        "required_outputs": ["encounter_id"]
+      },
+      "context_resolvers": [
+        {
+          "description": "Resolve the logged-in practitioner's FHIR record to scope appointment search by practitioner.",
+          "context_key": "me_practitioner",
+          "tool_name": "get_my_practitioner",
+          "url": "$fhir_gql_url/practitioners/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "select_appointment_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "fetch_encounter",
+          "tool_name": "get_encounter_for_appointment",
+          "url": "$fhir_gql_url/encounters/?appointment_id=$appointment_id&limit=1",
+          "method": "GET",
+          "validation_schema": "select_appointment_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    },
+    {
+      "sequence_number": 2,
+      "id": "choose_extractions",
+      "name": "Choose Extraction Types",
+      "step_type": "form",
+      "description": "Select which types of clinical records to add for this encounter. Only the selected types will appear as subsequent steps.",
+      "context": {
+        "inputs": {
+          "encounter_id": { "type": "integer", "source": "workflow" },
+          "patient_id": { "type": "integer", "source": "workflow" }
+        },
+        "outputs": {}
+      },
+      "ui": {
+        "schema": "choose_extractions_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "confirm_encounter",
+          "tool_name": "confirm_encounter",
+          "url": "$fhir_gql_url/encounters/$encounter_id",
+          "method": "GET",
+          "validation_schema": "choose_extractions_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    },
+    {
+      "sequence_number": 3,
+      "id": "add_conditions",
+      "name": "Add Conditions",
+      "step_type": "form",
+      "skip_unless": "add_condition",
+      "description": "Record one or more diagnoses or clinical conditions for this encounter. Each condition is submitted individually.",
+      "context": {
+        "inputs": {
+          "patient_id": { "type": "integer", "source": "workflow" },
+          "encounter_id": { "type": "integer", "source": "workflow" }
+        },
+        "outputs": {}
+      },
+      "context_resolvers": [
+        {
+          "description": "Fetch existing conditions for this encounter to display alongside the form.",
+          "context_key": "existing_conditions",
+          "tool_name": "list_existing_conditions",
+          "url": "$fhir_gql_url/conditions/?encounter_id=$encounter_id",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch clinical status value set for Condition.",
+          "context_key": "clinical_status_concepts",
+          "tool_name": "get_condition_clinical_status",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Condition&field=clinicalStatus",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch verification status value set for Condition.",
+          "context_key": "verification_status_concepts",
+          "tool_name": "get_condition_verification_status",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Condition&field=verificationStatus",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch severity value set for Condition.",
+          "context_key": "severity_concepts",
+          "tool_name": "get_condition_severity",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Condition&field=severity",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch category value set for Condition.",
+          "context_key": "category_concepts",
+          "tool_name": "get_condition_category",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Condition&field=category",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "add_conditions_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "navigate",
+          "purpose": "back_to_choose",
+          "tool_name": "back_to_choose",
+          "target_step_index": 1,
+          "retryable": false
+        },
+        {
+          "type": "http",
+          "purpose": "create_conditions_batch",
+          "tool_name": "create_conditions_batch",
+          "url": "$fhir_gql_url/conditions/",
+          "method": "POST",
+          "validation_schema": "condition_create_schema",
+          "iterate_key": "conditions_group",
+          "retryable": false,
+          "timeout_ms": 30000
+        }
+      ]
+    },
+    {
+      "sequence_number": 4,
+      "id": "add_observations",
+      "name": "Add Observations",
+      "step_type": "form",
+      "skip_unless": "add_observation",
+      "description": "Record one or more clinical observations or measurements for this encounter. Status is required for each item.",
+      "context": {
+        "inputs": {
+          "patient_id": { "type": "integer", "source": "workflow" },
+          "encounter_id": { "type": "integer", "source": "workflow" }
+        },
+        "outputs": {}
+      },
+      "context_resolvers": [
+        {
+          "description": "Fetch existing observations for this encounter.",
+          "context_key": "existing_observations",
+          "tool_name": "list_existing_observations",
+          "url": "$fhir_gql_url/observations/?encounter_id=$encounter_id",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch status value set for Observation.",
+          "context_key": "status_concepts",
+          "tool_name": "get_observation_status",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Observation&field=status",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch category value set for Observation.",
+          "context_key": "category_concepts",
+          "tool_name": "get_observation_category",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Observation&field=category",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch interpretation value set for Observation.",
+          "context_key": "interpretation_concepts",
+          "tool_name": "get_observation_interpretation",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Observation&field=interpretation",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "add_observations_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "navigate",
+          "purpose": "back_to_choose",
+          "tool_name": "back_to_choose",
+          "target_step_index": 1,
+          "retryable": false
+        },
+        {
+          "type": "http",
+          "purpose": "create_observations_batch",
+          "tool_name": "create_observations_batch",
+          "url": "$fhir_gql_url/observations/",
+          "method": "POST",
+          "validation_schema": "observation_create_schema",
+          "iterate_key": "observations_group",
+          "retryable": false,
+          "timeout_ms": 30000
+        }
+      ]
+    },
+    {
+      "sequence_number": 5,
+      "id": "add_medication_requests",
+      "name": "Add Medication Requests",
+      "step_type": "form",
+      "skip_unless": "add_medication_request",
+      "description": "Add one or more prescription orders for this consultation. Status and intent are required for each item.",
+      "context": {
+        "inputs": {
+          "patient_id": { "type": "integer", "source": "workflow" },
+          "encounter_id": { "type": "integer", "source": "workflow" }
+        },
+        "outputs": {}
+      },
+      "context_resolvers": [
+        {
+          "description": "Fetch existing medication requests for this encounter.",
+          "context_key": "existing_medication_requests",
+          "tool_name": "list_existing_medication_requests",
+          "url": "$fhir_gql_url/medication-requests/?encounter_id=$encounter_id",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch allowed status codes for MedicationRequest.",
+          "context_key": "status_concepts",
+          "tool_name": "get_medication_request_status",
+          "url": "$fhir_gql_url/terminology/concepts?resource=MedicationRequest&field=status",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch allowed intent codes for MedicationRequest.",
+          "context_key": "intent_concepts",
+          "tool_name": "get_medication_request_intent",
+          "url": "$fhir_gql_url/terminology/concepts?resource=MedicationRequest&field=intent",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "add_medication_requests_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "navigate",
+          "purpose": "back_to_choose",
+          "tool_name": "back_to_choose",
+          "target_step_index": 1,
+          "retryable": false
+        },
+        {
+          "type": "http",
+          "purpose": "create_medication_requests_batch",
+          "tool_name": "create_medication_requests_batch",
+          "url": "$fhir_gql_url/medication-requests/",
+          "method": "POST",
+          "validation_schema": "medication_request_create_schema",
+          "iterate_key": "medication_requests_group",
+          "retryable": false,
+          "timeout_ms": 30000
+        }
+      ]
+    },
+    {
+      "sequence_number": 6,
+      "id": "add_service_requests",
+      "name": "Add Service Requests",
+      "step_type": "form",
+      "skip_unless": "add_service_request",
+      "description": "Add one or more lab orders, imaging requests, or procedure referrals for this encounter. Status and intent are required for each item.",
+      "context": {
+        "inputs": {
+          "patient_id": { "type": "integer", "source": "workflow" },
+          "encounter_id": { "type": "integer", "source": "workflow" }
+        },
+        "outputs": {}
+      },
+      "context_resolvers": [
+        {
+          "description": "Fetch existing service requests for this encounter.",
+          "context_key": "existing_service_requests",
+          "tool_name": "list_existing_service_requests",
+          "url": "$fhir_gql_url/service-requests/?encounter_id=$encounter_id",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch allowed status codes for ServiceRequest.",
+          "context_key": "status_concepts",
+          "tool_name": "get_service_request_status",
+          "url": "$fhir_gql_url/terminology/concepts?resource=ServiceRequest&field=status",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch allowed intent codes for ServiceRequest.",
+          "context_key": "intent_concepts",
+          "tool_name": "get_service_request_intent",
+          "url": "$fhir_gql_url/terminology/concepts?resource=ServiceRequest&field=intent",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch allowed priority codes for ServiceRequest.",
+          "context_key": "priority_concepts",
+          "tool_name": "get_service_request_priority",
+          "url": "$fhir_gql_url/terminology/concepts?resource=ServiceRequest&field=priority",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch allowed category codes for ServiceRequest.",
+          "context_key": "category_concepts",
+          "tool_name": "get_service_request_category",
+          "url": "$fhir_gql_url/terminology/concepts?resource=ServiceRequest&field=category",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "add_service_requests_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "navigate",
+          "purpose": "back_to_choose",
+          "tool_name": "back_to_choose",
+          "target_step_index": 1,
+          "retryable": false
+        },
+        {
+          "type": "http",
+          "purpose": "create_service_requests_batch",
+          "tool_name": "create_service_requests_batch",
+          "url": "$fhir_gql_url/service-requests/",
+          "method": "POST",
+          "validation_schema": "service_request_create_schema",
+          "iterate_key": "service_requests_group",
+          "retryable": false,
+          "timeout_ms": 30000
+        }
+      ]
+    }
+  ]
+}

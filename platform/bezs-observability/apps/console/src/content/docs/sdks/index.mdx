@@ -1,0 +1,41 @@
+---
+title: SDKs
+description: Official Watcher24 client libraries for JavaScript, Python, Go, and more.
+---
+
+# SDKs
+
+Official client libraries for sending telemetry to Watcher24. All SDKs share the same event model and API surface — pick the one that matches your stack.
+
+| SDK | Package | Runtimes |
+|-----|---------|----------|
+| [JavaScript / Node.js →](/docs/sdks/javascript) | `@watcher/node` · `@watcher/browser` · `@watcher/react` | Node.js, browser, React, Next.js |
+| [Python →](/docs/sdks/python) | `watcher-sdk` | Python 3.9+, FastAPI, Django, scripts |
+| [Go →](/docs/sdks/go) | `github.com/watcher24/go-sdk` | Go 1.21+, any net/http service |
+| [Rust →](/docs/sdks/rust) | `watcher-sdk` | Rust 2021+, sync or async services |
+| [React Native →](/docs/sdks/react-native) | `@watcher/react-native` | React Native 0.73+, Expo — iOS and Android |
+| [Next.js →](/docs/sdks/nextjs) | `@watcher/nextjs` | Next.js App Router (server + client) |
+
+## Choosing an SDK
+
+- **Node.js API / worker** → [`@watcher/node`](/docs/sdks/javascript)
+- **Browser SPA** → [`@watcher/browser`](/docs/sdks/javascript)
+- **React app** → [`@watcher/react`](/docs/sdks/javascript)
+- **Next.js full-stack** → [`@watcher/nextjs`](/docs/sdks/nextjs)
+- **Python / FastAPI** → [`watcher-sdk`](/docs/sdks/python)
+- **Go service** → [`github.com/watcher24/go-sdk`](/docs/sdks/go)
+- **Rust service** → [`watcher-sdk`](/docs/sdks/rust)
+- **React Native (iOS / Android)** → [`@watcher/react-native`](/docs/sdks/react-native)
+
+## Common concepts
+
+All SDKs share the same four event types:
+
+| Type | Method | Use case |
+|------|--------|----------|
+| `audit` | `Audit` / `audit` | User actions, compliance trails |
+| `log` | `Log` / `log` | Application logs with severity |
+| `trace` | `Trace` / `trace` | Distributed trace spans |
+| `metric` | `Metric` / `metric` | Numeric measurements |
+
+Events are **buffered in memory** and sent in batches by a background thread / goroutine so instrumentation never blocks your application's hot path. Call `flush()` / `Flush()` explicitly in short-lived processes (serverless, scripts) before exit.

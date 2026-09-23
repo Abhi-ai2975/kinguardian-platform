@@ -1,0 +1,101 @@
+---
+title: Event Types
+description: The four event types Watcher supports and when to use each one.
+---
+
+# Event Types
+
+Every record stored in Watcher is an **event**. All events share a common schema but have four distinct types, each with different semantics and display behaviour in the console.
+
+## Common fields
+
+All events share these top-level fields:
+
+| Field | Type | Description |
+|---|---|---|
+| `event_type` | string | `"log"`, `"trace"`, `"metric"`, `"audit"` |
+| `severity` | string | `"debug"` → `"critical"` |
+| `message` | string | Human-readable description |
+| `app_id` | string | Which application sent the event |
+| `environment` | string | `"development"`, `"staging"`, `"production"` |
+| `timestamp` | datetime | When the event occurred |
+| `user_id` | string | End-user associated with the event (optional) |
+| `trace_id` | string | Distributed trace ID for linking spans |
+| `payload` | JSON | Arbitrary structured data |
+
+## Log
+
+Logs capture point-in-time messages from your application — the equivalent of a `console.log` or `logger.info`.
+
+```typescript
+await watcher.log({
+  message: "User signed up",
+  severity: "info",
+  payload: { userId: "usr_abc", plan: "free" },
+});
+```
+
+Use logs for:
+- Operational messages ("Server started on port 3000")
+- Business events ("Order created", "Payment succeeded")
+- Debug traces ("Cache miss for key: user:123")
+
+## Trace
+
+Traces capture the duration of an operation and can be nested into a distributed trace using `trace_id` and `parent_span_id`.
+
+```typescript
+const span = watcher.startSpan("database.query", {
+  traceId: requestTraceId,
+  payload: { table: "orders", query: "SELECT * FROM orders WHERE id = ?" },
+});
+
+const result = await db.query("SELECT * FROM orders WHERE id = $1", [id]);
+span.end({ status: "ok", payload: { rowCount: result.rowCount } });
+```
+
+## Metric
+
+Metrics record a numeric measurement at a point in time.
+
+```typescript
+await watcher.metric({
+  name: "api.latency_ms",
+  value: 142,
+  unit: "ms",
+  tags: { endpoint: "/checkout", method: "POST" },
+});
+```
+
+Common metrics: response time, queue depth, cache hit rate, error rate.
+
+## Audit
+
+Audit events record security-sensitive actions for compliance — who did what, to what, and when.
+
+```typescript
+await watcher.audit({
+  action: "user.deleted",
+  actor: { id: session.userId, email: session.email },
+  target: { type: "user", id: deletedUserId },
+  payload: { reason: "gdpr_erasure_request", ip: request.ip },
+});
+```
+
+Audit events are:
+- Immutable once written
+- Always stored regardless of plan limits
+- Shown in the dedicated **Audit** tab in the console
+- Suitable for SOC 2 and GDPR audit trails
+
+## Severity levels
+
+| Level | Numeric | Meaning |
+|---|---|---|
+| `debug` | 0 | Verbose diagnostic data, filtered in production |
+| `info` | 1 | Normal operational events |
+| `warning` | 2 | Unexpected but non-critical situation |
+| `error` | 3 | Something went wrong and needs attention |
+| `critical` | 4 | System-level failure; triggers immediate alerts |
+
+The console shows error and critical events highlighted in red.

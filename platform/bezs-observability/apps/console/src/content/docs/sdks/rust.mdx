@@ -1,0 +1,209 @@
+---
+title: Rust SDK
+description: Reference for the watcher-sdk Rust crate — zero-async, thread-safe telemetry client.
+---
+
+# Rust SDK
+
+The `watcher-sdk` crate supports Rust 2021 edition (1.70+). It is **Send + Sync**, requires no async runtime, and has three dependencies: `serde`, `serde_json`, and `ureq`.
+
+## Installation
+
+```toml
+[dependencies]
+watcher-sdk = "0.1"
+serde_json   = "1"   # for the json! macro
+```
+
+## Initialisation
+
+Create a module-level singleton and call `shutdown()` before process exit.
+
+```rust
+use std::env;
+use watcher_sdk::Client;
+
+fn main() -> watcher_sdk::Result<()> {
+    let client = Client::builder(env::var("WATCHER_API_KEY").unwrap())
+        .app_id(env::var("WATCHER_APP_ID").unwrap_or_default())
+        .service_name(env::var("WATCHER_SERVICE_NAME").unwrap_or_default())
+        .environment(env::var("APP_ENV").unwrap_or_else(|_| "production".into()))
+        .build()?;
+
+    // ... use client ...
+
+    client.shutdown();
+    Ok(())
+}
+```
+
+| Builder method | Type | Required | Description |
+|----------------|------|----------|-------------|
+| `Client::builder(api_key)` | `&str` | **Yes** | Secret key (`wtch_` prefix) from Settings → API Keys |
+| `.app_id(id)` | `&str` | No | Links events to a registered application. Get the ID from Settings → Apps. |
+| `.service_name(name)` | `&str` | No | Component label (e.g. `"payment-api"`). Shown in the dashboard. |
+| `.environment(env)` | `&str` | No | Deployment stage. Default: `"production"` |
+| `.gateway_url(url)` | `&str` | No | Override for self-hosted deployments. Default: `https://ingest.watcher24.io` |
+| `.flush_interval(d)` | `Duration` | No | How often the background thread sends events. Default: `500ms` |
+| `.flush_at(n)` | `usize` | No | Buffer size that triggers an immediate flush. Default: `100` |
+| `.max_buffer(n)` | `usize` | No | Max events in memory; oldest dropped when full. Default: `10 000` |
+
+## Audit events
+
+```rust
+use serde_json::json;
+
+client.audit("user.login")
+    .user_id("u_abc123")
+    .session_id("sess_xyz")
+    .payload(json!({
+        "method": "email",
+        "ip":     "203.0.113.1",
+    }))
+    .send()?;
+```
+
+## Logs
+
+```rust
+use watcher_sdk::Severity;
+
+client.log(Severity::Error, "payment failed")
+    .payload(json!({ "order_id": "o_001", "reason": "card_declined" }))
+    .send()?;
+
+client.log(Severity::Info, "server started")
+    .payload(json!({ "port": 8080 }))
+    .send()?;
+```
+
+Severity variants: `Severity::Debug` · `Severity::Info` · `Severity::Warn` · `Severity::Error` · `Severity::Critical`
+
+## Traces
+
+```rust
+let trace_id = format!("trace-{}", std::time::SystemTime::now()
+    .duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos());
+
+client.trace("http.request")
+    .trace_id(&trace_id)
+    .span_id("span-root")
+    .payload(json!({ "method": "POST", "path": "/api/orders" }))
+    .send()?;
+
+// Child span
+client.trace("db.insert")
+    .trace_id(&trace_id)
+    .span_id("span-db")
+    .parent_span_id("span-root")
+    .payload(json!({ "table": "orders", "latency_ms": 12 }))
+    .send()?;
+```
+
+## Metrics
+
+```rust
+client.metric("api.request_duration")
+    .payload(json!({ "p50_ms": 45, "p95_ms": 120, "p99_ms": 340 }))
+    .send()?;
+```
+
+## AI events
+
+Record AI agent telemetry — LLM calls, tool calls, workflow steps, retrievals, and evals.
+Always attach a payload with a `"kind"` field so the console can display AI-specific columns (model, tokens, cost, latency) and the workflow waterfall.
+
+```rust
+use serde_json::json;
+use watcher_sdk::Severity;
+
+let trace_id = format!("wf-{}", std::time::SystemTime::now()
+    .duration_since(std::time::UNIX_EPOCH).unwrap().as_millis());
+
+// LLM call
+client.ai(Severity::Info, "llm.call.completed")
+    .trace_id(&trace_id)
+    .span_id("llm-001")
+    .payload(json!({
+        "kind":              "llm_call",
+        "provider":          "openai",
+        "model":             "gpt-4o",
+        "prompt_tokens":     840,
+        "completion_tokens": 400,
+        "total_tokens":      1240,
+        "latency_ms":        820,
+        "cost_usd":          0.0037,
+        "finish_reason":     "stop",
+    }))
+    .send()?;
+
+// Tool call
+client.ai(Severity::Info, "tool.call.completed")
+    .trace_id(&trace_id)
+    .payload(json!({
+        "kind":           "tool_call",
+        "tool_name":      "web_search",
+        "latency_ms":     340,
+        "success":        true,
+        "output_summary": "Found 5 results",
+    }))
+    .send()?;
+```
+
+`EventType::Ai` is also available for use with the generic `event()` method.
+
+See the [AI Agent Observability guide →](/docs/ai/overview) for the full payload schema for all AI event kinds.
+
+## Generic event
+
+```rust
+use watcher_sdk::EventType;
+
+client.event(EventType::Security, Severity::Warn, "suspicious login")
+    .payload(json!({ "ip": "198.51.100.1", "attempts": 5 }))
+    .send()?;
+```
+
+Available event types: `EventType::Audit` · `EventType::Log` · `EventType::Trace` · `EventType::Metric` · `EventType::Event` · `EventType::Security` · `EventType::Ai` · `EventType::System` · `EventType::Infrastructure`
+
+## EventBuilder methods
+
+| Method | Description |
+|--------|-------------|
+| `.user_id(id)` | User identifier |
+| `.session_id(id)` | Session identifier |
+| `.trace_id(id)` | Distributed trace ID |
+| `.span_id(id)` | Span ID within a trace |
+| `.parent_span_id(id)` | Parent span ID for trace trees |
+| `.payload(value)` | `serde_json::Value` — arbitrary structured data |
+| `.send() -> Result<()>` | **Required** — pushes the event to the buffer |
+
+<Callout type="warning">
+`EventBuilder` is annotated `#[must_use]`. If you forget to call `.send()`, the Rust compiler will warn you at compile time — the event will not be recorded.
+</Callout>
+
+## Lifecycle
+
+```rust
+// Force-send all buffered events — use at the end of a short-lived handler
+client.flush()?;
+
+// Flush + stop the background thread — always call before process exit
+client.shutdown();
+```
+
+<Callout type="note">
+In short-lived processes (AWS Lambda, scripts), call `client.flush()` before `client.shutdown()` — the background thread's timer may not fire before the process exits.
+</Callout>
+
+## Environment variables
+
+```bash
+WATCHER_API_KEY=wtch_...          # required — secret key from Settings → API Keys
+WATCHER_APP_ID=your_app_id_here   # optional — from Settings → Apps
+WATCHER_SERVICE_NAME=my-service   # optional
+APP_ENV=production                 # optional
+
+# Only for local dev or self-hosted:
+# WATCHER_GATEWAY_URL=http://localhost:8080
+```

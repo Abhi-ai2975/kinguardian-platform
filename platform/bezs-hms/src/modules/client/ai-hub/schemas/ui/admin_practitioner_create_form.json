@@ -1,0 +1,108 @@
+{
+  "id": "admin-practitioner-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "admin-practitioner-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_practitioner" },
+        "submitLabel": { "literalString": "Create Practitioner" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "form-title",
+            "type": "Text",
+            "properties": {
+              "text": {
+                "literalString": "Step 1: Create Practitioner (Admin)"
+              },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": {
+                "literalString": "Enter the target user ID and core demographic details. The practitioner resource will be linked to the specified user account. Names, identifiers, and role are added in the following steps."
+              },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "divider-top", "type": "Divider", "properties": {} },
+
+          {
+            "id": "section-user",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Target User" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "target_user_id",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "User ID" },
+              "placeholder": {
+                "literalString": "Enter the platform user ID for this practitioner"
+              },
+              "textFieldType": "shortText"
+            }
+          },
+
+          { "id": "divider-demo", "type": "Divider", "properties": {} },
+          {
+            "id": "section-demo",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Demographics" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "prac-gender-active-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "gender",
+                  "type": "TerminologySelect",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "Gender (optional)" },
+                    "placeholder": { "literalString": "Search gender…" },
+                    "items": "$gender_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "active",
+                  "type": "CheckBox",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Active" },
+                    "value": { "literalBoolean": true }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "birth_date",
+            "type": "DateTimeInput",
+            "properties": {
+              "label": { "literalString": "Date of Birth (optional)" },
+              "enableDate": true,
+              "enableTime": false
+            }
+          }
+        ]
+      }
+    }
+  }
+}

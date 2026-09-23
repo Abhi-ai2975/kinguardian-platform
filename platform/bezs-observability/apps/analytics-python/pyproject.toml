@@ -1,0 +1,28 @@
+[project]
+name = "analytics-python"
+version = "0.1.0"
+description = "Watcher24 analytics worker — consumes Redis Streams and writes to ClickHouse"
+requires-python = ">=3.11"
+
+dependencies = [
+    "redis>=5.0.0",
+    "clickhouse-connect>=0.7.0",
+    "pydantic>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "httpx>=0.28.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=5.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["tests/*"]

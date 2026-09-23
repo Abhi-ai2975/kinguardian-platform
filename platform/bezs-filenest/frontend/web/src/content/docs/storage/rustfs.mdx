@@ -1,0 +1,57 @@
+---
+title: "RustFS"
+description: "Connect a FileNest project to a self-hosted RustFS instance."
+---
+
+# RustFS
+
+RustFS is a Rust-native, S3-compatible object storage server. It is API-compatible with MinIO and is suitable for high-performance on-premises deployments.
+
+## Prerequisites
+
+- A running RustFS instance accessible from the FileNest API
+- A bucket created in RustFS
+- An access key + secret key with read/write access to the bucket
+
+## Connecting RustFS
+
+```bash
+curl -X PATCH https://api.filenest.io/v1/projects/{id}/storage \
+  -H "Authorization: Bearer fn_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "rustfs",
+    "storage_mode": "byob",
+    "bucket_name": "company-files",
+    "endpoint_url": "https://rustfs.internal.example.com",
+    "access_key_id": "rustfs-access-key",
+    "secret_access_key": "rustfs-secret-key"
+  }'
+```
+
+## Server-side encryption (SSE)
+
+RustFS SSE is **off by default** and can be toggled per project. The setup is identical to [MinIO SSE](/docs/storage/minio#server-side-encryption-sse) — configure the KMS key on the RustFS server process:
+
+```bash
+# Set on the RustFS server process (not in FileNest)
+export RUSTFS_KMS_SECRET_KEY="my-key:base64encodedvalue="
+```
+
+Enable SSE:
+
+```bash
+curl -X PATCH https://api.filenest.io/v1/projects/{id}/storage/sse \
+  -H "Authorization: Bearer fn_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{ "sse_enabled": true }'
+```
+
+When enabled, FileNest sends `ServerSideEncryption: AES256` on every upload.
+
+## Verify connectivity
+
+```bash
+curl -X POST https://api.filenest.io/v1/projects/{id}/storage/verify \
+  -H "Authorization: Bearer fn_live_..."
+```

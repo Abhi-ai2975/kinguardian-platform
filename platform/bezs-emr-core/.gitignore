@@ -1,0 +1,63 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+
+# ── Virtual environments ───────────────────────────────────────────────────────
+.venv/
+venv/
+ENV/
+env/
+python/
+
+# ── Environment / secrets ──────────────────────────────────────────────────────
+# Keep .env.example (safe template); ignore everything else
+.env
+.env.*
+!.env.example
+
+# ── Build artifacts ────────────────────────────────────────────────────────────
+dist/
+build/
+
+# ── Test & coverage ────────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+*.cover
+
+# ── Type checking & linting caches ────────────────────────────────────────────
+.mypy_cache/
+.pytype/
+.ruff_cache/
+.cache/
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+
+# ── Databases ─────────────────────────────────────────────────────────────────
+*.db
+*.sqlite3
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── IDEs ──────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+
+# ── Terminology data ──────────────────────────────────────────────────────────
+# Large medical terminology files — download locally, never commit
+# See terminology_data/README.md for download instructions
+terminology_data/**
+!terminology_data/README.md
+
+# ── Claude Code ───────────────────────────────────────────────────────────────
+# Track .claude/commands/ (shared skill definitions); ignore local settings
+.claude/settings.local.json
+.claude/settings.json
+
+.commandcode

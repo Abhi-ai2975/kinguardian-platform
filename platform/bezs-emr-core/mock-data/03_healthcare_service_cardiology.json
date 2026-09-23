@@ -1,0 +1,58 @@
+{
+  "user_id": "user-admin-001",
+  "org_id": "0fb41e50-82a4-461e-96c7-bd11359d892d",
+  "provided_by": "Organization/190000",
+  "provided_by_display": "Sunrise Medical Center",
+  "active": true,
+  "name": "Cardiology Consultation",
+  "comment": "Specialist cardiology consultations including ECG, echo referrals, and cardiac risk assessment.",
+  "extra_details": "Referral required. Bring all prior cardiac imaging and reports.",
+  "appointment_required": true,
+  "availability_exceptions": "Closed on Massachusetts state public holidays.",
+  "category": [
+    {
+      "coding_system": "http://terminology.hl7.org/CodeSystem/service-category",
+      "coding_code": "27",
+      "coding_display": "Specialist Medical",
+      "text": "Specialist Medical"
+    }
+  ],
+  "type": [
+    {
+      "coding_system": "http://terminology.hl7.org/CodeSystem/service-type",
+      "coding_code": "394",
+      "coding_display": "Cardiology",
+      "text": "Cardiology"
+    }
+  ],
+  "specialty": [
+    {
+      "coding_system": "http://snomed.info/sct",
+      "coding_code": "394579002",
+      "coding_display": "Cardiology",
+      "text": "Cardiology"
+    }
+  ],
+  "location": [
+    {
+      "reference": "Location/230000",
+      "reference_display": "Sunrise Medical Center — Main Clinic"
+    }
+  ],
+  "telecom": [{ "system": "phone", "value": "+1-555-900-1010", "use": "work" }],
+  "available_time": [
+    {
+      "days_of_week": ["mon", "tue", "thu", "fri"],
+      "all_day": false,
+      "available_start_time": "09:00:00",
+      "available_end_time": "17:00:00"
+    }
+  ],
+  "not_available": [
+    {
+      "description": "Dr. Carter annual leave",
+      "during_start": "2026-08-01T00:00:00Z",
+      "during_end": "2026-08-15T23:59:59Z"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  iam-app:
+    image: ghcr.io/naveenraj-g/iam-app/v1:latest
+    container_name: iam-app
+    env_file:
+      - .env
+    depends_on:
+      - iam-postgres
+    volumes:
+      - ./logs:/logs/IAM
+    networks:
+      - bezs-net
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  iam-postgres:
+    image: postgres:15-alpine
+    container_name: iam-postgres
+    environment:
+      POSTGRES_USER: iam_user
+      POSTGRES_PASSWORD: iam_password
+      POSTGRES_DB: iam_db
+    volumes:
+      - iam_pg_data:/var/lib/postgresql/data
+    networks:
+      - bezs-net
+    restart: unless-stopped
+
+    # 🚫 IMPORTANT: no ports → private DB
+
+volumes:
+  iam_pg_data:
+
+networks:
+  bezs-net:
+    driver: bridge

@@ -1,0 +1,101 @@
+{
+  "id": "create_organization",
+  "name": "Create Organization",
+  "description": "Create a new Organisation resource: provide the name, type, contact details, and address.",
+  "version": "1.0.0",
+  "tags": ["fhir", "organization", "location", "create", "crud", "healthcare"],
+  "required_permissions": ["org:create", "org:read"],
+  "llm_hints": {
+    "intent_examples": [
+      "Create an organisation",
+      "Register a new hospital",
+      "Add a new clinic",
+      "Create a healthcare organisation",
+      "Set up a new organisation with a location",
+      "Register a new healthcare provider organisation"
+    ],
+    "when_to_use": [
+      "User wants to create a new Organisation resource",
+      "User wants to register a hospital, clinic, or healthcare provider"
+    ],
+    "when_not_to_use": [
+      "User wants to update an existing organisation",
+      "User wants to list or search organisations",
+      "User wants to create a patient or practitioner (use the relevant workflow)"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you register a new organisation.",
+  "completion": {
+    "message": "Organisation created successfully.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "create_organization_resource",
+      "name": "Create Organisation",
+      "step_type": "form",
+      "description": "Enter the organisation's name, type, contact details, and address.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "organization_id": {
+            "type": "integer",
+            "resource": "Organization",
+            "field": "id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Fetch organisation-type value set for the Type select.",
+          "context_key": "org_type_concepts",
+          "tool_name": "get_org_type_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Organization&field=type",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch telecom-system value set for the Contact Type select.",
+          "context_key": "telecom_system_concepts",
+          "tool_name": "get_telecom_system_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=telecom.system",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch telecom-use value set for the Contact Use select.",
+          "context_key": "telecom_use_concepts",
+          "tool_name": "get_telecom_use_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=telecom.use",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "org_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_organization",
+          "tool_name": "create_organization",
+          "url": "$fhir_gql_url/organizations/",
+          "method": "POST",
+          "validation_schema": "organization_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    }
+  ]
+}

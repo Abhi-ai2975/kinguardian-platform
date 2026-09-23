@@ -1,0 +1,72 @@
+[
+  {
+    "id": "doc_001",
+    "text_content": "PostgreSQL uses Multi-Version Concurrency Control (MVCC) to manage data consistency.",
+    "metadata": {"author": "DBA Expert", "topic": "Databases", "priority": 1},
+    "embedding": [0.12, -0.45, 0.78, -0.11, 0.05],
+    "created_at": "2026-02-28T10:00:00Z"
+  },
+  {
+    "id": "doc_002",
+    "text_content": "Elasticsearch inverted indices allow for extremely fast full-text searching.",
+    "metadata": {"author": "Search Guru", "topic": "Search", "priority": 2},
+    "embedding": [0.98, 0.65, -0.32, 0.44, -0.12],
+    "created_at": "2026-02-28T10:05:00Z"
+  },
+  {
+    "id": "doc_003",
+    "text_content": "Vector embeddings represent text as high-dimensional points in space.",
+    "metadata": {"author": "ML Engineer", "topic": "AI", "priority": 1},
+    "embedding": [0.22, 0.11, -0.88, 0.99, 0.34],
+    "created_at": "2026-02-28T10:10:00Z"
+  },
+  {
+    "id": "doc_004",
+    "text_content": "The COPY command is the fastest way to load data into a PostgreSQL table.",
+    "metadata": {"author": "Data Engineer", "topic": "Ingestion", "priority": 3},
+    "embedding": [0.55, -0.22, 0.44, -0.66, 0.77],
+    "created_at": "2026-02-28T10:15:00Z"
+  },
+  {
+    "id": "doc_005",
+    "text_content": "Apache Airflow orchestrates complex ETL pipelines using Directed Acyclic Graphs.",
+    "metadata": {"author": "Ops Lead", "topic": "Orchestration", "priority": 2},
+    "embedding": [-0.12, 0.88, 0.11, 0.33, -0.55],
+    "created_at": "2026-02-28T10:20:00Z"
+  },
+  {
+    "id": "doc_006",
+    "text_content": "JSONB in Postgres allows for efficient indexing of semi-structured metadata.",
+    "metadata": {"author": "DBA Expert", "topic": "Databases", "priority": 1},
+    "embedding": [0.44, -0.55, 0.66, -0.77, 0.88],
+    "created_at": "2026-02-28T10:25:00Z"
+  },
+  {
+    "id": "doc_007",
+    "text_content": "Kibana provides a powerful visualization layer for data stored in OpenSearch.",
+    "metadata": {"author": "Analyst", "topic": "Visualization", "priority": 3},
+    "embedding": [0.99, -0.11, 0.22, 0.33, -0.44],
+    "created_at": "2026-02-28T10:30:00Z"
+  },
+  {
+    "id": "doc_008",
+    "text_content": "Python's SQLAlchemy serves as a flexible Object Relational Mapper for RDBMS.",
+    "metadata": {"author": "Dev", "topic": "Programming", "priority": 2},
+    "embedding": [-0.88, 0.77, -0.66, 0.55, -0.44],
+    "created_at": "2026-02-28T10:35:00Z"
+  },
+  {
+    "id": "doc_009",
+    "text_content": "Normalization reduces data redundancy by organizing tables into logical units.",
+    "metadata": {"author": "Architect", "topic": "Design", "priority": 1},
+    "embedding": [0.11, 0.22, 0.33, 0.44, 0.55],
+    "created_at": "2026-02-28T10:40:00Z"
+  },
+  {
+    "id": "doc_010",
+    "text_content": "Transformer models like BERT revolutionized the way we generate embeddings.",
+    "metadata": {"author": "Researcher", "topic": "AI", "priority": 1},
+    "embedding": [0.66, 0.77, 0.88, 0.99, 0.00],
+    "created_at": "2026-02-28T10:45:00Z"
+  }
+]

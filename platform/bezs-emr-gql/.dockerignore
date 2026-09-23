@@ -1,0 +1,38 @@
+# Virtual environment — dependencies are reinstalled inside the image by uv.
+.venv/
+
+# Local secrets — never bake into the image; supply via --env-file at runtime.
+.env
+
+# Python cache files — not needed in the image.
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Test and dev tooling
+tests/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# IDE and OS noise
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db
+
+# Git history — not needed at runtime.
+.git/
+.gitignore
+
+# Docker files themselves
+Dockerfile
+.dockerignore
+
+# Documentation
+*.md
+docs/

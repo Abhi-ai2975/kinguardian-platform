@@ -1,0 +1,692 @@
+{
+  "id": "org-location-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "org-location-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_location" },
+        "submitLabel": { "literalString": "Create Location" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Step 2: Create Location" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Define the physical location for this organisation." },
+              "usageHint": "caption"
+            }
+          },
+          {
+            "id": "summary-org",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Linked Organisation: Organization/$organization_id" },
+              "usageHint": "caption"
+            }
+          },
+          {
+            "id": "divider-top",
+            "type": "Divider",
+            "properties": {}
+          },
+
+          {
+            "id": "section-core",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Location Details" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "loc-name-status-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "name",
+                  "type": "TextField",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "Location Name" },
+                    "placeholder": { "literalString": "e.g. Main Building" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "status",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Status" },
+                    "placeholder": { "literalString": "Search status…" },
+                    "items": "$location_status_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "loc-mode-opstat-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "mode",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Mode (optional)" },
+                    "placeholder": { "literalString": "Search mode…" },
+                    "items": "$location_mode_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "operational_status",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Operational Status (optional)" },
+                    "placeholder": { "literalString": "Search operational status…" },
+                    "items": "$location_operational_status_concepts.concepts",
+                    "valueType": { "literalString": "Coding" }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "aliases",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Aliases (optional)" },
+              "placeholder": { "literalString": "Comma-separated alternate names, e.g. Block A, North Wing" },
+              "textFieldType": "shortText"
+            }
+          },
+          {
+            "id": "description",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Description (optional)" },
+              "placeholder": { "literalString": "e.g. Primary hospital building, 3rd floor" },
+              "textFieldType": "longText"
+            }
+          },
+          {
+            "id": "physical_type",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Physical Type (optional)" },
+              "placeholder": { "literalString": "Search physical type…" },
+              "items": "$location_physical_type_concepts.concepts",
+              "valueType": { "literalString": "CodeableConcept" }
+            }
+          },
+          {
+            "id": "types",
+            "type": "RepeatableGroup",
+            "properties": {
+              "label": { "literalString": "Functional Types (optional)" },
+              "addLabel": { "literalString": "Add type" },
+              "defaultCount": 0,
+              "minItems": 0,
+              "template": [
+                {
+                  "id": "coding",
+                  "type": "TerminologySelect",
+                  "properties": {
+                    "label": { "literalString": "Type" },
+                    "placeholder": { "literalString": "Search type…" },
+                    "valueType": { "literalString": "Coding" },
+                    "serverSearch": {
+                      "resource": "Location",
+                      "field": "type",
+                      "minChars": 0
+                    }
+                  }
+                }
+              ]
+            }
+          },
+
+          {
+            "id": "divider-address",
+            "type": "Divider",
+            "properties": {}
+          },
+          {
+            "id": "section-address",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Address (optional)" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "loc-use-type-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "address_use",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Address Use" },
+                    "placeholder": { "literalString": "Search use…" },
+                    "items": "$address_use_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "address_type",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Address Type" },
+                    "placeholder": { "literalString": "Search type…" },
+                    "items": "$address_type_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "address_text",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Full Address Text (optional)" },
+              "placeholder": { "literalString": "Complete display address as a single string" },
+              "textFieldType": "shortText"
+            }
+          },
+          {
+            "id": "address_line",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Street Address" },
+              "placeholder": { "literalString": "e.g. 456 Hospital Drive" },
+              "textFieldType": "shortText"
+            }
+          },
+          {
+            "id": "loc-city-district-state-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "address_city",
+                  "type": "TextField",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "City" },
+                    "placeholder": { "literalString": "City" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "address_district",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "District" },
+                    "placeholder": { "literalString": "District / County" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "address_state",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "State" },
+                    "placeholder": { "literalString": "State" },
+                    "textFieldType": "shortText"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "loc-postal-country-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "address_postal_code",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Postal Code" },
+                    "placeholder": { "literalString": "ZIP / Postal code" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "address_country",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Country" },
+                    "placeholder": { "literalString": "e.g. US" },
+                    "textFieldType": "shortText"
+                  }
+                }
+              ]
+            }
+          },
+
+          {
+            "id": "divider-contacts",
+            "type": "Divider",
+            "properties": {}
+          },
+          {
+            "id": "section-contacts",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Contact Details (optional)" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "telecoms",
+            "type": "RepeatableGroup",
+            "properties": {
+              "addLabel": { "literalString": "Add contact" },
+              "defaultCount": 0,
+              "minItems": 0,
+              "template": [
+                {
+                  "id": "system",
+                  "type": "TerminologySelect",
+                  "properties": {
+                    "label": { "literalString": "Type" },
+                    "placeholder": { "literalString": "e.g. phone, email…" },
+                    "items": "$telecom_system_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "value",
+                  "type": "TextField",
+                  "properties": {
+                    "label": { "literalString": "Value" },
+                    "placeholder": { "literalString": "e.g. +1 555 0100" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "use",
+                  "type": "TerminologySelect",
+                  "properties": {
+                    "label": { "literalString": "Use (optional)" },
+                    "placeholder": { "literalString": "e.g. work, mobile…" },
+                    "items": "$telecom_use_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "rank",
+                  "type": "TextField",
+                  "properties": {
+                    "label": { "literalString": "Rank (optional)" },
+                    "placeholder": { "literalString": "1 = highest priority" },
+                    "textFieldType": "shortText"
+                  }
+                }
+              ]
+            }
+          },
+
+          {
+            "id": "divider-hierarchy",
+            "type": "Divider",
+            "properties": {}
+          },
+          {
+            "id": "section-hierarchy",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Location Hierarchy (optional)" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "part_of_select",
+            "type": "DynamicSelect",
+            "properties": {
+              "label": { "literalString": "Part Of (optional)" },
+              "placeholder": { "literalString": "Search locations…" },
+              "source": {
+                "url": "$fhir_gql_url/locations/",
+                "staticParams": {
+                  "org_id": { "path": "org_id" }
+                },
+                "searchParam": "name",
+                "responsePath": "data",
+                "minChars": 0,
+                "debounceMs": 300,
+                "pageSize": 10,
+                "limitParam": "limit",
+                "offsetParam": "offset"
+              },
+              "display": {
+                "label": { "path": "name" },
+                "description": { "template": "Location/{id}" }
+              },
+              "emits": [
+                { "key": "part_of", "template": "Location/{id}" },
+                { "key": "part_of_display", "path": "name" }
+              ]
+            }
+          },
+
+          {
+            "id": "divider-position",
+            "type": "Divider",
+            "properties": {}
+          },
+          {
+            "id": "section-position",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Geographic Position (optional)" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "loc-position-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "position_latitude",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Latitude" },
+                    "placeholder": { "literalString": "-90 to 90" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "position_longitude",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Longitude" },
+                    "placeholder": { "literalString": "-180 to 180" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "position_altitude",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Altitude (m)" },
+                    "placeholder": { "literalString": "Metres above sea level" },
+                    "textFieldType": "shortText"
+                  }
+                }
+              ]
+            }
+          },
+
+          {
+            "id": "divider-hours",
+            "type": "Divider",
+            "properties": {}
+          },
+          {
+            "id": "section-hours",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Hours of Operation (optional)" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "hours_of_operation",
+            "type": "RepeatableGroup",
+            "properties": {
+              "addLabel": { "literalString": "Add hours" },
+              "defaultCount": 0,
+              "minItems": 0,
+              "template": [
+                {
+                  "id": "days-row",
+                  "type": "Row",
+                  "properties": {
+                    "gap": "medium",
+                    "alignment": "stretch",
+                    "children": [
+                      {
+                        "id": "mon",
+                        "type": "CheckBox",
+                        "properties": {
+                          "label": { "literalString": "Mon" }
+                        }
+                      },
+                      {
+                        "id": "tue",
+                        "type": "CheckBox",
+                        "properties": {
+                          "label": { "literalString": "Tue" }
+                        }
+                      },
+                      {
+                        "id": "wed",
+                        "type": "CheckBox",
+                        "properties": {
+                          "label": { "literalString": "Wed" }
+                        }
+                      },
+                      {
+                        "id": "thu",
+                        "type": "CheckBox",
+                        "properties": {
+                          "label": { "literalString": "Thu" }
+                        }
+                      },
+                      {
+                        "id": "fri",
+                        "type": "CheckBox",
+                        "properties": {
+                          "label": { "literalString": "Fri" }
+                        }
+                      },
+                      {
+                        "id": "sat",
+                        "type": "CheckBox",
+                        "properties": {
+                          "label": { "literalString": "Sat" }
+                        }
+                      },
+                      {
+                        "id": "sun",
+                        "type": "CheckBox",
+                        "properties": {
+                          "label": { "literalString": "Sun" }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "all_day",
+                  "type": "Switch",
+                  "properties": {
+                    "label": { "literalString": "All day" }
+                  }
+                },
+                {
+                  "id": "loc-times-row",
+                  "type": "Row",
+                  "properties": {
+                    "gap": "medium",
+                    "alignment": "stretch",
+                    "children": [
+                      {
+                        "id": "opening_time",
+                        "type": "TextField",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Opening Time" },
+                          "placeholder": { "literalString": "HH:mm" },
+                          "textFieldType": "shortText"
+                        }
+                      },
+                      {
+                        "id": "closing_time",
+                        "type": "TextField",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Closing Time" },
+                          "placeholder": { "literalString": "HH:mm" },
+                          "textFieldType": "shortText"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+
+          {
+            "id": "divider-identifiers",
+            "type": "Divider",
+            "properties": {}
+          },
+          {
+            "id": "section-identifiers",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Identifiers (optional)" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "identifiers",
+            "type": "RepeatableGroup",
+            "properties": {
+              "addLabel": { "literalString": "Add identifier" },
+              "defaultCount": 0,
+              "minItems": 0,
+              "template": [
+                {
+                  "id": "use",
+                  "type": "TerminologySelect",
+                  "properties": {
+                    "label": { "literalString": "Use" },
+                    "placeholder": { "literalString": "e.g. official, usual…" },
+                    "items": "$identifier_use_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "system",
+                  "type": "TextField",
+                  "properties": {
+                    "label": { "literalString": "System URI" },
+                    "placeholder": { "literalString": "e.g. https://my-hospital.org/locations" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "value",
+                  "type": "TextField",
+                  "properties": {
+                    "label": { "literalString": "Value" },
+                    "placeholder": { "literalString": "Identifier value" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "assigner",
+                  "type": "TextField",
+                  "properties": {
+                    "label": { "literalString": "Assigner (optional)" },
+                    "placeholder": { "literalString": "Organisation that issued this identifier" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "type_code",
+                  "type": "TextField",
+                  "properties": {
+                    "label": { "literalString": "Type Code (optional)" },
+                    "placeholder": { "literalString": "Coding code for identifier type" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "type_system",
+                  "type": "TextField",
+                  "properties": {
+                    "label": { "literalString": "Type System (optional)" },
+                    "placeholder": { "literalString": "Coding system URI for identifier type" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "type_display",
+                  "type": "TextField",
+                  "properties": {
+                    "label": { "literalString": "Type Display (optional)" },
+                    "placeholder": { "literalString": "Human-readable label for type" },
+                    "textFieldType": "shortText"
+                  }
+                }
+              ]
+            }
+          },
+
+          {
+            "id": "divider-extra",
+            "type": "Divider",
+            "properties": {}
+          },
+          {
+            "id": "availability_exceptions",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Availability Exceptions (optional)" },
+              "placeholder": { "literalString": "e.g. Closed on public holidays" },
+              "textFieldType": "longText"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,16 @@
+from fastapi import APIRouter
+
+from app.database import DbSession
+from app.schemas.responses.upload import SystemInfoResponse
+from app.services import DeveloperDep, system_info_service
+
+router = APIRouter()
+
+
+@router.get("/stats", response_model=SystemInfoResponse, tags=["dashboard"])
+def get_stats(
+    db: DbSession,
+    _developer: DeveloperDep,
+):
+    """Get system dashboard statistics."""
+    return system_info_service.get_system_info(db)

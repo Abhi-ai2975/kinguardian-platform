@@ -1,0 +1,261 @@
+---
+title: "Node.js SDK"
+description: "Install and use the @filenest/node SDK for server-side file operations."
+---
+
+# Node.js SDK
+
+The `@filenest/node` SDK provides a typed client for all FileNest REST API operations. Use it in any Node.js runtime — Next.js server components, Express, Fastify, serverless functions, scripts.
+
+## Installation
+
+<PackageTabs pkg="@filenest/node" />
+
+## Setup
+
+```typescript
+import { FileNest } from "@filenest/node";
+
+const fn = new FileNest({
+  apiKey: process.env.FILENEST_API_KEY!,
+  projectId: process.env.FILENEST_PROJECT_ID!,
+  // baseUrl: "http://localhost:8000"  // defaults to https://api.filenest.io
+});
+```
+
+---
+
+## Files
+
+### Upload
+
+```typescript
+import { createReadStream } from "fs";
+
+// From a Buffer or stream
+const file = await fn.files.upload({
+  filename: "report.pdf",
+  data: createReadStream("./report.pdf"),
+  mimeType: "application/pdf",
+  folderId: "fld_01j...",       // optional
+  tags: ["finance", "2026"],    // optional
+  metadata: { year: "2026" },   // optional
+});
+
+console.log(file.id);     // file_01j...
+console.log(file.status); // "ready"
+```
+
+Files under 5 MB are uploaded in a single request. Files over 5 MB are automatically split into multipart upload parts — no configuration needed.
+
+### Download
+
+```typescript
+// Get a presigned URL (default 1 hour TTL)
+const { url } = await fn.files.getDownloadUrl(file.id, { ttl: 3600 });
+
+// Stream bytes directly
+const stream = await fn.files.download(file.id);
+stream.pipe(fs.createWriteStream("./output.pdf"));
+
+// Buffer entire file into memory
+const buffer = await fn.files.downloadToBuffer(file.id);
+```
+
+### List
+
+```typescript
+const { items, total } = await fn.files.list({
+  status: "ready",
+  folderId: "fld_01j...",
+  mimeType: "application/pdf",
+  tags: ["finance"],
+  metadata: { year: "2026" },  // server-side metadata filter
+  sortBy: "created_at",
+  sortOrder: "desc",
+  limit: 50,
+  offset: 0,
+});
+```
+
+### Get, update, delete, restore
+
+```typescript
+const file = await fn.files.get(fileId);
+
+await fn.files.update(fileId, {
+  filename: "report-2026-final.pdf",
+  tags: ["archived"],
+  metadata: { reviewed: true },
+});
+
+await fn.files.delete(fileId);   // soft delete — file is recoverable
+
+// Restore a soft-deleted file
+const restored = await fn.files.restore(fileId);
+```
+
+### Versions
+
+```typescript
+const { items } = await fn.files.versions.list(fileId);
+await fn.files.versions.restore(fileId, versionId);
+```
+
+---
+
+## Folders
+
+### Create and ensure paths
+
+```typescript
+// Create a single folder (parentFolderId=null → project root)
+const folder = await fn.folders.create({
+  name: "invoices",
+  parentFolderId: "fld_01j...",  // optional — omit for root-level folder
+  metadata: { department: "finance" },
+});
+
+// Idempotent: create every missing path segment, return the leaf folder
+const folder = await fn.folders.ensurePath("users/alice/uploads");
+```
+
+### Resolve paths
+
+```typescript
+// Resolve a path to a folder record (returns null if not found)
+const folder = await fn.folders.getByPath("users/alice/uploads");
+
+// Get by ID
+const folder = await fn.folders.get(folderId);
+```
+
+### List and browse
+
+```typescript
+// List all folders in the project
+const { items } = await fn.folders.list();
+
+// Filter by name
+const { items } = await fn.folders.list({ name: "uploads" });
+
+// List files inside a specific folder
+const { items: files } = await fn.folders.listFiles(folderId, {
+  q: "invoice",          // full-text search within the folder
+  tags: ["finance"],
+  category: "document",
+  status: "ready",
+  limit: 20,
+  offset: 0,
+  cursor: lastCursor,    // cursor-based pagination (use items' last id)
+});
+```
+
+### Delete
+
+```typescript
+// Fails with 409 if the folder contains files or subfolders
+await fn.folders.delete(folderId);
+```
+
+---
+
+## Upload Tokens
+
+Issue short-lived tokens for browser-side uploads. The token is returned to the client through your own token endpoint — the API key never reaches the browser.
+
+```typescript
+const token = await fn.uploadTokens.create({
+  folderId: folder.id,                              // lock uploads to a specific folder
+  ownerUserId: session.userId,                      // stamped on every uploaded file
+  ownerOrgId: session.orgId,
+  allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
+  maxSize: 5 * 1024 * 1024,                        // 5 MB per file
+  maxFiles: 1,
+  expiresIn: 600,                                   // 10 minutes
+  metadata: { uploadedFrom: "profile-settings" },  // merged onto every uploaded file
+  tags: ["avatar", "user-content"],                // merged onto every uploaded file
+});
+
+// token.token → "fn_upload_token_..."  — return this to the browser
+// token.expiresAt → ISO timestamp — return this too so the browser can schedule refresh
+```
+
+Token constraints are validated against the project's config at creation time — if the project only allows `image/*`, passing `application/pdf` in `allowedMimeTypes` will return a 422 immediately. At upload time both the token constraints and the project config are enforced independently. See [Upload Tokens API reference](/docs/api/upload-tokens) for the full constraint reconciliation rules.
+
+---
+
+## Webhooks
+
+```typescript
+// Create an endpoint
+const webhook = await fn.webhooks.create({
+  name: "prod-receiver",
+  url: "https://app.example.com/webhooks/filenest",
+  events: ["file.uploaded", "file.ready", "file.failed"],
+});
+// webhook.signingSecret — store safely, shown only once
+
+// List, get, update, delete
+const { items } = await fn.webhooks.list();
+const wh = await fn.webhooks.get(webhookId);
+await fn.webhooks.update(webhookId, { status: "disabled" });
+await fn.webhooks.delete(webhookId);
+
+// Delivery history (limit/offset pagination)
+const { items: deliveries } = await fn.webhooks.listDeliveries(webhookId, { limit: 20 });
+
+// Verify an incoming signature
+const isValid = fn.webhooks.verify(rawBody, req.headers["x-filenest-signature"], secret);
+```
+
+---
+
+## Resumable Uploads
+
+`fn.uploads` gives you manual control over the multipart session lifecycle. Use this when you need to resume an interrupted upload — for example, a large file upload that failed mid-way.
+
+For most cases, `fn.files.upload()` handles multipart automatically and you don't need this namespace.
+
+```typescript
+// 1. Create a session and store the uploadId somewhere durable
+const session = await fn.uploads.create({
+  filename: "large-video.mp4",
+  sizeBytes: fileBuffer.length,
+  mimeType: "video/mp4",
+  folderId: "fld_01j...",
+  tags: ["video", "raw"],
+  metadata: { uploadedBy: "user_abc" },
+});
+// session.uploadId → persist this to resume later
+
+// 2. Upload all parts (or resume from where you left off)
+const file = await fn.uploads.resume(session.uploadId, {
+  data: fileBuffer,
+  onProgress: ({ percentage }) => console.log(`${percentage}%`),
+});
+
+// 3. If you need to cancel
+await fn.uploads.abort(session.uploadId);
+```
+
+---
+
+## Search
+
+```typescript
+const { hits, total, facets } = await fn.search.query({
+  q: "invoice",
+  filters: { status: "ready", tags: ["finance"] },
+  facets: ["mimeType", "tags"],
+  sortBy: "created_at",
+  sortOrder: "desc",
+  limit: 20,
+  offset: 0,
+});
+
+// Paginate with an async generator
+for await (const file of fn.search.iterate({ q: "invoice" })) {
+  console.log(file.filename);
+}
+```

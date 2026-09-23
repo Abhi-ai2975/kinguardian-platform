@@ -1,0 +1,79 @@
+@import 'tailwindcss';
+
+@layer utilities {
+  .material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+    font-variation-settings:
+      'FILL' 0,
+      'wght' 400,
+      'GRAD' 0,
+      'opsz' 24;
+  }
+
+  .material-symbols-outlined.fill-icon,
+  .material-symbols-outlined.filled {
+    font-variation-settings:
+      'FILL' 1,
+      'wght' 400,
+      'GRAD' 0,
+      'opsz' 24;
+  }
+
+  .ambient-shadow {
+    box-shadow: 0 4px 20px rgba(67, 56, 202, 0.08);
+  }
+
+  .ambient-shadow-lg {
+    box-shadow: 0 8px 30px rgba(67, 56, 202, 0.12);
+  }
+
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 8px 32px rgba(67, 56, 202, 0.06);
+  }
+
+  .ai-gradient-bg {
+    background: linear-gradient(135deg, rgba(67, 56, 202, 0.05) 0%, rgba(0, 106, 97, 0.03) 100%);
+  }
+
+  .ai-gradient {
+    background: linear-gradient(135deg, #4338ca, #6bd8cb);
+  }
+
+  .ai-text-gradient {
+    background: linear-gradient(135deg, #4338ca, #006f66);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .bg-gradient-celebratory {
+    background: linear-gradient(135deg, rgba(227, 223, 255, 0.4) 0%, rgba(248, 249, 255, 1) 100%);
+  }
+}
+
+body {
+  font-family:
+    'Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  background-color: #f8f9ff;
+  color: #121c2a;
+}

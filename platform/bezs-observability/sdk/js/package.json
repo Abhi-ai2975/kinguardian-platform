@@ -1,0 +1,17 @@
+{
+  "name": "watcher-sdk-js",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Watcher24 JavaScript SDK — monorepo workspace",
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "test:coverage": "pnpm -r test:coverage",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "clean": "pnpm -r clean"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}

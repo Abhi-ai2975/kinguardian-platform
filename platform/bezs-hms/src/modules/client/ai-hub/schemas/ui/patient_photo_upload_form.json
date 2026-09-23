@@ -1,0 +1,46 @@
+{
+  "id": "patient-photo-upload-root",
+  "type": "Form",
+  "properties": {
+    "action": { "name": "add_patient_photo" },
+    "submitLabel": { "literalString": "Save Photo" },
+    "gap": "medium",
+    "alignment": "stretch",
+    "children": [
+      {
+        "id": "form-title",
+        "type": "Text",
+        "properties": {
+          "text": { "literalString": "Upload Profile Photo" },
+          "usageHint": "h2"
+        }
+      },
+      {
+        "id": "form-subtitle",
+        "type": "Text",
+        "properties": {
+          "text": { "literalString": "Upload a photo for the patient's profile. JPEG, PNG, WebP or GIF · Max 5 MB." },
+          "usageHint": "caption"
+        }
+      },
+      {
+        "id": "profile_photo",
+        "type": "FileUpload",
+        "properties": {
+          "label": { "literalString": "Profile photo" },
+          "tokenEndpoint": { "literalString": "/api/filenest-token" },
+          "filePath": "$patient_id/profile",
+          "allowedMimeTypes": ["image/jpeg", "image/png", "image/webp", "image/gif"],
+          "maxFiles": { "literalNumber": 1 },
+          "maxSizeMb": { "literalNumber": 5 },
+          "metadata": {
+            "source": "ai-chat",
+            "patientFhirId": "$patient_id"
+          },
+          "userId": "$user_id",
+          "orgId": "$org_id"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,82 @@
+---
+title: Notifications
+description: How Watcher delivers real-time alerts and system messages to your team.
+---
+
+# Notifications
+
+Watcher delivers notifications to your team when important platform events occur — alert rule firings, API key activity, and system messages. Notifications appear in the bell icon in the top header and on the dedicated **Notifications** page (`/notifications`).
+
+## The notification centre
+
+The bell icon in the header shows a live count of unread notifications. Clicking it opens a dropdown with your 20 most recent messages. For the full history, use **View all notifications** at the bottom of the dropdown or navigate to `/notifications` directly.
+
+Notifications update in real time — when a new notification arrives your bell count increments and the dropdown refreshes automatically without requiring a page reload.
+
+## Severity levels
+
+Every notification has a severity that reflects how urgent it is.
+
+| Severity | Colour | When it's used |
+|----------|--------|----------------|
+| `info` | Blue | Routine activity (API key created, new team member) |
+| `warn` | Amber | Conditions that need attention but are not immediately breaking |
+| `error` | Red | Critical conditions — alert rules firing at the error threshold |
+
+## Notification channels
+
+Watcher currently supports two delivery channels.
+
+### In-app
+
+Always active. Notifications appear in the bell dropdown and on the Notifications page. No configuration required.
+
+### Email
+
+Sends a notification email to the address configured for your organisation. Email delivery uses SMTP and is sent asynchronously — it may arrive a few seconds after the in-app notification.
+
+To enable email notifications for your org, configure the channel via the API:
+
+```bash
+curl -X POST https://your-notifier/api/internal/notify \
+  -H "X-Internal-Secret: <secret>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "org_id": "your-org-id",
+    "template": "alert_notification",
+    "channels": ["email", "in_app"],
+    "data": {
+      "rule_name": "High error rate",
+      "severity": "error",
+      "condition": "Error rate exceeded 5%",
+      "fired_at": "2026-06-01T12:00:00Z"
+    }
+  }'
+```
+
+Future channels (Slack, webhook, PagerDuty) are planned and will be configurable from the Settings page when released.
+
+## Notification templates
+
+| Template | Triggered by | Channels |
+|----------|-------------|---------|
+| `alert_notification` | Alert rule evaluation | in\_app, email |
+| `api_key_created` | API key created in Settings | in\_app |
+| `welcome_email` | New organisation created | email |
+| `team_invitation` | Team member invited | email |
+
+## Reading and dismissing notifications
+
+- **Click a notification** in the dropdown or on the Notifications page to mark it as read.
+- **Mark all read** — clears the unread badge for all notifications at once. Available in both the dropdown header and the Notifications page toolbar.
+- Read notifications remain visible in the Notifications page history — they are never deleted automatically.
+
+## Real-time delivery
+
+Notifications are pushed to connected browsers via Server-Sent Events (SSE). When a notification is written for your org, the browser receives a signal and immediately refreshes the notification list — no manual reload needed.
+
+If the notifier service is unavailable, the bell falls back to polling every 30 seconds and reconnects to the SSE stream automatically when the service recovers.
+
+<Callout type="note">
+The SSE stream requires the notifier service (`notifier-go`) to be running. In local development, start it with `just notifier-dev`.
+</Callout>

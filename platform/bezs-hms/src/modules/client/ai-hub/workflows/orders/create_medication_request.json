@@ -1,0 +1,131 @@
+{
+  "id": "create_medication_request",
+  "name": "Create Medication Request",
+  "description": "Prescribe a medication for the current patient by selecting from the formulary or searching by RxNorm code, specifying dosage instructions, dispensing details, and the requesting practitioner.",
+  "version": "1.0.0",
+  "tags": [
+    "fhir",
+    "orders",
+    "medication-request",
+    "prescription",
+    "medication"
+  ],
+  "llm_hints": {
+    "intent_examples": [
+      "Prescribe a medication",
+      "Order a medication for the patient",
+      "Create a prescription",
+      "Write a medication order",
+      "Prescribe amoxicillin",
+      "Order ibuprofen 400mg",
+      "Create a drug order",
+      "Prescribe a controlled substance"
+    ],
+    "when_to_use": [
+      "User wants to prescribe or order a medication for a patient",
+      "User wants to create a FHIR MedicationRequest",
+      "User wants to write a prescription with dosage and dispensing instructions"
+    ],
+    "when_not_to_use": [
+      "User wants to order a procedure or lab (use create_service_request instead)",
+      "User wants to request a device (use create_device_request instead)",
+      "User wants to record an immunization (use record_immunization instead)",
+      "User wants to view existing medication orders"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you create a medication prescription. Select or search for the medication, then fill in the dosage and dispensing details.",
+  "completion": {
+    "message": "Medication request created successfully. The prescription has been recorded in the patient's FHIR record.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "create_medication_request_step",
+      "name": "Prescribe Medication",
+      "step_type": "form",
+      "description": "Select a medication from the formulary or search by RxNorm, add dosage instructions and dispensing details.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "field": "me_patient.id"
+          },
+          "medication_request_id": {
+            "type": "integer",
+            "resource": "MedicationRequest",
+            "field": "id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Resolve the logged-in user's Patient record so patient_id is available automatically.",
+          "context_key": "me_patient",
+          "tool_name": "get_my_patient",
+          "url": "$fhir_gql_url/patients/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch allowed status codes for MedicationRequest.",
+          "context_key": "status_concepts",
+          "tool_name": "get_medication_request_status",
+          "url": "$fhir_gql_url/terminology/concepts?resource=MedicationRequest&field=status",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch allowed intent codes for MedicationRequest.",
+          "context_key": "intent_concepts",
+          "tool_name": "get_medication_request_intent",
+          "url": "$fhir_gql_url/terminology/concepts?resource=MedicationRequest&field=intent",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Load available medications from the organisation's formulary.",
+          "context_key": "my_medications",
+          "tool_name": "list_medications",
+          "url": "$fhir_gql_url/medications/",
+          "method": "GET",
+          "timeout_ms": 10000
+        },
+        {
+          "description": "Load practitioners available for booking to populate the requester select.",
+          "context_key": "booking_practitioners",
+          "tool_name": "list_practitioners",
+          "url": "$fhir_gql_url/practitioner-roles/booking",
+          "method": "GET",
+          "timeout_ms": 10000
+        }
+      ],
+      "ui": {
+        "schema": "medication_request_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_medication_request",
+          "tool_name": "create_medication_request",
+          "url": "$fhir_gql_url/medication-requests/",
+          "method": "POST",
+          "validation_schema": "medication_request_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    }
+  ]
+}

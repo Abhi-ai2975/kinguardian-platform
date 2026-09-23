@@ -1,0 +1,81 @@
+---
+title: "Project Settings"
+description: "Configure name, storage, uploads, processing, and security for a FileNest project."
+---
+
+# Project Settings
+
+Project settings are under **Projects → [project] → Settings**. Each tab controls a different aspect of the project.
+
+## General tab
+
+Update the project's display name and description.
+
+| Field | Description |
+|-------|-------------|
+| **Project name** | Display name shown in the Console and returned by the API |
+| **Description** | Optional free-text description |
+
+Click **Save changes** to apply. The project name is updated immediately — no page reload required.
+
+## Storage tab
+
+Configure where files are stored.
+
+### Managed storage
+
+If `storage_mode` is `managed`, the tab shows a read-only info card with the current provider, bucket, and connection status. A **Test connection** button runs a probe upload to verify connectivity.
+
+### BYOB (Bring Your Own Bucket)
+
+If `storage_mode` is `byob`, you can save and update credentials. The form fields change based on the selected provider:
+
+| Provider | Required fields |
+|----------|----------------|
+| S3 | Access key ID, secret key, bucket, region |
+| MinIO / RustFS | Access key ID, secret key, endpoint URL, bucket |
+| R2 | Access key ID, secret key, endpoint URL, bucket |
+| Azure Blob | Account name, account key, container |
+| GCS | Service account JSON, bucket |
+
+After saving, click **Test connection** to verify. The config status changes to `verified` on success.
+
+### Encryption at rest
+
+- **S3, R2, Azure, GCS** — encryption is always on. A read-only "Enforced" badge is shown.
+- **MinIO, RustFS** — a toggle allows enabling SSE-S3 (AES-256). Your MinIO/RustFS server must have a KMS key configured.
+
+See [Encryption (SSE)](/docs/storage/encryption) for setup details.
+
+## Uploads tab
+
+Control what can be uploaded:
+
+- **Allowed MIME types** — restrict uploads to specific content types
+- **Max file size** — reject uploads above a threshold (in MB)
+- **Filename patterns** — allowlist or blocklist filename patterns
+
+## Processing tab
+
+Control the processing pipeline stages:
+
+- **File versioning** — keep previous versions of every file; each upload to the same key creates a new version
+- **Virus scanning** — scan every file with ClamAV before marking it ready; always recommended
+- **OCR extraction** — shown as **Coming soon**; will extract text from PDFs and scanned images for full-text search when released
+
+## Security tab
+
+- **IP allowlist** — restrict API access to specific CIDR ranges (CIDR notation, e.g. `10.0.0.0/8`). Checked against the caller server IP, not end-user browser IPs.
+- **CORS origins** — allowed origins for browser-side requests (e.g. `https://app.example.com`). Leave empty to allow all origins.
+- **Require signed URLs (upload & download)** — when enabled, the SDK defaults to presigned URL mode for both uploads and downloads. Even when enabled, individual SDK calls can override this per-request.
+- **Signed URL TTL** — lifetime in seconds for all generated presigned URLs (upload + download + multipart parts). Min 60 s, max 86 400 s. When "Require signed URLs" is on, callers cannot override the TTL.
+
+## Compliance tab
+
+<Callout type="note">
+Compliance features (WORM, legal hold, retention) are planned for v2.0.
+</Callout>
+
+- **Retention period** — automatically delete or archive files after N days
+- **WORM mode** — make files immutable after upload
+- **Legal hold** — prevent deletion of flagged files

@@ -1,0 +1,129 @@
+{
+  "id": "med-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "med-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_medication" },
+        "submitLabel": { "literalString": "Create Medication" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "form-title",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Create Medication" }, "usageHint": "h2" }
+          },
+          {
+            "id": "form-subtitle",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Register a medication using an RxNorm or SNOMED drug code, then set the status, dose form, and batch details." }, "usageHint": "caption" }
+          },
+          { "id": "divider-top", "type": "Divider", "properties": {} },
+
+          {
+            "id": "section-drug-code",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Drug Code" }, "usageHint": "h4" }
+          },
+          {
+            "id": "code",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Medication (RxNorm / SNOMED)" },
+              "placeholder": { "literalString": "Search drug name or code…" },
+              "valueType": { "literalString": "CodeableConcept" },
+              "serverSearch": {
+                "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+                "minChars": 2,
+                "debounceMs": 200
+              }
+            }
+          },
+
+          { "id": "divider-status-form", "type": "Divider", "properties": {} },
+          {
+            "id": "section-status-form",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Status & Dose Form" }, "usageHint": "h4" }
+          },
+          {
+            "id": "med-status-form-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "status",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Status" },
+                    "placeholder": { "literalString": "Select status…" },
+                    "items": "$status_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "form",
+                  "type": "TerminologySelect",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "Dose Form (optional)" },
+                    "placeholder": { "literalString": "Search dose form…" },
+                    "valueType": { "literalString": "CodeableConcept" },
+                    "serverSearch": {
+                      "system": "http://snomed.info/sct",
+                      "minChars": 2,
+                      "debounceMs": 200
+                    }
+                  }
+                }
+              ]
+            }
+          },
+
+          { "id": "divider-batch", "type": "Divider", "properties": {} },
+          {
+            "id": "section-batch",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Batch Information (optional)" }, "usageHint": "h4" }
+          },
+          {
+            "id": "med-batch-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "batch_lot_number",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Lot Number" },
+                    "placeholder": { "literalString": "e.g. LOT-2024-001" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "batch_expiration_date",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Expiration Date" },
+                    "enableDate": true,
+                    "enableTime": false
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

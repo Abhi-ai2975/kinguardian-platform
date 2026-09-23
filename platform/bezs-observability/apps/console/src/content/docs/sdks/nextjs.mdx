@@ -1,0 +1,162 @@
+---
+title: Next.js Integration
+description: How to use Watcher24 in a Next.js application — server components, route handlers, middleware, and client components.
+---
+
+# Next.js Integration
+
+The `@watcher/nextjs` package provides tailored exports for each Next.js context so you never accidentally import a Node.js transport into a Client Component or vice versa.
+
+| Import path | Where to use |
+|-------------|-------------|
+| `@watcher/nextjs/server` | Server Components, Route Handlers, Server Actions |
+| `@watcher/nextjs/client` | Client Components (`"use client"`) |
+| `@watcher/nextjs` | `middleware.ts` only |
+
+## Installation
+
+<PackageTabs pkg="@watcher/nextjs" />
+
+## Create a server singleton
+
+Create a shared client in `src/lib/watcher.ts`. The `globalThis` guard prevents re-initialisation on every hot-reload in development.
+
+```typescript
+// src/lib/watcher.ts
+import { createNextServerClient } from "@watcher/nextjs/server";
+
+declare global {
+  var __watcher: ReturnType<typeof createNextServerClient> | undefined;
+}
+
+export const watcher =
+  globalThis.__watcher ??
+  (globalThis.__watcher = createNextServerClient({
+    apiKey:      process.env.W24_API_KEY!,
+    appId:       process.env.W24_APP_ID,        // links events to a registered app
+    serviceName: process.env.W24_SERVICE_NAME,  // e.g. "nextjs-server"
+    environment: process.env.NODE_ENV === "production" ? "production" : "development",
+  }));
+```
+
+| Option | Type | Required | Description |
+|--------|------|----------|-------------|
+| `apiKey` | `string` | **Yes** | Secret key (`wtch_` prefix) from Settings → API Keys |
+| `appId` | `string` | No | Links events to a registered application. Get the ID from Settings → Apps. |
+| `serviceName` | `string` | No | Component label (e.g. `"nextjs-server"`). Sent as `X-Service-Name`. |
+| `environment` | `string` | No | Deployment stage. Default: `"production"` |
+| `gatewayUrl` | `string` | No | Override for self-hosted deployments. Default: `https://ingest.watcher24.io` |
+| `flushInterval` | `number` | No | How often the background flusher sends events (ms). Default: `500` |
+| `flushAt` | `number` | No | Buffer size that triggers an immediate flush. Default: `100` |
+| `maxBuffer` | `number` | No | Maximum events held in memory; oldest dropped when full. Default: `10 000` |
+
+## Server Components
+
+```typescript
+// app/dashboard/page.tsx
+import { watcher } from "@/lib/watcher";
+
+export default async function DashboardPage() {
+  watcher.log("info", "dashboard.viewed");
+  return <div>Dashboard</div>;
+}
+```
+
+## Route Handlers
+
+```typescript
+// app/api/orders/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { watcher } from "@/lib/watcher";
+
+export async function POST(req: NextRequest) {
+  const body = await req.json();
+
+  watcher.audit("order.created", {
+    userId: body.userId,
+    payload: { orderId: body.orderId },
+  });
+
+  return NextResponse.json({ ok: true });
+}
+```
+
+## Middleware (request tracing)
+
+```typescript
+// middleware.ts
+import { watcherMiddleware } from "@watcher/nextjs";
+
+export const middleware = watcherMiddleware({
+  apiKey: process.env.W24_API_KEY!,
+  // appId links events to a registered app — get the ID from Settings → Apps.
+});
+
+export const config = { matcher: ["/api/:path*"] };
+```
+
+The middleware automatically emits a `trace` event for every matched request with `method`, `path`, `status`, and `durationMs`.
+
+## Client Components
+
+For browser-side events, use a **public token** (`wpub_` prefix) — never a server key. Create one in **Settings → API Keys → Public Tokens**.
+
+```tsx
+// app/providers.tsx
+"use client";
+import { createBrowserClient } from "@watcher/browser";
+import { WatcherProvider } from "@watcher/nextjs/client";
+
+const browserClient = createBrowserClient({
+  apiKey: process.env.NEXT_PUBLIC_W24_PUBLIC_TOKEN!,  // starts with wpub_
+  // serviceName lets you distinguish browser events from server events in the dashboard.
+  serviceName: "nextjs-browser",  // optional
+  environment: process.env.NODE_ENV === "production" ? "production" : "development",
+});
+
+export function Providers({ children }: { children: React.ReactNode }) {
+  return <WatcherProvider client={browserClient}>{children}</WatcherProvider>;
+}
+```
+
+```tsx
+// Any Client Component
+"use client";
+import { useAudit, useMetric } from "@watcher/nextjs/client";
+
+export function UpgradeButton({ userId }: { userId: string }) {
+  const audit  = useAudit();
+  const metric = useMetric();
+
+  return (
+    <button onClick={() => {
+      audit("upgrade.clicked", { userId, payload: { location: "hero" } });
+      metric("upgrade.clicks", { payload: { value: 1 } });
+    }}>
+      Upgrade
+    </button>
+  );
+}
+```
+
+<Callout type="warning" title="Use a public token (wpub_) for the browser — never a secret key">
+Create a public token in **Settings → API Keys → Public Tokens** and store it in `NEXT_PUBLIC_W24_PUBLIC_TOKEN`.
+Public tokens are write-only and tied to an origin allowlist — a leaked token cannot read data or be used from unlisted origins.
+Browser events are automatically tagged `source: "client"` in the dashboard; server events are tagged `source: "server"`.
+</Callout>
+
+## Environment variables
+
+```bash
+# .env.local
+
+# Server-only — never exposed to the browser
+W24_API_KEY=wtch_...                           # required — from Settings → API Keys
+W24_APP_ID=your_app_id_here                    # optional — from Settings → Apps
+W24_SERVICE_NAME=nextjs-server                 # optional
+W24_GATEWAY_URL=https://ingest.watcher24.io    # optional — override for self-hosted
+
+# Browser-safe — public token (write-only, origin-restricted)
+NEXT_PUBLIC_W24_PUBLIC_TOKEN=wpub_...
+NEXT_PUBLIC_W24_GATEWAY_URL=https://ingest.watcher24.io   # optional
+```

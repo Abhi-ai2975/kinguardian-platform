@@ -1,0 +1,252 @@
+{
+  "id": "create_billing_cycle",
+  "name": "Create Billing Cycle",
+  "description": "Submit a FHIR Claim, record the payer adjudication as a ClaimResponse, and issue a patient Invoice in three steps.",
+  "version": "1.0.0",
+  "tags": ["fhir", "billing", "claim", "claim-response", "invoice", "create"],
+  "llm_hints": {
+    "intent_examples": [
+      "Create a billing cycle",
+      "Submit an insurance claim",
+      "Bill a patient for a service",
+      "Create a claim and invoice",
+      "Record adjudication and issue invoice"
+    ],
+    "when_to_use": [
+      "User wants to submit a Claim resource",
+      "User wants to record claim adjudication",
+      "User wants to issue a patient invoice",
+      "User wants to run through the complete billing workflow"
+    ],
+    "when_not_to_use": [
+      "User wants to create a coverage resource",
+      "User wants to book an appointment",
+      "User wants to create a care plan"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you complete the billing cycle in 3 steps: submit a claim, record the adjudication, and issue an invoice.",
+  "completion": {
+    "message": "Billing cycle complete. Claim submitted, adjudication recorded, and invoice issued.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "submit_claim",
+      "name": "Submit Insurance Claim",
+      "step_type": "form",
+      "description": "Submit a FHIR Claim for the patient encounter and services rendered.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "claim_id": {
+            "type": "integer",
+            "resource": "Claim",
+            "field": "id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Fetch Claim status value set.",
+          "context_key": "status_concepts",
+          "tool_name": "get_claim_status",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Claim&field=status",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch Claim use value set.",
+          "context_key": "use_concepts",
+          "tool_name": "get_claim_use",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Claim&field=use",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Resolve patient from session.",
+          "context_key": "me_patient",
+          "tool_name": "get_my_patient",
+          "url": "$fhir_gql_url/patients/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Load organisations for provider selection.",
+          "context_key": "my_organizations",
+          "tool_name": "list_orgs",
+          "url": "$fhir_gql_url/organizations/me",
+          "method": "GET",
+          "timeout_ms": 10000
+        }
+      ],
+      "ui": {
+        "schema": "claim_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_claim",
+          "tool_name": "create_claim",
+          "url": "$fhir_gql_url/claims/",
+          "method": "POST",
+          "validation_schema": "claim_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    },
+    {
+      "sequence_number": 2,
+      "id": "record_adjudication",
+      "name": "Record Adjudication",
+      "step_type": "form",
+      "description": "Record the payer's adjudication decision as a ClaimResponse linked to the claim from step 1.",
+      "context": {
+        "inputs": {
+          "claim_id": { "type": "integer", "source": "workflow" }
+        },
+        "outputs": {
+          "claim_response_id": {
+            "type": "integer",
+            "resource": "ClaimResponse",
+            "field": "id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Verify the claim exists.",
+          "tool_name": "get_claim_by_id",
+          "url": "$fhir_gql_url/claims/$claim_id",
+          "method": "GET",
+          "timeout_ms": 10000
+        },
+        {
+          "description": "Fetch ClaimResponse status value set.",
+          "context_key": "cr_status_concepts",
+          "tool_name": "get_claim_response_status",
+          "url": "$fhir_gql_url/terminology/concepts?resource=ClaimResponse&field=status",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch ClaimResponse use value set.",
+          "context_key": "use_concepts",
+          "tool_name": "get_claim_response_use",
+          "url": "$fhir_gql_url/terminology/concepts?resource=ClaimResponse&field=use",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch ClaimResponse outcome value set.",
+          "context_key": "outcome_concepts",
+          "tool_name": "get_claim_response_outcome",
+          "url": "$fhir_gql_url/terminology/concepts?resource=ClaimResponse&field=outcome",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Resolve patient from session.",
+          "context_key": "me_patient",
+          "tool_name": "get_my_patient",
+          "url": "$fhir_gql_url/patients/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Load organisations for insurer selection.",
+          "context_key": "my_organizations",
+          "tool_name": "list_orgs",
+          "url": "$fhir_gql_url/organizations/me",
+          "method": "GET",
+          "timeout_ms": 10000
+        }
+      ],
+      "ui": {
+        "schema": "claim_response_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_claim_response",
+          "tool_name": "create_claim_response",
+          "url": "$fhir_gql_url/claim-responses/",
+          "method": "POST",
+          "validation_schema": "claim_response_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    },
+    {
+      "sequence_number": 3,
+      "id": "issue_invoice",
+      "name": "Issue Patient Invoice",
+      "step_type": "form",
+      "description": "Issue a patient-facing Invoice based on the adjudicated claim.",
+      "context": {
+        "inputs": {
+          "claim_response_id": { "type": "integer", "source": "workflow" }
+        },
+        "outputs": {}
+      },
+      "context_resolvers": [
+        {
+          "description": "Fetch Invoice status value set.",
+          "context_key": "status_concepts",
+          "tool_name": "get_invoice_status",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Invoice&field=status",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Resolve patient from session.",
+          "context_key": "me_patient",
+          "tool_name": "get_my_patient",
+          "url": "$fhir_gql_url/patients/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Load organisations for issuer selection.",
+          "context_key": "my_organizations",
+          "tool_name": "list_orgs",
+          "url": "$fhir_gql_url/organizations/me",
+          "method": "GET",
+          "timeout_ms": 10000
+        }
+      ],
+      "ui": {
+        "schema": "invoice_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_invoice",
+          "tool_name": "create_invoice",
+          "url": "$fhir_gql_url/invoices/",
+          "method": "POST",
+          "validation_schema": "invoice_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    }
+  ]
+}

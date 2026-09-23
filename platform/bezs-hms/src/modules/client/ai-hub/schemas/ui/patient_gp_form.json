@@ -1,0 +1,93 @@
+{
+  "id": "patient-gp-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "patient-gp-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "add_patient_general_practitioner" },
+        "submitLabel": { "literalString": "Save Providers" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Add General Practitioners" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Link one or more primary care providers (organisations, practitioners, or practitioner roles) to this patient." },
+              "usageHint": "caption"
+            }
+          },
+          {
+            "id": "divider-top",
+            "type": "Divider",
+            "properties": {}
+          },
+          {
+            "id": "general_practitioners",
+            "type": "RepeatableGroup",
+            "properties": {
+              "addLabel": { "literalString": "Add Provider" },
+              "minItems": { "literalNumber": 1 },
+              "defaultCount": { "literalNumber": 1 },
+              "template": [
+                {
+                  "id": "reference_type",
+                  "type": "MultipleChoice",
+                  "properties": {
+                    "label": { "literalString": "Provider Type" },
+                    "placeholder": { "literalString": "Select resource type" },
+                    "items": [
+                      { "label": { "literalString": "Practitioner" }, "value": "Practitioner" },
+                      { "label": { "literalString": "Organization" }, "value": "Organization" },
+                      { "label": { "literalString": "Practitioner Role" }, "value": "PractitionerRole" }
+                    ]
+                  }
+                },
+                {
+                  "id": "gp-id-name-row",
+                  "type": "Row",
+                  "properties": {
+                    "gap": "medium",
+                    "alignment": "stretch",
+                    "children": [
+                      {
+                        "id": "reference_id",
+                        "type": "TextField",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Provider ID" },
+                          "placeholder": { "literalString": "e.g. 42" },
+                          "textFieldType": "number"
+                        }
+                      },
+                      {
+                        "id": "reference_display",
+                        "type": "TextField",
+                        "weight": 2,
+                        "properties": {
+                          "label": { "literalString": "Display Name (optional)" },
+                          "placeholder": { "literalString": "e.g. Dr. Jane Smith" },
+                          "textFieldType": "shortText"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

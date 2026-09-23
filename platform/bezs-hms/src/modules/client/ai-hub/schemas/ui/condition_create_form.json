@@ -1,0 +1,151 @@
+{
+  "id": "condition-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "condition-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_condition" },
+        "submitLabel": { "literalString": "Record Condition" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "cond-form-title",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Record Clinical Condition" }, "usageHint": "h2" }
+          },
+          {
+            "id": "cond-form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Document a patient condition or diagnosis with ICD-10/SNOMED coding, clinical status, severity, and onset timeline. Patient and encounter resolved from session context." },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "cond-divider-top", "type": "Divider", "properties": {} },
+          {
+            "id": "cond-section-code",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Diagnosis Code" }, "usageHint": "h4" }
+          },
+          {
+            "id": "code",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Diagnosis (ICD-10 / SNOMED)" },
+              "placeholder": { "literalString": "Search diagnosis…" },
+              "valueType": { "literalString": "CodeableConcept" },
+              "serverSearch": { "minChars": 2, "debounceMs": 200 }
+            }
+          },
+          { "id": "cond-divider-1", "type": "Divider", "properties": {} },
+          {
+            "id": "cond-section-status",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Status" }, "usageHint": "h4" }
+          },
+          {
+            "id": "cond-status-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "clinical_status",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Clinical Status" },
+                    "placeholder": { "literalString": "Select clinical status…" },
+                    "items": "$clinical_status_concepts.concepts",
+                    "valueType": { "literalString": "CodeableConcept" }
+                  }
+                },
+                {
+                  "id": "verification_status",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Verification Status" },
+                    "placeholder": { "literalString": "Select verification status…" },
+                    "items": "$verification_status_concepts.concepts",
+                    "valueType": { "literalString": "CodeableConcept" }
+                  }
+                },
+                {
+                  "id": "severity",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Severity" },
+                    "placeholder": { "literalString": "Select severity…" },
+                    "items": "$severity_concepts.concepts",
+                    "valueType": { "literalString": "CodeableConcept" }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "category",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Category" },
+              "placeholder": { "literalString": "Select category…" },
+              "items": "$category_concepts.concepts",
+              "valueType": { "literalString": "CodeableConcept" }
+            }
+          },
+          { "id": "cond-divider-2", "type": "Divider", "properties": {} },
+          {
+            "id": "cond-section-timeline",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Timeline" }, "usageHint": "h4" }
+          },
+          {
+            "id": "cond-timeline-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "onset_datetime",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Onset Date" },
+                    "enableDate": true,
+                    "enableTime": false
+                  }
+                },
+                {
+                  "id": "recorded_date",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Recorded Date" },
+                    "enableDate": true,
+                    "enableTime": false
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "note_text",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Clinical Notes (optional)" },
+              "placeholder": { "literalString": "Additional clinical notes, history, or context" },
+              "textFieldType": "longText"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

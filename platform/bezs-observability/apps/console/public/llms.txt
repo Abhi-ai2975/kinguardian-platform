@@ -1,0 +1,169 @@
+# Watcher24
+
+> Real-time observability, audit logging, and telemetry platform for modern applications.
+
+Watcher24 ingests logs, metrics, traces, and audit events from SDKs, processes them through a
+pipeline, and displays them on a real-time dashboard. It supports multi-tenant organisations,
+API key management, role-based access control, Stripe billing, and a tamper-evident compliance
+audit trail.
+
+## Installation
+
+### JavaScript / Node.js (server)
+npm install @watcher/node
+
+### JavaScript (browser)
+npm install @watcher/browser
+
+### React hooks
+npm install @watcher/react
+
+### Next.js (server + client + middleware)
+npm install @watcher/nextjs
+
+### Python
+pip install watcher-sdk
+
+## Initialisation
+
+### Node.js
+```js
+import { createNodeClient } from "@watcher/node";
+const watcher = createNodeClient({
+  apiKey: process.env.W24_API_KEY,
+  appId: "my-service",
+  environment: "production",          // optional
+  gatewayUrl: "https://ingest.watcher24.io", // optional
+});
+process.on("SIGTERM", () => watcher.shutdown());
+```
+
+### Python
+```python
+from watcher_sdk import Client
+import os, atexit
+watcher = Client(
+    api_key=os.environ["W24_API_KEY"],
+    app_id="my-service",
+    environment="production",
+)
+atexit.register(watcher.shutdown)
+```
+
+## Core methods (all SDKs)
+
+### audit(message, options)
+Records user actions and compliance events. Always include userId.
+```js
+watcher.audit("user.login", { userId: "usr_123", payload: { ip: "1.2.3.4" } });
+watcher.audit("document.deleted", { userId, payload: { docId, reason: "gdpr" } });
+```
+
+### log(severity, message, options)
+Application log events. severity: "debug" | "info" | "warn" | "error" | "critical"
+```js
+watcher.log("info", "server.started", { payload: { port: 3000 } });
+watcher.log("error", "db.query.failed", { payload: { error: err.message } });
+```
+
+### trace(message, options)
+Distributed trace spans. Include traceId to correlate spans across services.
+```js
+watcher.trace("http.request", {
+  traceId: req.headers["x-trace-id"] ?? crypto.randomUUID(),
+  payload: { method: "POST", path: "/api/orders", status: 201, durationMs: 42 },
+});
+```
+
+### metric(message, options)
+Numeric measurements. Put the value in payload.
+```js
+watcher.metric("orders.total", { payload: { value: 1042 } });
+watcher.metric("response.latency_ms", { payload: { value: 120, p99: 340 } });
+```
+
+### flush() / shutdown()
+```js
+await watcher.flush();    // force-send buffered events now
+await watcher.shutdown(); // flush then stop background flusher (call before process exit)
+```
+
+## React hooks
+
+Wrap your app with WatcherProvider, then use hooks in any component:
+```tsx
+import { WatcherProvider, useAudit, useLog, useTrace, useMetric } from "@watcher/react";
+
+// Root
+<WatcherProvider client={watcherBrowserClient}><App /></WatcherProvider>
+
+// Components
+const audit  = useAudit();   audit("button.clicked", { userId, payload: { label } });
+const log    = useLog();     log("error", "fetch.failed", { payload: { url } });
+const trace  = useTrace();   trace("ui.navigation", { payload: { from, to } });
+const metric = useMetric();  metric("cart.items", { payload: { value: items.length } });
+```
+
+## Next.js patterns
+
+### Auto-trace all API routes (middleware.ts)
+```ts
+import { watcherMiddleware } from "@watcher/nextjs";
+export const middleware = watcherMiddleware({ apiKey: process.env.W24_API_KEY, appId: "app" });
+export const config = { matcher: "/api/:path*" };
+```
+
+### Server Component / Route Handler
+```ts
+import { createNextServerClient } from "@watcher/nextjs/server";
+const watcher = createNextServerClient({ apiKey: process.env.W24_API_KEY, appId: "app" });
+watcher.audit("page.view", { userId, payload: { page: "/dashboard" } });
+```
+
+### Client Component
+```tsx
+import { useAudit } from "@watcher/nextjs/client";
+const audit = useAudit();
+audit("button.clicked", { userId, payload: { label: "upgrade" } });
+```
+
+## Python FastAPI auto-tracing
+
+```python
+from watcher_sdk.integrations.fastapi import instrument
+instrument(app, client)  # traces every request automatically
+```
+
+## Environment variables
+
+W24_API_KEY           — API key (server-side, keep secret)
+W24_APP_ID            — identifies the application in the dashboard
+W24_GATEWAY_URL       — override ingest endpoint (default: http://localhost:8080)
+W24_ENVIRONMENT       — "development" | "staging" | "production"
+
+NEXT_PUBLIC_W24_API_KEY        — browser-safe key for React/Next.js client
+NEXT_PUBLIC_W24_GATEWAY_URL    — browser-side gateway URL
+
+## Event type guide
+
+Use audit()  for: login, logout, CRUD on sensitive data, permission changes, exports
+Use log()    for: server errors, warnings, startup/shutdown, background jobs
+Use trace()  for: HTTP requests, database queries, external API calls, queue processing
+Use metric() for: counts, latencies, queue depths, business KPIs
+
+## Docs
+- Full docs:            /docs
+- Quickstart:           /docs/quickstart
+- JavaScript SDK:       /docs/sdks/javascript
+- Python SDK:           /docs/sdks/python
+- Next.js SDK:          /docs/sdks/nextjs
+- Event types:          /docs/concepts/events
+- Organisations:        /docs/concepts/organisations
+- Data retention:       /docs/concepts/retention
+- API ingestion:        /docs/api/ingestion
+- API authentication:   /docs/api/authentication
+- Configuration:        /docs/configuration
+- AI Skills:            /docs/ai/skills
+- Full machine-readable:/llms-full.txt
+- JS skill file:        /skills/watcher24-js.md
+- Python skill file:    /skills/watcher24-python.md

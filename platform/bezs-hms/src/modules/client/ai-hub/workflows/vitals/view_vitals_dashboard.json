@@ -1,0 +1,83 @@
+{
+  "id": "view_vitals_dashboard",
+  "name": "Vitals Dashboard",
+  "description": "Displays a comprehensive vitals dashboard with KPI metrics, trend charts, and a full server-side paginated data table for a given patient.",
+  "version": "1.0.0",
+  "tags": ["vitals", "dashboard", "charts", "wearable", "healthcare"],
+  "llm_hints": {
+    "intent_examples": [
+      "Show vitals dashboard",
+      "View patient vitals",
+      "Open vitals overview",
+      "Show health metrics",
+      "Display heart rate and sleep data",
+      "Show activity dashboard"
+    ],
+    "when_to_use": [
+      "User wants to view a patient's vitals overview or dashboard",
+      "User asks for heart rate, blood pressure, steps, or sleep data",
+      "User wants to see health trends or charts",
+      "User wants to browse all vitals records"
+    ],
+    "when_not_to_use": [
+      "User wants to record or create new vitals entries",
+      "User wants to update or delete a vitals entry"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": false
+  },
+  "introduction": "Here is the vitals dashboard for this patient.",
+  "completion": {
+    "message": "Vitals dashboard closed.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "resolve_current_patient",
+      "name": "Resolve Patient",
+      "step_type": "context",
+      "description": "Silently fetches the current patient record to extract patient_id for use in subsequent steps.",
+      "context_resolver": {
+        "tool_name": "get_my_patient_profile",
+        "url": "$fhir_gql_url/patients/me",
+        "method": "GET",
+        "timeout_ms": 5000
+      },
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "field": "id"
+          }
+        }
+      }
+    },
+    {
+      "sequence_number": 2,
+      "id": "view_vitals_dashboard",
+      "name": "Vitals Dashboard",
+      "step_type": "view",
+      "description": "Renders KPI metrics, trend charts, and a server-side paginated table of all vitals records.",
+      "context_resolver": {
+        "context_key": "vitals",
+        "tool_name": "list_vitals",
+        "url": "$fhir_gql_url/api/v1/vitals/?patient_id=$patient_id&limit=90&offset=0",
+        "method": "GET",
+        "timeout_ms": 10000
+      },
+      "ui": {
+        "schema": "vitals_dashboard",
+        "mode": "view",
+        "prefill": false,
+        "editable": false
+      }
+    }
+  ]
+}

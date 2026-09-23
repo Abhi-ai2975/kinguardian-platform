@@ -1,0 +1,71 @@
+services:
+
+  # ─── PostgreSQL ───────────────────────────────────────────────────────────────
+  # Not exposed outside — only reachable within drgodly-net
+  postgres:
+    image: postgres:16-alpine
+    container_name: drgodly-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: drgodly
+      POSTGRES_PASSWORD: drgodly
+      POSTGRES_DB: drgodly_main
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - drgodly-net
+    configs:
+      - source: init_db
+        target: /docker-entrypoint-initdb.d/01_init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-drgodly} -d drgodly_main"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── App ─────────────────────────────────────────────────────────────────────
+  app:
+    image: ghcr.io/naveenraj-g/drgodly:latest
+    container_name: drgodly
+    restart: unless-stopped
+    env_file:
+      - .env.vps
+    volumes:
+      - /root/drgodly/logs:/app/logs
+      - /root/drgodly/uploads:/app/uploads
+    ports:
+      - "3003:3000"
+    networks:
+      - drgodly-net
+      - fhir-server_fhir-net
+      - iam-app_bezs-net
+      - a2ui-agent_default
+      - drgodly-agents_default
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+# ─── Creates drgodly_telemedicine on first postgres start ─────────────────────
+configs:
+  init_db:
+    content: |
+      CREATE DATABASE drgodly_telemedicine;
+
+volumes:
+  postgres_data:
+
+networks:
+  drgodly-net:
+    external: true
+  # FHIR REST + GQL services
+  fhir-server_fhir-net:
+    external: true
+  # IAM / BetterAuth
+  iam-app_bezs-net:
+    external: true
+  # A2UI agents (intake, consultation)
+  a2ui-agent_default:
+    external: true
+  # DrGodly agents (assessment, doctor report, etc.)
+  drgodly-agents_default:
+    external: true

@@ -1,0 +1,120 @@
+{
+  "id": "generate_slots",
+  "name": "Generate Slots",
+  "description": "Select an existing schedule and auto-generate free time slots within a date range at a fixed duration interval.",
+  "version": "1.0.0",
+  "tags": ["fhir", "slot", "schedule", "generate", "scheduling"],
+  "required_permissions": ["slot:create"],
+  "llm_hints": {
+    "intent_examples": [
+      "Generate slots for a schedule",
+      "Auto-create appointment slots",
+      "Bulk create slots",
+      "Fill a schedule with slots",
+      "Add slots to an existing schedule"
+    ],
+    "when_to_use": [
+      "User wants to auto-generate multiple Slot resources for a Schedule",
+      "User wants to bulk-create bookable time windows from a date range",
+      "User wants to fill a schedule with evenly-spaced slots"
+    ],
+    "when_not_to_use": [
+      "User wants to create a new Schedule (use create_schedule_with_slots)",
+      "User wants to book an appointment (use book_appointment)",
+      "User wants to add a single slot manually (use create_schedule_with_slots step 2)"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you auto-generate free time slots for an existing schedule in 2 steps.",
+  "completion": {
+    "message": "Slots generated successfully. The schedule is now bookable for the selected period.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "select_schedule",
+      "name": "Select Schedule",
+      "step_type": "form",
+      "description": "Search for and select the schedule to generate slots for. The schedule's planning horizon will constrain the slot date range in the next step.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "schedule_id": {
+            "type": "integer",
+            "resource": "Schedule",
+            "field": "id"
+          },
+          "planning_horizon_start": {
+            "type": "string",
+            "resource": "Schedule",
+            "field": "planning_horizon_start"
+          },
+          "planning_horizon_end": {
+            "type": "string",
+            "resource": "Schedule",
+            "field": "planning_horizon_end"
+          }
+        }
+      },
+      "context_resolvers": [],
+      "ui": {
+        "schema": "select_schedule_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "fetch_schedule",
+          "tool_name": "get_schedule",
+          "url": "$fhir_gql_url/schedules/$schedule_id",
+          "method": "GET",
+          "validation_schema": "select_schedule_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    },
+    {
+      "sequence_number": 2,
+      "id": "configure_generation",
+      "name": "Configure Slot Generation",
+      "step_type": "form",
+      "description": "Set the generation window and slot duration. Slots are created as status=free within the date range at the given interval.",
+      "context": {
+        "inputs": {
+          "schedule_id": { "type": "integer", "source": "workflow" },
+          "planning_horizon_start": { "type": "string", "source": "workflow" },
+          "planning_horizon_end": { "type": "string", "source": "workflow" }
+        },
+        "outputs": {}
+      },
+      "context_resolvers": [],
+      "ui": {
+        "schema": "generate_slots_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "generate_slots",
+          "tool_name": "generate_slots",
+          "url": "$fhir_gql_url/slots/generate",
+          "method": "POST",
+          "validation_schema": "generate_slots_schema",
+          "retryable": false,
+          "timeout_ms": 30000
+        }
+      ]
+    }
+  ]
+}

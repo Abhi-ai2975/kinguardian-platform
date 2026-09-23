@@ -1,0 +1,59 @@
+#Note: Test the transformation - applying cleaning
+
+postgres:
+  extraction:
+    source_name: "health_db"
+    tables:
+      - table_name: "users"
+        schema: "public"
+        columns: ["id", "username", "email", "created_at", "updated_at"]
+        extraction_mode: "incremental"
+        incremental_column: "updated_at"
+        batch_size: 10
+
+      - table_name: "orders"
+        schema: "public"
+        columns: ["order_id", "user_id", "order_date", "total_amount", "status"]
+        extraction_mode: "incremental"
+        incremental_column: "order_date"
+        batch_size: 10
+
+      - table_name: "products"
+        schema: "public"
+        columns: ["id", "name", "price", "stock", "created_at", "updated_at"]
+        extraction_mode: "full"
+        batch_size: 10
+  
+  # transformation:
+  #   # Reserved for specific RDBMS to JSON mapping rules if needed
+  #   apply_cleaning: true
+gmail:
+  extraction:
+    query: "has:attachment"
+    batch_size: 10
+    extraction_mode: full
+    fields: ["subject", "from", "to", "date"]
+    temp_dir: /data/gmail_attachments #configurable storage
+
+elasticsearch:
+  load:
+    index_name: "health_data"
+    ingest_mode: single #single or bulk
+    settings:
+      index:
+        number_of_shards: 1
+        number_of_replicas: 0
+      analysis:
+        analyzer:
+          health_analyzer:
+            type: custom
+            tokenizer: standard
+            filter: ["lowercase", "stop", "snowball"]
+    mappings:
+      dynamic: true
+      properties:
+        patient_id: {type: keyword}
+        patient_name: {type: text, analyzer: health_analyzer}
+        diagnosis: {type: text}
+        visit_date: {type: date}
+        billing_amount: {type: float}

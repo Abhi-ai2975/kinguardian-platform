@@ -1,0 +1,71 @@
+{
+  "id": "select-appointment-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "select-appointment-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "get_encounter_for_appointment" },
+        "submitLabel": { "literalString": "Next →" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "appt-form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Step 1: Select Appointment" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "appt-form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": {
+                "literalString": "Select one of your appointments. The encounter is resolved automatically and the patient ID is carried into all subsequent clinical extraction steps."
+              },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "appt-divider-top", "type": "Divider", "properties": {} },
+          {
+            "id": "appointment_select",
+            "type": "DynamicSelect",
+            "properties": {
+              "label": { "literalString": "Appointment" },
+              "placeholder": { "literalString": "Search by patient name…" },
+              "source": {
+                "url": "$fhir_gql_url/appointments/",
+                "staticParams": {
+                  "practitioner_id": "$me_practitioner.id",
+                  "org_id": "$org_id",
+                  "status": "fulfilled"
+                },
+                "searchParam": "subject",
+                "responsePath": "data",
+                "minChars": 0,
+                "debounceMs": 300,
+                "pageSize": 20,
+                "limitParam": "limit",
+                "offsetParam": "offset"
+              },
+              "display": {
+                "label": { "path": "subject_display" },
+                "description": { "template": "{start | datetime} · {status}" },
+                "tags": [
+                  { "path": "status" }
+                ]
+              },
+              "emits": [
+                { "key": "appointment_id", "path": "id" },
+                { "key": "patient_id", "path": "subject_id" }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

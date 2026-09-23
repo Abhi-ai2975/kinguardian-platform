@@ -1,0 +1,11 @@
+To create a zip file of the src directory:
+-----------------------------------------
+zip -r src.zip src/
+
+To remove the zip file:
+----------------------
+rm src.zip
+
+To remove the ivy cache:
+----------------------
+rm -rf ~/.ivy2/cache

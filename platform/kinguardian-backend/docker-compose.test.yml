@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # ── Ephemeral Test Database ───────────────────────────────────────────────
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: kinguardian-postgres-test
+    environment:
+      POSTGRES_USER: kinguardian_test
+      POSTGRES_PASSWORD: kinguardian_test_password
+      POSTGRES_DB: kinguardian_test_db
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kinguardian_test -d kinguardian_test_db"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  # ── Ephemeral Test Redis ──────────────────────────────────────────────────
+  redis-test:
+    image: redis:7-alpine
+    container_name: kinguardian-redis-test
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  # ── Test Execution Runner ─────────────────────────────────────────────────
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kinguardian-test-runner
+    environment:
+      ENVIRONMENT: testing
+      DATABASE_URL: postgresql+asyncpg://kinguardian_test:kinguardian_test_password@postgres-test:5432/kinguardian_test_db
+      REDIS_URL: redis://redis-test:6379/0
+      IAM_JWKS_URL: ""
+      FHIR_API_URL: "http://mock-fhir:8000"
+      FILENEST_URL: "http://mock-filenest:8000"
+      AGENT_SERVICE_URL: "http://mock-agent:8000"
+      OBSERVABILITY_URL: "http://mock-obs:4318"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    command: >
+      sh -c "alembic upgrade head &&
+             python -m pytest tests/ -v -W ignore --cov=app --cov-report=term-missing"

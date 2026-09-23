@@ -1,0 +1,100 @@
+services:
+
+  # ── IAM database (BetterAuth / Prisma) ────────────────────────────────────
+  # Separate from the FileNest backend DB. Runs on 5433 so both can be
+  # exposed locally without port conflicts.
+  iam-postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: iam_db
+      POSTGRES_USER: iam_user
+      POSTGRES_PASSWORD: iam_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - iam_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U iam_user -d iam_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── FileNest backend database (SQLAlchemy / Alembic) ──────────────────────
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: filenest
+      POSTGRES_USER: filenest
+      POSTGRES_PASSWORD: filenest
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U filenest -d filenest"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis (cache + rate-limit counters) ───────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── RustFS — S3-compatible object storage ─────────────────────────────────
+  # Same aioboto3 client code works with real S3, Cloudflare R2, and Azure
+  # Blob — swap S3_ENDPOINT_URL in .env to switch providers.
+  rustfs:
+    image: rustfs/rustfs:latest
+    environment:
+      RUSTFS_ACCESS_KEY_ID: rustfsadmin
+      RUSTFS_SECRET_ACCESS_KEY: rustfsadmin
+    ports:
+      - "9000:9000"   # S3-compatible API
+      - "9001:9001"   # Web console
+    volumes:
+      - rustfs_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── NATS JetStream (event bus) ────────────────────────────────────────────
+  nats:
+    image: nats:2-alpine
+    command: -js -m 8222
+    ports:
+      - "4222:4222"   # Client connections
+      - "8222:8222"   # HTTP monitoring
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8222/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── ClamAV (virus scanning) ───────────────────────────────────────────────
+  # Startup is slow: clamd loads its virus database (~250 MB) before it accepts
+  # scan requests. Expect 1–3 minutes before the healthcheck turns healthy.
+  # CLAMAV_HOST in backend .env should be "localhost" when running outside Docker.
+  clamav:
+    image: clamav/clamav:stable
+    ports:
+      - "3310:3310"
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+volumes:
+  iam_postgres_data:
+  postgres_data:
+  rustfs_data:

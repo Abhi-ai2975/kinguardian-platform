@@ -1,0 +1,73 @@
+---
+title: Configuration
+description: All environment variables for the Watcher console and gateway.
+---
+
+# Configuration
+
+All services are configured via environment variables. Never hardcode secrets — use `.env` files locally and a secrets manager in production.
+
+## Console (`apps/console`)
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `NEXT_PUBLIC_APP_URL` | Yes | — | Public URL of the console (e.g. `https://app.watcher24.com`) |
+| `BETTER_AUTH_SECRET` | Yes | — | 32-byte secret shared with IAM for session signing |
+| `DATABASE_URL` | Yes | — | PostgreSQL connection string (same DB as IAM) |
+| `CLICKHOUSE_URL` | Yes | `http://localhost:8123` | ClickHouse HTTP endpoint |
+| `CLICKHOUSE_USER` | No | `watcher` | ClickHouse username |
+| `CLICKHOUSE_PASSWORD` | No | — | ClickHouse password |
+| `CLICKHOUSE_DB` | No | `watcher` | ClickHouse database name |
+| `IAM_URL` | Yes | — | Internal URL of the IAM service |
+
+## IAM (`apps/iam`)
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `BETTER_AUTH_SECRET` | Yes | — | Must be identical to the console's value |
+| `BETTER_AUTH_URL` | Yes | — | Public URL of the IAM service |
+| `DATABASE_URL` | Yes | — | PostgreSQL connection string |
+| `STRIPE_SECRET_KEY` | Yes | — | Stripe secret key (`sk_live_...` or `sk_test_...`) |
+| `STRIPE_WEBHOOK_SECRET` | Yes | — | Stripe webhook signing secret (`whsec_...`) |
+| `STRIPE_PRO_MONTHLY_PRICE_ID` | Yes | — | Stripe price ID for the Pro monthly plan |
+| `STRIPE_ENTERPRISE_MONTHLY_PRICE_ID` | Yes | — | Stripe price ID for the Enterprise monthly plan |
+| `EMAIL_FROM` | No | — | "From" address for auth emails |
+| `SMTP_HOST` | No | — | SMTP server hostname |
+| `SMTP_PORT` | No | `587` | SMTP server port |
+| `SMTP_USER` | No | — | SMTP username |
+| `SMTP_PASS` | No | — | SMTP password |
+
+## Gateway (`apps/gateway-go`)
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `PORT` | No | `8080` | HTTP server port |
+| `IAM_URL` | Yes | `http://localhost:5000` | Internal URL of the IAM service — for server-side app/key management calls |
+| `REDIS_URL` | Yes | `redis://localhost:6379` | Redis for event streaming |
+| `REDIS_STREAM` | No | `events` | Redis stream name |
+| `CLICKHOUSE_URL` | No | — | If set, gateway writes directly to ClickHouse (bypass pipeline) |
+
+## Pipeline (`apps/analytics-python`)
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `REDIS_URL` | Yes | `redis://localhost:6379` | Same Redis as gateway |
+| `REDIS_STREAM` | No | `events` | Must match gateway stream name |
+| `CLICKHOUSE_URL` | Yes | `http://localhost:8123` | ClickHouse write endpoint |
+| `CLICKHOUSE_USER` | No | `watcher` | — |
+| `CLICKHOUSE_PASSWORD` | No | — | — |
+| `BATCH_SIZE` | No | `500` | Events per ClickHouse insert batch |
+| `FLUSH_INTERVAL_MS` | No | `1000` | Max ms between flushes |
+
+## Example `.env` files
+
+Each app ships a `.env.example` with all required variables. Copy it and fill in your values:
+
+```bash
+cp apps/console/.env.example apps/console/.env.local
+cp apps/iam/.env.example apps/iam/.env
+```
+
+<Callout type="warning">
+Never commit `.env` files to version control. Only `.env.example` (with placeholder values) should be committed.
+</Callout>

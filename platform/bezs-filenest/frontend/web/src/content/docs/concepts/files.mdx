@@ -1,0 +1,84 @@
+---
+title: "Files"
+description: "The file lifecycle in FileNest — from upload to processing to ready."
+---
+
+# Files
+
+A **file** is the core resource in FileNest. Files belong to a project and move through a processing pipeline after upload.
+
+## File lifecycle
+
+```
+upload  →  uploading  →  processing  →  ready
+                                   ↓
+                              quarantined  (virus found)
+                              failed       (MIME mismatch or pipeline error)
+```
+
+| Status | Description |
+|--------|-------------|
+| `uploading` | Upload in progress (multipart only) |
+| `processing` | Virus scan + MIME validation running |
+| `ready` | File accessible for download |
+| `quarantined` | Virus detected — download blocked |
+| `failed` | Processing error — download may still be possible |
+| `deleted` | Soft-deleted — `deleted_at` is set |
+
+## File record fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Unique file ID (`file_01j...`) |
+| `filename` | `string` | Original filename as uploaded |
+| `size` | `number` | File size in bytes |
+| `mime_type` | `string` | Declared content type |
+| `storage_key` | `string` | Object key in the storage backend |
+| `status` | `string` | Current lifecycle status |
+| `folder_id` | `string \| null` | Parent folder (Phase 3) |
+| `tags` | `string[]` | Searchable tag list (Phase 3) |
+| `metadata` | `object` | Custom key-value pairs (Phase 3) |
+| `version_count` | `number` | Number of versions (Phase 2) |
+| `created_at` | `string` | ISO 8601 timestamp |
+
+## Tags
+
+Every file carries a `tags` string array (e.g. `["invoice", "q1-2026", "paid"]`). Tags are set by your server code using the API or SDK — the console lets you view and edit them in the metadata side panel.
+
+Use `PUT /files/{id}/tags` to replace the full set or `POST /files/{id}/tags` to add tags without removing existing ones. Filter files by tag with `?tags=invoice&tags=q1-2026` on the list endpoint (array containment — all specified tags must be present).
+
+## Metadata
+
+Every file has a `metadata` JSON object for structured per-file data (e.g. `{ "patientId": "P-001", "invoiceTotal": 1200 }`). Metadata is stored as JSONB and can be queried with containment filters.
+
+If the project has `enforce_schema = true` and an active [metadata schema](/docs/api/metadata), all metadata updates are validated against it. A mismatch returns `422 METADATA_VALIDATION_ERROR` with per-field error paths.
+
+## Folders
+
+Files can be organised into a folder hierarchy within a project. Folders use a **materialized path** model — the full path string (e.g. `/invoices/2026/q1`) is stored at creation time. Move a file between folders with `POST /files/{id}/move`.
+
+See [Folders API](/docs/api/folders) for CRUD endpoints and soft-delete rules.
+
+## Versioning
+
+Uploading to an existing `storage_key` path creates a new version row and bumps `version_count`. All versions are independently downloadable.
+
+## Soft delete
+
+`DELETE /v1/projects/{id}/files/{file_id}` sets `deleted_at`. The file record is retained for audit purposes. The storage object is removed by a background job after the project's grace period.
+
+<Callout type="note">
+Files with a legal hold cannot be deleted until the hold is released. (Phase 8 — Compliance Pack.)
+</Callout>
+
+## Upload flow & processing pipeline
+
+FileNest uploads are presigned URL–based — your client PUTs bytes directly to S3,
+and a `confirm` call triggers the pipeline (virus scan → MIME validation → classification → indexing).
+
+See [Upload Flow & Processing](/docs/concepts/processing) for the complete flow, pipeline
+stage details, two-layer MIME validation, and security enforcement (IP allowlist, CORS,
+signed URL TTL).
+
+**If you are not using an SDK**, see the "Using the API without the SDK" section in that
+page for the manual step-by-step flow.

@@ -1,0 +1,48 @@
+from app.schemas.patient.input import (
+    PatientCreateSchema,
+    PatientPatchSchema,
+    PatientFullCreateSchema,
+    PatientFullPatchSchema,
+    NameCreate,
+    NamePatch,
+    IdentifierCreate,
+    IdentifierPatch,
+    TelecomCreate,
+    TelecomPatch,
+    AddressCreate,
+    AddressPatch,
+    PhotoCreate,
+    PhotoPatch,
+    ContactCreate,
+    ContactPatch,
+    ContactRelationshipCreate,
+    ContactTelecomCreate,
+    CommunicationCreate,
+    CommunicationPatch,
+    GeneralPractitionerCreate,
+    GeneralPractitionerPatch,
+    LinkCreate,
+    LinkPatch,
+)
+
+# PatientResponseSchema kept for backwards compatibility — use PlainPatientResponse instead
+from app.schemas.patient.response import PlainPatientResponse as PatientResponseSchema
+
+__all__ = [
+    "PatientCreateSchema",
+    "PatientPatchSchema",
+    "PatientFullCreateSchema",
+    "PatientFullPatchSchema",
+    "PatientResponseSchema",
+    "NameCreate", "NamePatch",
+    "IdentifierCreate", "IdentifierPatch",
+    "TelecomCreate", "TelecomPatch",
+    "AddressCreate", "AddressPatch",
+    "PhotoCreate", "PhotoPatch",
+    "ContactCreate", "ContactPatch",
+    "ContactRelationshipCreate",
+    "ContactTelecomCreate",
+    "CommunicationCreate", "CommunicationPatch",
+    "GeneralPractitionerCreate", "GeneralPractitionerPatch",
+    "LinkCreate", "LinkPatch",
+]

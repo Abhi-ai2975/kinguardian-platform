@@ -1,0 +1,354 @@
+{
+  "id": "schedule-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "schedule-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_schedule" },
+        "submitLabel": { "literalString": "Create Schedule" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Create Schedule" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": {
+                "literalString": "Define the planning horizon and assign one or more actors (practitioner roles, locations, healthcare services). Slots are added in the next step."
+              },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "divider-top", "type": "Divider", "properties": {} },
+
+          {
+            "id": "section-actors",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Actors" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "section-actors-desc",
+            "type": "Text",
+            "properties": {
+              "text": {
+                "literalString": "Add all resources whose availability this schedule represents. A slot is only created when every actor is simultaneously free."
+              },
+              "usageHint": "caption"
+            }
+          },
+
+          {
+            "id": "section-pr-label",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Practitioner Roles" },
+              "usageHint": "caption"
+            }
+          },
+          {
+            "id": "practitioner_roles",
+            "type": "RepeatableGroup",
+            "properties": {
+              "addLabel": { "literalString": "Add practitioner role" },
+              "defaultCount": 0,
+              "minItems": 0,
+              "template": [
+                {
+                  "id": "pr_select",
+                  "type": "DynamicSelect",
+                  "properties": {
+                    "label": { "literalString": "Practitioner Role" },
+                    "placeholder": {
+                      "literalString": "Search practitioner roles…"
+                    },
+                    "source": {
+                      "url": "$fhir_gql_url/practitioner-roles/",
+                      "staticParams": {
+                        "org_id": { "path": "org_id" },
+                        "active": true
+                      },
+                      "searchParam": "name",
+                      "responsePath": "data",
+                      "minChars": 0,
+                      "debounceMs": 300,
+                      "pageSize": 20,
+                      "limitParam": "limit",
+                      "offsetParam": "offset"
+                    },
+                    "display": {
+                      "label": { "path": "practitioner_display" },
+                      "description": { "path": "specialty.0.coding_display" }
+                    },
+                    "emits": [
+                      {
+                        "key": "role_reference",
+                        "template": "PractitionerRole/{id}"
+                      },
+                      {
+                        "key": "role_display",
+                        "path": "practitioner_detail.name.text"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+
+          {
+            "id": "section-loc-label",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Locations" },
+              "usageHint": "caption"
+            }
+          },
+          {
+            "id": "locations",
+            "type": "RepeatableGroup",
+            "properties": {
+              "addLabel": { "literalString": "Add location" },
+              "defaultCount": 0,
+              "minItems": 0,
+              "template": [
+                {
+                  "id": "loc_select",
+                  "type": "DynamicSelect",
+                  "properties": {
+                    "label": { "literalString": "Location" },
+                    "placeholder": { "literalString": "Search locations…" },
+                    "source": {
+                      "url": "$fhir_gql_url/locations/",
+                      "staticParams": { "org_id": { "path": "org_id" } },
+                      "searchParam": "name",
+                      "responsePath": "data",
+                      "minChars": 0,
+                      "debounceMs": 300,
+                      "pageSize": 20,
+                      "limitParam": "limit",
+                      "offsetParam": "offset"
+                    },
+                    "display": {
+                      "label": { "path": "name" },
+                      "description": { "template": "Location/{id}" }
+                    },
+                    "emits": [
+                      {
+                        "key": "location_reference",
+                        "template": "Location/{id}"
+                      },
+                      { "key": "location_display", "path": "name" }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+
+          {
+            "id": "section-hs-label",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Healthcare Services" },
+              "usageHint": "caption"
+            }
+          },
+          {
+            "id": "healthcare_services",
+            "type": "RepeatableGroup",
+            "properties": {
+              "addLabel": { "literalString": "Add healthcare service" },
+              "defaultCount": 0,
+              "minItems": 0,
+              "template": [
+                {
+                  "id": "hs_select",
+                  "type": "DynamicSelect",
+                  "properties": {
+                    "label": { "literalString": "Healthcare Service" },
+                    "placeholder": {
+                      "literalString": "Search healthcare services…"
+                    },
+                    "source": {
+                      "url": "$fhir_gql_url/healthcare-services/",
+                      "staticParams": { "org_id": { "path": "org_id" } },
+                      "searchParam": "name",
+                      "responsePath": "data",
+                      "minChars": 0,
+                      "debounceMs": 300,
+                      "pageSize": 20,
+                      "limitParam": "limit",
+                      "offsetParam": "offset"
+                    },
+                    "display": {
+                      "label": { "path": "name" },
+                      "description": { "template": "HealthcareService/{id}" }
+                    },
+                    "emits": [
+                      {
+                        "key": "hs_reference",
+                        "template": "HealthcareService/{id}"
+                      },
+                      { "key": "hs_display", "path": "name" }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+
+          { "id": "divider-horizon", "type": "Divider", "properties": {} },
+          {
+            "id": "section-horizon",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Planning Horizon & Status" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "sched-active-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "active",
+                  "type": "CheckBox",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Active" },
+                    "value": { "literalBoolean": true }
+                  }
+                },
+                {
+                  "id": "planning_horizon_start",
+                  "type": "DateTimeInput",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "Horizon Start" },
+                    "enableDate": true,
+                    "enableTime": true
+                  }
+                },
+                {
+                  "id": "planning_horizon_end",
+                  "type": "DateTimeInput",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "Horizon End" },
+                    "enableDate": true,
+                    "enableTime": true
+                  }
+                }
+              ]
+            }
+          },
+
+          { "id": "divider-class", "type": "Divider", "properties": {} },
+          {
+            "id": "section-class",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Classification" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "section-specialties-label",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Specialties" },
+              "usageHint": "caption"
+            }
+          },
+          {
+            "id": "specialties",
+            "type": "RepeatableGroup",
+            "properties": {
+              "addLabel": { "literalString": "Add specialty" },
+              "defaultCount": 0,
+              "minItems": 0,
+              "template": [
+                {
+                  "id": "specialty",
+                  "type": "TerminologySelect",
+                  "properties": {
+                    "label": { "literalString": "Specialty" },
+                    "placeholder": { "literalString": "Search specialties…" },
+                    "valueType": { "literalString": "CodeableConcept" },
+                    "serverSearch": {
+                      "resource": "Schedule",
+                      "field": "specialty",
+                      "minChars": 0
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "section-service-types-label",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Service Types" },
+              "usageHint": "caption"
+            }
+          },
+          {
+            "id": "service_types",
+            "type": "RepeatableGroup",
+            "properties": {
+              "addLabel": { "literalString": "Add service type" },
+              "defaultCount": 0,
+              "minItems": 0,
+              "template": [
+                {
+                  "id": "service_type",
+                  "type": "TerminologySelect",
+                  "properties": {
+                    "label": { "literalString": "Service Type" },
+                    "placeholder": { "literalString": "Search service types…" },
+                    "valueType": { "literalString": "CodeableConcept" },
+                    "serverSearch": {
+                      "resource": "Schedule",
+                      "field": "serviceType",
+                      "minChars": 0
+                    }
+                  }
+                }
+              ]
+            }
+          },
+
+          { "id": "divider-comment", "type": "Divider", "properties": {} },
+          {
+            "id": "comment",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Comment (optional)" },
+              "placeholder": {
+                "literalString": "e.g. Dr. Smith — GP slots July 2026"
+              },
+              "textFieldType": "shortText"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

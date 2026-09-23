@@ -1,0 +1,63 @@
+{
+  "user_id": "VsHqNde5bO7NsoLddPX2NljS7hhZRd4Y",
+  "org_id": "0fb41e50-82a4-461e-96c7-bd11359d892d",
+  "practitioner": "Practitioner/30003",
+  "practitioner_display": "Dr. Priya R. Sharma",
+  "organization": "Organization/190001",
+  "organization_display": "City Health Clinic",
+  "active": true,
+  "period_start": "2020-06-01T00:00:00Z",
+  "availability_exceptions": "Not available on public holidays.",
+  "code": [
+    {
+      "coding_system": "http://snomed.info/sct",
+      "coding_code": "59058001",
+      "coding_display": "General physician",
+      "text": "General Practitioner"
+    }
+  ],
+  "specialty": [
+    {
+      "coding_system": "http://snomed.info/sct",
+      "coding_code": "394814009",
+      "coding_display": "General practice",
+      "text": "General practice"
+    }
+  ],
+  "location": [
+    {
+      "reference": "Location/230001",
+      "reference_display": "City Health Clinic — Main Branch"
+    }
+  ],
+  "healthcare_service": [
+    {
+      "reference": "HealthcareService/150003",
+      "reference_display": "General Practice Consultation"
+    }
+  ],
+  "availability": [
+    {
+      "available_times": [
+        {
+          "days_of_week": ["mon", "tue", "wed", "thu", "fri"],
+          "all_day": false,
+          "available_start_time": "08:00:00",
+          "available_end_time": "12:00:00"
+        },
+        {
+          "days_of_week": ["mon", "tue", "wed", "thu", "fri"],
+          "all_day": false,
+          "available_start_time": "14:00:00",
+          "available_end_time": "18:00:00"
+        }
+      ],
+      "not_available_times": []
+    }
+  ],
+  "identifier": [],
+  "characteristic": [],
+  "communication": [],
+  "contact": [],
+  "endpoint": []
+}

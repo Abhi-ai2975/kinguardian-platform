@@ -1,0 +1,162 @@
+{
+  "id": "allergy-intolerance-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "allergy-intolerance-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_allergy_intolerance" },
+        "submitLabel": { "literalString": "Record Allergy / Intolerance" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "ai-form-title",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Record Allergy / Intolerance" }, "usageHint": "h2" }
+          },
+          {
+            "id": "ai-form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Document a patient allergy or intolerance — substance, clinical status, criticality, and onset timeline. Patient and encounter resolved from session context." },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "ai-divider-top", "type": "Divider", "properties": {} },
+          {
+            "id": "ai-section-code",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Allergy Code" }, "usageHint": "h4" }
+          },
+          {
+            "id": "code",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Substance / Allergy Code" },
+              "placeholder": { "literalString": "Search allergen (SNOMED, RxNorm)…" },
+              "valueType": { "literalString": "CodeableConcept" },
+              "serverSearch": { "minChars": 2, "debounceMs": 200 }
+            }
+          },
+          { "id": "ai-divider-1", "type": "Divider", "properties": {} },
+          {
+            "id": "ai-section-classification",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Classification" }, "usageHint": "h4" }
+          },
+          {
+            "id": "ai-classification-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "clinical_status",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Clinical Status" },
+                    "placeholder": { "literalString": "Select status…" },
+                    "items": "$clinical_status_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "verification_status",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Verification Status" },
+                    "placeholder": { "literalString": "Select verification…" },
+                    "items": "$verification_status_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "criticality",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Criticality" },
+                    "placeholder": { "literalString": "Select criticality…" },
+                    "items": "$criticality_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "ai-type-category-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "type",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Type" },
+                    "placeholder": { "literalString": "allergy or intolerance" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "category",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Category" },
+                    "placeholder": { "literalString": "medication, food, environment, biologic" },
+                    "textFieldType": "shortText"
+                  }
+                }
+              ]
+            }
+          },
+          { "id": "ai-divider-2", "type": "Divider", "properties": {} },
+          {
+            "id": "ai-section-timeline",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Timeline" }, "usageHint": "h4" }
+          },
+          {
+            "id": "ai-timeline-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "onset_date_time",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Onset" },
+                    "enableDate": true,
+                    "enableTime": true
+                  }
+                },
+                {
+                  "id": "recorded_date",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Recorded" },
+                    "enableDate": true,
+                    "enableTime": false
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

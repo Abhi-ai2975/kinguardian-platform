@@ -1,0 +1,111 @@
+{
+  "id": "practitioner-identifier-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "practitioner-identifier-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "add_practitioner_identifier" },
+        "submitLabel": { "literalString": "Save Identifiers" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "form-title",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Step 3: Add Identifiers" }, "usageHint": "h2" }
+          },
+          {
+            "id": "form-subtitle",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Add professional identifiers such as NPI, licence, or DEA numbers." }, "usageHint": "caption" }
+          },
+          { "id": "divider-top", "type": "Divider", "properties": {} },
+          {
+            "id": "identifiers",
+            "type": "RepeatableGroup",
+            "properties": {
+              "addLabel": { "literalString": "Add Identifier" },
+              "minItems": { "literalNumber": 1 },
+              "defaultCount": { "literalNumber": 1 },
+              "template": [
+                {
+                  "id": "prac-id-use-type-row",
+                  "type": "Row",
+                  "properties": {
+                    "gap": "medium",
+                    "alignment": "stretch",
+                    "children": [
+                      {
+                        "id": "use",
+                        "type": "TerminologySelect",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Use" },
+                          "placeholder": { "literalString": "Search use…" },
+                          "items": "$identifier_use_concepts.concepts",
+                          "valueType": { "literalString": "code" }
+                        }
+                      },
+                      {
+                        "id": "identifier_type",
+                        "type": "TerminologySelect",
+                        "weight": 2,
+                        "properties": {
+                          "label": { "literalString": "Type (optional)" },
+                          "placeholder": { "literalString": "Search type…" },
+                          "items": "$identifier_type_concepts.concepts",
+                          "valueType": { "literalString": "CodeableConcept" }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "value",
+                  "type": "TextField",
+                  "properties": {
+                    "label": { "literalString": "Identifier Value" },
+                    "placeholder": { "literalString": "e.g. 1234567890 (NPI number)" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "prac-id-system-assigner-row",
+                  "type": "Row",
+                  "properties": {
+                    "gap": "medium",
+                    "alignment": "stretch",
+                    "children": [
+                      {
+                        "id": "system",
+                        "type": "TextField",
+                        "weight": 2,
+                        "properties": {
+                          "label": { "literalString": "System URI (optional)" },
+                          "placeholder": { "literalString": "e.g. http://hl7.org/fhir/sid/us-npi" },
+                          "textFieldType": "shortText"
+                        }
+                      },
+                      {
+                        "id": "assigner",
+                        "type": "TextField",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Issuer (optional)" },
+                          "placeholder": { "literalString": "e.g. CMS" },
+                          "textFieldType": "shortText"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

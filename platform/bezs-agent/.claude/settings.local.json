@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -rniE \"\\(api[_-]?key|secret|password|token|bearer\\)\\\\s*=\\\\s*[\\\\\"'][A-Za-z0-9_\\\\-]{10,}[\\\\\"']\" --include=\"*.py\" --include=\"*.toml\" --include=\"*.json\" --include=\"*.env*\" .)"
+    ]
+  }
+}

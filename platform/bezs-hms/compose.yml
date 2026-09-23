@@ -1,0 +1,18 @@
+services:
+  nextjs:
+    image: ghcr.io/naveenraj-g/drgodly:latest
+    container_name: drgodly
+    env_file:
+      - .env
+    networks:
+      - drgodly-net
+    volumes:
+      - /root/drgodly/logs:/app/logs
+      - /root/drgodly/uploads:/app/uploads
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+networks:
+  drgodly-net:
+    external: true

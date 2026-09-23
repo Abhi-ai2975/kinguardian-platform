@@ -1,0 +1,30 @@
+========================================================================
+KINGUARDIAN - FULL ARCHITECTURE & END-TO-END VERIFICATION MANUAL
+========================================================================
+
+Architecture Overview:
+- Mobile Frontend: React Native (Expo) - `kinguardian-mobile` (Metro Bundler)
+- Backend: FastAPI / Python 3.12 - `kinguardian-backend` (Docker container / port 8000)
+- Database: PostgreSQL 16 - `kinguardian-postgres` (Docker container / port 5432)
+
+------------------------------------------------------------------------
+1. DOCKER & CONTAINER MANAGEMENT
+------------------------------------------------------------------------
+Check docker version and running containers:
+  docker ps
+  docker start kinguardian-postgres
+  docker start kinguardian-backend
+
+Check ports:
+  docker port kinguardian-postgres   -> 0.0.0.0:5432
+  docker port kinguardian-backend    -> 0.0.0.0:8000
+
+Health Check:
+  curl http://localhost:8000/health
+  Response: {"status":"ok"}
+
+Swagger API Documentation:
+  http://localhost:8000/docs
+
+Connect to PostgreSQL Database CLI:
+  docker exec -it kinguardian-postgres psql -U kinguardian -d kinguardian

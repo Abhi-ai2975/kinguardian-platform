@@ -1,0 +1,52 @@
+{
+  "type": "DataTable",
+  "id": "vitals-table",
+  "properties": {
+    "title": "Vitals Records",
+    "rows": "$vitals.data",
+    "url": "/api/v1/vitals/",
+    "pagination": {
+      "page": 0,
+      "pageSize": 20,
+      "total": "$vitals.total",
+      "pageSizeOptions": [10, 20, 50, 100]
+    },
+    "queryParams": {
+      "supported": ["date", "recorded_at_from", "recorded_at_to"],
+      "defaults": {
+        "patient_id": "$patient_id"
+      },
+      "offsetParam": "offset",
+      "limitParam": "limit",
+      "dataPath": "data",
+      "totalPath": "total",
+      "filterLabels": {
+        "date": "Date (exact)",
+        "recorded_at_from": "Recorded From",
+        "recorded_at_to": "Recorded To"
+      },
+      "maxExportLimit": 200
+    },
+    "searchable": false,
+    "exportFormats": ["csv", "json", "xlsx", "pdf"],
+    "columns": [
+      { "key": "date", "label": "Date", "sortable": false, "width": "110" },
+      { "key": "heart_rate", "label": "HR (bpm)", "sortable": false, "width": "90" },
+      { "key": "resting_heart_rate", "label": "Resting HR", "sortable": false, "width": "100" },
+      { "key": "heart_rate_variability", "label": "HRV", "sortable": false, "width": "80" },
+      { "key": "blood_pressure_systolic", "label": "BP Sys", "sortable": false, "width": "80" },
+      { "key": "blood_pressure_diastolic", "label": "BP Dia", "sortable": false, "width": "80" },
+      { "key": "steps", "label": "Steps", "sortable": false, "width": "90" },
+      { "key": "calories_kcal", "label": "Calories", "sortable": false, "width": "90" },
+      { "key": "distance_meters", "label": "Distance (m)", "sortable": false, "width": "110" },
+      { "key": "total_active_minutes", "label": "Active Min", "sortable": false, "width": "95" },
+      { "key": "activity_name", "label": "Activity", "sortable": false, "width": "120" },
+      { "key": "sleep_minutes", "label": "Sleep (min)", "sortable": false, "width": "100" },
+      { "key": "deep_sleep_minutes", "label": "Deep Sleep", "sortable": false, "width": "100" },
+      { "key": "rem_sleep_minutes", "label": "REM Sleep", "sortable": false, "width": "100" },
+      { "key": "light_sleep_minutes", "label": "Light Sleep", "sortable": false, "width": "100" },
+      { "key": "weight_kg", "label": "Weight (kg)", "sortable": false, "width": "100" },
+      { "key": "stress_management_score", "label": "Stress Score", "sortable": false, "width": "110" }
+    ]
+  }
+}

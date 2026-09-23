@@ -1,0 +1,82 @@
+{
+  "id": "record_vitals",
+  "name": "Record Vitals",
+  "description": "Record a patient's vital signs including heart rate, blood pressure, weight, height, oxygen saturation, respiratory rate, temperature, glucose, and activity metrics.",
+  "version": "1.0.0",
+  "tags": ["fhir", "clinical", "vitals", "create"],
+  "llm_hints": {
+    "intent_examples": [
+      "Record vitals",
+      "Log vital signs",
+      "Enter patient vitals",
+      "Record blood pressure and heart rate",
+      "Add vitals for today"
+    ],
+    "when_to_use": [
+      "User wants to record vital signs for a patient",
+      "User wants to log clinical measurements such as BP, heart rate, or temperature"
+    ],
+    "when_not_to_use": [
+      "User wants to view vitals history",
+      "User wants to record a lab observation (use record_observation instead)"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you record a patient's vital signs — core measurements, activity data, and timestamps.",
+  "completion": {
+    "message": "Vital signs recorded successfully.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "record_vitals_step",
+      "name": "Record Vitals",
+      "step_type": "form",
+      "description": "Enter the patient's vital sign measurements.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "field": "me_patient.id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Resolve the current patient from session.",
+          "context_key": "me_patient",
+          "tool_name": "get_my_patient",
+          "url": "$fhir_gql_url/patients/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "vitals_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_vitals",
+          "tool_name": "create_vitals",
+          "url": "$fhir_gql_url/vitals/",
+          "method": "POST",
+          "validation_schema": "vitals_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    }
+  ]
+}

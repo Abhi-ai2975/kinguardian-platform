@@ -1,0 +1,67 @@
+{
+  "id": "patient-list-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "patient-list-column",
+      "type": "Column",
+      "properties": {
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "list-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Patient List" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "list-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "All registered patients" },
+              "usageHint": "caption"
+            }
+          },
+          {
+            "id": "divider-top",
+            "type": "Divider",
+            "properties": {}
+          },
+          {
+            "id": "patient-table",
+            "type": "Table",
+            "properties": {
+              "headers": [
+                "First Name",
+                "Middle Name",
+                "Last Name",
+                "Gender",
+                "Birth Date",
+                "Marital Status",
+                "Active",
+                "Deceased"
+              ],
+              "data": {
+                "forEach": "$result",
+                "item": "patient",
+                "component": [
+                  "$patient.first_name",
+                  "$patient.middle_name",
+                  "$patient.last_name",
+                  "$patient.gender",
+                  "$patient.birth_date",
+                  "$patient.marital_status",
+                  "$patient.active",
+                  "$patient.deceased_boolean"
+                ]
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

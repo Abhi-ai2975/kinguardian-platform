@@ -1,0 +1,31 @@
+from app.schemas.appointment.input import (
+    AppointmentCreateSchema,
+    AppointmentPatchSchema,
+    AppointmentIdentifierInput,
+    AppointmentServiceCategoryInput,
+    AppointmentServiceTypeInput,
+    AppointmentSpecialtyInput,
+    AppointmentReasonCodeInput,
+    AppointmentReasonReferenceInput,
+    AppointmentSupportingInformationInput,
+    AppointmentSlotInput,
+    AppointmentBasedOnInput,
+    AppointmentParticipantTypeInput,
+    AppointmentParticipantInput,
+    AppointmentRequestedPeriodInput,
+    RecurrenceTemplateInput,
+    RecurrenceWeeklyTemplateInput,
+    RecurrenceMonthlyTemplateInput,
+    RecurrenceYearlyTemplateInput,
+)
+
+__all__ = [
+    "AppointmentCreateSchema", "AppointmentPatchSchema",
+    "AppointmentIdentifierInput",
+    "AppointmentServiceCategoryInput", "AppointmentServiceTypeInput", "AppointmentSpecialtyInput",
+    "AppointmentReasonCodeInput", "AppointmentReasonReferenceInput",
+    "AppointmentSupportingInformationInput", "AppointmentSlotInput", "AppointmentBasedOnInput",
+    "AppointmentParticipantTypeInput", "AppointmentParticipantInput", "AppointmentRequestedPeriodInput",
+    "RecurrenceTemplateInput", "RecurrenceWeeklyTemplateInput",
+    "RecurrenceMonthlyTemplateInput", "RecurrenceYearlyTemplateInput",
+]

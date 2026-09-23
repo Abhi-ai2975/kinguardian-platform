@@ -1,0 +1,130 @@
+---
+title: Skills
+description: Claude Code skills and AI agent instructions for working with Watcher24.
+---
+
+# Skills
+
+Skills are reusable AI agent instructions that teach coding assistants how to work with Watcher24 correctly. Drop them into any Claude Code project and your AI will follow the right patterns automatically.
+
+## What are skills?
+
+A skill is a markdown file loaded into an AI assistant's context. It tells the AI:
+
+- Which SDK packages to use and how to import them
+- The correct event types (`audit`, `log`, `trace`, `metric`)
+- Architecture patterns (singleton client, shutdown hooks, env vars)
+- What to avoid (hardcoded keys, missing `shutdown()`, swallowed errors)
+
+## Available skills
+
+### `watcher24-js` — JavaScript / Node.js
+
+Covers `@watcher/node`, `@watcher/browser`, `@watcher/react`, and `@watcher/nextjs`.
+
+```bash
+# Install via Claude Code skills registry
+/skill add watcher24-js
+```
+
+**What it teaches the AI:**
+
+```typescript
+// ✅ Correct — singleton with env var
+import { createNodeClient } from "@watcher/node";
+
+const watcher = createNodeClient({
+  apiKey: process.env.W24_API_KEY!,
+  appId: process.env.W24_APP_ID!,
+  environment: process.env.NODE_ENV ?? "production",
+});
+
+// Shutdown hook — always required
+process.on("SIGTERM", () => watcher.shutdown());
+```
+
+### `watcher24-python` — Python
+
+Covers the `watcher-sdk` package and the FastAPI / Django integrations.
+
+```bash
+/skill add watcher24-python
+```
+
+**What it teaches the AI:**
+
+```python
+# ✅ Correct — singleton with env var
+import os, atexit
+from watcher_sdk import Client
+
+client = Client(
+    api_key=os.environ["W24_API_KEY"],
+    app_id=os.environ["W24_APP_ID"],
+    environment=os.environ.get("W24_ENVIRONMENT", "production"),
+)
+
+# Always register shutdown
+atexit.register(client.shutdown)
+```
+
+## Using skills in Claude Code
+
+### Method 1 — CLAUDE.md
+
+Add a skill reference to your project's `CLAUDE.md`:
+
+```markdown
+## Observability
+
+This project uses Watcher24 for telemetry. See the skill at
+`.agents/skills/watcher24-js/SKILL.md` for correct usage patterns.
+```
+
+### Method 2 — Import in prompt
+
+Paste the skill content directly into your AI chat context:
+
+```
+Read this SDK skill before writing any observability code:
+[paste SKILL.md content here]
+```
+
+### Method 3 — MCP server
+
+If you have the Watcher24 MCP server configured, skills are automatically
+loaded when you open a project that contains a `watcher24` dependency.
+
+## Skill rules
+
+Every skill enforces these rules:
+
+| Rule | Why |
+|------|-----|
+| Use env vars for `apiKey` | Never commit credentials |
+| Create one client per process | Multiple clients = multiple flush threads |
+| Call `shutdown()` on exit | Prevents event loss on process termination |
+| Wrap errors in `log("error", ...)` | Surfaces issues in the dashboard |
+| Use typed helpers (`audit`, `log`, `trace`, `metric`) | Correct event type routing in the backend |
+
+## Writing custom skills
+
+Create a `SKILL.md` in `.agents/skills/your-skill-name/`:
+
+```markdown
+# Watcher24 SDK — Project-specific patterns
+
+## Event naming convention
+All event names use dot notation: `domain.action`
+Example: `user.login`, `order.created`, `payment.failed`
+
+## Required fields
+Always include `userId` on audit events for this project.
+
+## Custom payload fields
+Include `{ orgId, environment }` in every event payload.
+```
+
+<Callout type="tip">
+Commit your `SKILL.md` files to version control so every developer's AI assistant uses the same patterns.
+</Callout>

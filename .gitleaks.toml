@@ -1,0 +1,18 @@
+title = "KinGuardian Gitleaks Secret Detection Config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Global allowlist for synthetic test fixtures and documentation"
+paths = [
+    '''tests/.*''',
+    '''docs/.*''',
+    '''\.env\.example''',
+]
+regexes = [
+    '''test_contract_iam_secret_key''',
+    '''iam_mock_subject_123''',
+    '''synthetic-.*''',
+    '''test-secret-key-for-dev-environment''',
+]

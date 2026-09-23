@@ -1,0 +1,47 @@
+---
+title: "Projects"
+description: "Create and manage FileNest projects in the Console."
+---
+
+# Projects
+
+The **Projects** page (`/projects`) lists all projects in your active organization.
+
+## Project list
+
+The projects list supports:
+
+- **Table / grid view toggle** — switch between a compact table and a card grid
+- **Column sorting** — click any column header to sort
+- **Filter** — filter by storage provider, storage mode, or created date
+- **Search** — full-text search across project names
+- **Row selection** — select multiple projects for bulk actions
+- **Export** — download the list as CSV
+
+## Creating a project
+
+Click **New project** (top right) to open the create modal. Required fields:
+
+| Field | Description |
+|-------|-------------|
+| **Name** | Display name — visible in the Console and API |
+| **Slug** | URL-safe identifier — auto-generated from the name, immutable after creation |
+| **Storage mode** | `Managed` (FileNest-owned S3) or `BYOB` |
+| **Storage provider** | Provider to use (S3, MinIO, RustFS, etc.) |
+
+After creating a project, a `StorageConfig` row is automatically created with sensible defaults.
+
+## Deleting a project
+
+Select a project row → **Delete** in the row actions menu. A confirmation dialog appears. Deletion is a soft-delete — the project record is retained and files are removed from storage after the grace period.
+
+## Project navigation
+
+Clicking a project name opens the project detail with tabs:
+
+| Tab | Description |
+|-----|-------------|
+| **Files** | [File explorer](/docs/console/files) — browse, upload, and manage files |
+| **API Keys** | [Project-scoped API keys](/docs/console/api-keys) — create and revoke keys |
+| **Webhooks** | [Webhook endpoints](/docs/console/webhooks) — subscribe to file events |
+| **Settings** | General (name/description), storage, uploads, processing, security, compliance |

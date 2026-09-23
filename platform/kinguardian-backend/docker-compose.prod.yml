@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # ── KinGuardian Backend API (Production) ─────────────────────────────────────
+  kinguardian-api:
+    image: ${DOCKER_REGISTRY:-ghcr.io/kinguardian}/kinguardian-backend:${IMAGE_TAG:-latest}
+    container_name: kinguardian-api-prod
+    restart: always
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      NATS_URL: ${NATS_URL}
+      IAM_JWKS_URL: ${IAM_JWKS_URL}
+      IAM_ISSUER: ${IAM_ISSUER}
+      FHIR_API_URL: ${FHIR_API_URL}
+      FHIR_GQL_URL: ${FHIR_GQL_URL}
+      FILENEST_URL: ${FILENEST_URL}
+      FILENEST_API_KEY: ${FILENEST_API_KEY}
+      FILENEST_PROJECT_ID: ${FILENEST_PROJECT_ID}
+      AGENT_SERVICE_URL: ${AGENT_SERVICE_URL}
+      OBSERVABILITY_URL: ${OBSERVABILITY_URL}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      RATE_LIMIT_ENABLED: "true"
+      SQL_QUERY_LOGGING: "false"
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ── KinGuardian Background Worker (Production) ───────────────────────────────
+  kinguardian-worker:
+    image: ${DOCKER_REGISTRY:-ghcr.io/kinguardian}/kinguardian-backend:${IMAGE_TAG:-latest}
+    container_name: kinguardian-worker-prod
+    restart: always
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      NATS_URL: ${NATS_URL}
+      OBSERVABILITY_URL: ${OBSERVABILITY_URL}
+    command: ["python", "-m", "app.workers.outbox_worker"]
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"

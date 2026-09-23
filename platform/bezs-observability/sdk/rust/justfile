@@ -1,0 +1,41 @@
+set dotenv-load := true
+
+# List available recipes
+default:
+    @just --list
+
+# Run all tests
+test:
+    cargo test
+
+# Run tests with output visible
+test-verbose:
+    cargo test -- --nocapture
+
+# Run tests with coverage (requires cargo-tarpaulin)
+test-cov:
+    cargo tarpaulin --out term-missing
+
+# Build the SDK
+build:
+    cargo build
+
+# Release build
+release:
+    cargo build --release
+
+# Lint with Clippy
+lint:
+    cargo clippy -- -D warnings
+
+# Check formatting
+fmt-check:
+    cargo fmt --check
+
+# Auto-format
+fmt:
+    cargo fmt
+
+# Run the example (requires .env with WATCHER_API_KEY)
+example:
+    cd ../../examples/rust && cargo run

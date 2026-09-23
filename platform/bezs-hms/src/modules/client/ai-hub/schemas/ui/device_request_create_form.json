@@ -1,0 +1,139 @@
+{
+  "id": "dr-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "dr-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_device_request" },
+        "submitLabel": { "literalString": "Place Order" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "dr-form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Place Device Request" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "dr-form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Search for the medical device type using SNOMED CT, then classify the order and optionally assign a requesting practitioner." },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "dr-divider-top", "type": "Divider", "properties": {} },
+          {
+            "id": "dr-section-device",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Device Code" }, "usageHint": "h4" }
+          },
+          {
+            "id": "device_code",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Device Type (SNOMED)" },
+              "placeholder": { "literalString": "Search device type…" },
+              "valueType": { "literalString": "CodeableConcept" },
+              "serverSearch": {
+                "system": "http://snomed.info/sct",
+                "minChars": 2,
+                "debounceMs": 200
+              }
+            }
+          },
+          { "id": "dr-divider-order", "type": "Divider", "properties": {} },
+          {
+            "id": "dr-section-order",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Order" }, "usageHint": "h4" }
+          },
+          {
+            "id": "dr-status-intent-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "status",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Status" },
+                    "placeholder": { "literalString": "Select status…" },
+                    "items": "$status_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "intent",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Intent" },
+                    "placeholder": { "literalString": "Select intent…" },
+                    "items": "$intent_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                }
+              ]
+            }
+          },
+          { "id": "dr-divider-requester", "type": "Divider", "properties": {} },
+          {
+            "id": "dr-section-requester",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Requester & Timing" }, "usageHint": "h4" }
+          },
+          {
+            "id": "requester",
+            "type": "DataSelect",
+            "properties": {
+              "label": { "literalString": "Requesting Practitioner (optional)" },
+              "placeholder": { "literalString": "Search practitioners…" },
+              "items": "$booking_practitioners.data",
+              "labelPath": "practitioner_detail.name.text",
+              "descriptionPath": "specialty.0.coding_display",
+              "emits": [
+                { "key": "ref_id", "path": "practitioner_ref_id" }
+              ]
+            }
+          },
+          {
+            "id": "authored_on",
+            "type": "DateTimeInput",
+            "properties": {
+              "label": { "literalString": "Authored On (optional)" },
+              "enableDate": true,
+              "enableTime": true
+            }
+          },
+          { "id": "dr-divider-notes", "type": "Divider", "properties": {} },
+          {
+            "id": "note_text",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Notes (optional)" },
+              "placeholder": { "literalString": "Additional instructions or clinical context for this device order…" },
+              "textFieldType": "longText"
+            }
+          },
+          {
+            "id": "dr-session-note",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Patient and encounter resolved from session." },
+              "usageHint": "caption"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

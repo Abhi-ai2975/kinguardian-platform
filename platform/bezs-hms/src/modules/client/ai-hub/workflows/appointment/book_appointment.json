@@ -1,0 +1,195 @@
+{
+  "id": "book_appointment",
+  "name": "Book Appointment",
+  "description": "Book a healthcare appointment in three steps: select a practitioner, choose a free time slot, then confirm and create the booking.",
+  "version": "2.0.0",
+  "tags": [
+    "fhir",
+    "appointment",
+    "booking",
+    "scheduling",
+    "healthcare",
+    "slot"
+  ],
+  "llm_hints": {
+    "intent_examples": [
+      "Book an appointment",
+      "Schedule an appointment",
+      "Make an appointment for a patient",
+      "Book a consultation",
+      "Schedule a follow-up",
+      "Book a patient with a doctor",
+      "Book a slot with a cardiologist",
+      "Schedule a visit with Dr. Carter"
+    ],
+    "when_to_use": [
+      "User wants to book or schedule a new appointment",
+      "User wants to create an appointment for a patient",
+      "User provides a patient and wants to schedule a visit with a practitioner",
+      "User wants to find available time slots and book one"
+    ],
+    "when_not_to_use": [
+      "User wants to view or list existing appointments",
+      "User wants to cancel or update an appointment",
+      "User wants to create a patient record (use create_patient instead)"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you book an appointment in 3 steps — first select a practitioner, then choose an available time slot, and finally confirm the booking.",
+  "completion": {
+    "message": "Appointment booked successfully. The patient and practitioner have been notified.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "select_practitioner",
+      "name": "Select Practitioner",
+      "step_type": "form",
+      "description": "Choose a practitioner from your organisation's booking directory. Their available slots will be loaded automatically.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "booking_slots": {
+            "type": "object"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Fetch active practitioners available for booking in this organisation.",
+          "context_key": "booking_practitioners",
+          "tool_name": "list_practitioners_for_booking",
+          "url": "$fhir_gql_url/practitioner-roles/booking",
+          "method": "GET",
+          "timeout_ms": 10000
+        }
+      ],
+      "ui": {
+        "schema": "appointment_pick_practitioner_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "fetch_available_slots",
+          "tool_name": "fetch_available_slots",
+          "url": "$fhir_gql_url/slots?practitioner_role_id=$practitioner_role_id&status=free",
+          "method": "GET",
+          "retryable": true,
+          "timeout_ms": 10000
+        }
+      ]
+    },
+    {
+      "sequence_number": 2,
+      "id": "select_slot",
+      "name": "Select Time Slot",
+      "step_type": "form",
+      "description": "Choose a free appointment slot for the selected practitioner.",
+      "context": {
+        "inputs": {
+          "practitioner_role_id": { "type": "integer", "source": "workflow" },
+          "booking_slots": { "type": "object", "source": "workflow" }
+        },
+        "outputs": {}
+      },
+      "ui": {
+        "schema": "appointment_pick_slot_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "verify_slot",
+          "tool_name": "verify_slot",
+          "url": "$fhir_gql_url/slots/$slot_id",
+          "method": "GET",
+          "retryable": true,
+          "timeout_ms": 10000
+        }
+      ]
+    },
+    {
+      "sequence_number": 3,
+      "id": "confirm_booking",
+      "name": "Confirm Booking",
+      "step_type": "form",
+      "description": "Provide the patient ID and any optional details, then confirm the appointment.",
+      "context": {
+        "inputs": {
+          "practitioner_ref_id": { "type": "integer", "source": "workflow" },
+          "practitioner_display": { "type": "string", "source": "workflow" },
+          "slot_id": { "type": "integer", "source": "workflow" },
+          "slot_start": { "type": "string", "source": "workflow" },
+          "slot_end": { "type": "string", "source": "workflow" }
+        },
+        "outputs": {
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "field": "me_patient.id"
+          },
+          "appointment_id": {
+            "type": "integer",
+            "resource": "Appointment",
+            "field": "id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Resolve the logged-in user's Patient record — extracts patient_id automatically so the user does not need to enter it.",
+          "context_key": "me_patient",
+          "tool_name": "get_my_patient_profile",
+          "url": "$fhir_gql_url/patients/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch appointment status value set for the Status select.",
+          "context_key": "appointment_status_concepts",
+          "tool_name": "get_appointment_status_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Appointment&field=status",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch appointment-type value set for the Appointment Type select.",
+          "context_key": "appointment_type_concepts",
+          "tool_name": "get_appointment_type_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Appointment&field=appointmentType",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "appointment_confirm_booking_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_appointment",
+          "tool_name": "create_appointment",
+          "url": "$fhir_gql_url/appointments/",
+          "method": "POST",
+          "validation_schema": "appointment_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    }
+  ]
+}

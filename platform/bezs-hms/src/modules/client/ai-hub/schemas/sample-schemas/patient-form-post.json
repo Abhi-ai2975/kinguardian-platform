@@ -1,0 +1,196 @@
+{
+  "id": "patient-form-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "patient-form-wrapper",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_patient" },
+        "submitLabel": { "literalString": "Create Patient" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "New Patient Registration" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Fill in the patient details below" },
+              "usageHint": "caption"
+            }
+          },
+          {
+            "id": "divider-top",
+            "type": "Divider",
+            "properties": {}
+          },
+          {
+            "id": "name-section-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Personal Information" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "name-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "first_name",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "First Name" },
+                    "placeholder": { "literalString": "Enter first name" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "middle_name",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Middle Name" },
+                    "placeholder": { "literalString": "Enter middle name" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "last_name",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Last Name" },
+                    "placeholder": { "literalString": "Enter last name" },
+                    "textFieldType": "shortText"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "demographics-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "gender",
+                  "type": "MultipleChoice",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Gender" },
+                    "placeholder": { "literalString": "Select gender" },
+                    "items": [
+                      { "label": { "literalString": "Male" }, "value": "male" },
+                      { "label": { "literalString": "Female" }, "value": "female" },
+                      { "label": { "literalString": "Other" }, "value": "other" },
+                      { "label": { "literalString": "Unknown" }, "value": "unknown" }
+                    ]
+                  }
+                },
+                {
+                  "id": "marital_status",
+                  "type": "MultipleChoice",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Marital Status" },
+                    "placeholder": { "literalString": "Select marital status" },
+                    "items": [
+                      { "label": { "literalString": "Single" }, "value": "single" },
+                      { "label": { "literalString": "Married" }, "value": "married" },
+                      { "label": { "literalString": "Divorced" }, "value": "divorced" },
+                      { "label": { "literalString": "Widowed" }, "value": "widowed" }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "divider-mid",
+            "type": "Divider",
+            "properties": {}
+          },
+          {
+            "id": "dates-section-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Dates & Status" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "dates-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "birth_date",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Birth Date" },
+                    "enableDate": true,
+                    "enableTime": false
+                  }
+                },
+                {
+                  "id": "deceased_dateTime",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Deceased Date/Time" },
+                    "enableDate": true,
+                    "enableTime": true
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "flags-row",
+            "type": "Row",
+            "properties": {
+              "gap": "large",
+              "alignment": "center",
+              "children": [
+                {
+                  "id": "active",
+                  "type": "CheckBox",
+                  "properties": {
+                    "label": { "literalString": "Active" },
+                    "value": { "literalBoolean": false }
+                  }
+                },
+                {
+                  "id": "deceased_boolean",
+                  "type": "CheckBox",
+                  "properties": {
+                    "label": { "literalString": "Deceased" },
+                    "value": { "literalBoolean": false }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

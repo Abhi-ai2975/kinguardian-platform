@@ -1,0 +1,52 @@
+---
+title: "Managed Storage"
+description: "FileNest managed storage — zero-config S3 with encryption always on."
+---
+
+# Managed Storage
+
+With managed storage, FileNest provisions and owns the S3 bucket. You get a production-grade storage backend with no configuration required.
+
+## What's included
+
+- **AWS S3** bucket provisioned per project
+- **SSE-S3 encryption** always enabled (AES-256)
+- **Presigned URLs** for direct browser uploads and downloads (15-min expiry)
+- **Automatic lifecycle** — storage removed when the project is deleted
+
+## Setting up a managed project
+
+Select `managed` as the storage mode when creating a project:
+
+```bash
+curl -X POST https://api.filenest.io/v1/projects \
+  -H "Authorization: Bearer fn_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Production",
+    "slug": "production",
+    "storage_mode": "managed",
+    "storage_provider": "s3"
+  }'
+```
+
+A `StorageConfig` row is created automatically with the FileNest-managed bucket details. No further setup is needed.
+
+## Verify connectivity
+
+```bash
+curl -X POST https://api.filenest.io/v1/projects/{id}/storage/verify \
+  -H "Authorization: Bearer fn_live_..."
+```
+
+Response:
+
+```json
+{ "ok": true, "latency_ms": 42 }
+```
+
+## Limitations
+
+- Managed storage is AWS S3 only. For other providers, use [BYOB](/docs/storage/byob).
+- The bucket is not directly accessible — all access goes through FileNest presigned URLs.
+- You cannot configure lifecycle rules or bucket policies directly on managed buckets.

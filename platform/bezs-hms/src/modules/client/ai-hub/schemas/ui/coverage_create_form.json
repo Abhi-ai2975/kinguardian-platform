@@ -1,0 +1,141 @@
+{
+  "id": "coverage-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "coverage-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_coverage" },
+        "submitLabel": { "literalString": "Create Coverage" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "form-title",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Create Coverage" }, "usageHint": "h2" }
+          },
+          {
+            "id": "form-subtitle",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Register a health insurance coverage record. Patient is resolved automatically from your session." }, "usageHint": "caption" }
+          },
+          { "id": "divider-top", "type": "Divider", "properties": {} },
+
+          {
+            "id": "section-details",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Coverage Details" }, "usageHint": "h4" }
+          },
+          {
+            "id": "status",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Status" },
+              "placeholder": { "literalString": "Select status…" },
+              "items": "$status_concepts.concepts",
+              "valueType": { "literalString": "code" }
+            }
+          },
+          {
+            "id": "subscriber_id_value",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Member ID (optional)" },
+              "placeholder": { "literalString": "e.g. MBR-00123456" },
+              "textFieldType": "shortText"
+            }
+          },
+          {
+            "id": "network",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Network (optional)" },
+              "placeholder": { "literalString": "e.g. Blue Shield PPO" },
+              "textFieldType": "shortText"
+            }
+          },
+
+          { "id": "divider-type", "type": "Divider", "properties": {} },
+          {
+            "id": "section-type",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Insurance Type" }, "usageHint": "h4" }
+          },
+          {
+            "id": "coverage_type",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Coverage Type (optional)" },
+              "placeholder": { "literalString": "Search insurance type…" },
+              "valueType": { "literalString": "CodeableConcept" },
+              "serverSearch": {
+                "minChars": 2,
+                "debounceMs": 200
+              }
+            }
+          },
+
+          { "id": "divider-payor", "type": "Divider", "properties": {} },
+          {
+            "id": "section-payor",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Insurer (Payor)" }, "usageHint": "h4" }
+          },
+          {
+            "id": "payor",
+            "type": "DataSelect",
+            "properties": {
+              "label": { "literalString": "Insurer Organisation" },
+              "placeholder": { "literalString": "Select insurer…" },
+              "items": "$my_organizations.data",
+              "labelPath": "name",
+              "emits": [
+                { "key": "ref_id", "path": "id" },
+                { "key": "display", "path": "name" }
+              ]
+            }
+          },
+
+          { "id": "divider-period", "type": "Divider", "properties": {} },
+          {
+            "id": "section-period",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Coverage Period" }, "usageHint": "h4" }
+          },
+          {
+            "id": "cov-period-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "period_start",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Period Start (optional)" },
+                    "enableDate": true,
+                    "enableTime": false
+                  }
+                },
+                {
+                  "id": "period_end",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Period End (optional)" },
+                    "enableDate": true,
+                    "enableTime": false
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

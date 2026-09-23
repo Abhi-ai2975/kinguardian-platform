@@ -1,0 +1,194 @@
+---
+title: Event Ingestion API
+description: HTTP API reference for sending events directly to the Watcher gateway.
+---
+
+# Event Ingestion API
+
+The gateway exposes an HTTP API for ingesting events. Most users interact with it via an SDK, but you can POST directly for any language or platform not yet covered.
+
+## Base URL
+
+The production ingest endpoint is <GatewayUrl />.
+
+For self-hosted setups, point your SDK at your own instance (default port `8080`).
+
+## Authentication
+
+### Secret keys (`wt_`)
+
+Server-side SDKs (Node.js, Python, Go) authenticate with a secret API key:
+
+```
+Authorization: Bearer wt_your_key_here
+```
+
+Secret keys are issued in **Settings → API Keys**. Events sent with a secret key are tagged `source: "server"` automatically.
+
+### Public tokens (`wpub_`)
+
+Browser, mobile, and desktop clients authenticate with a public token:
+
+```
+Authorization: Bearer wpub_your_token_here
+```
+
+Public tokens differ from secret keys in three ways enforced by the gateway:
+
+1. **Origin allowlist** — the `Origin` header must match the token's allowed origins. Requests from unlisted origins are rejected with `403 ORIGIN_NOT_ALLOWED`.
+2. **Per-minute rate limit** — default 1 000 events/min. Exceeding the cap returns `429 RATE_LIMIT_EXCEEDED`.
+3. **Source tagging** — events are automatically tagged `source: "client"` regardless of what the client sends.
+
+Create public tokens in **Settings → API Keys → Public Tokens**.
+
+---
+
+## Ingest a single event
+
+```
+POST /v1/events
+Content-Type: application/json
+Authorization: Bearer wt_...
+```
+
+### Request body
+
+```json
+{
+  "event_type": "log",
+  "severity": "info",
+  "message": "User signed up",
+  "environment": "production",
+  "payload": {
+    "userId": "usr_abc123",
+    "plan": "free"
+  },
+  "user_id": "usr_abc123",
+  "session_id": "ses_xyz",
+  "trace_id": "abc123",
+  "span_id": "span_001",
+  "parent_span_id": "",
+  "timestamp": "2025-05-24T10:00:00Z"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `event_type` | string | Yes | See event types below |
+| `severity` | string | Yes | `"debug"` `"info"` `"warn"` `"error"` `"critical"` |
+| `message` | string | Yes | Human-readable event description |
+| `environment` | string | No | `"development"`, `"staging"`, `"production"` |
+| `payload` | object | No | Arbitrary JSON data attached to the event |
+| `user_id` | string | No | End-user identifier for user-scoped queries |
+| `session_id` | string | No | Browser or server session ID |
+| `trace_id` | string | No | OpenTelemetry-compatible trace ID |
+| `span_id` | string | No | OpenTelemetry-compatible span ID |
+| `parent_span_id` | string | No | Parent span ID for nested trace spans |
+| `timestamp` | ISO 8601 | No | Defaults to server time if omitted |
+
+<Callout type="note" title="application_id is resolved from your API key">
+Do not send `application_id` in the body — it is ignored. The gateway resolves the application from the API key or public token itself. Link your key to an application in **Settings → API Keys**.
+</Callout>
+
+### Event types
+
+| Value | Stream | Description |
+|-------|--------|-------------|
+| `"log"` | `stream:log` | Application log events |
+| `"audit"` | `stream:audit` | User actions and compliance trail |
+| `"trace"` | `stream:trace` | Distributed trace spans |
+| `"metric"` | `stream:metric` | Numeric measurements |
+| `"security"` | `stream:security` | Security events, threat detection |
+| `"frontend"` | `stream:frontend` | Browser/client-side events |
+| `"ai"` | `stream:ai` | AI agent completions, LLM calls |
+| `"system"` | `stream:system` | OS/infrastructure metrics |
+| `"infrastructure"` | `stream:system` | Infrastructure events (same stream as `system`) |
+
+### Response
+
+```json
+{ "status": "ok" }
+```
+
+---
+
+## Ingest a batch
+
+Send up to **500 events** in a single request by passing an array directly to `/v1/events`:
+
+```
+POST /v1/events
+Content-Type: application/json
+Authorization: Bearer wt_...
+```
+
+```json
+[
+  { "event_type": "log", "severity": "info", "message": "Request started" },
+  { "event_type": "log", "severity": "info", "message": "Request completed" }
+]
+```
+
+The gateway detects a JSON array and processes all events in a single Redis pipeline. Max batch size is **500 events** — larger batches are rejected with `413 BATCH_TOO_LARGE`.
+
+### Response
+
+```json
+{ "status": "ok", "count": 2 }
+```
+
+---
+
+## Typed shorthand endpoints
+
+These endpoints fix the `event_type` automatically — useful when you don't want to set `event_type` in the body:
+
+| Endpoint | Fixed event_type |
+|----------|-----------------|
+| `POST /v1/logs` | `"log"` |
+| `POST /v1/traces` | `"trace"` |
+| `POST /v1/metrics` | `"metric"` |
+| `POST /v1/audit` | `"audit"` |
+
+---
+
+## Gateway-enriched fields
+
+These fields are set by the gateway and cannot be overridden by the client:
+
+| Field | Value |
+|-------|-------|
+| `organization_id` | Resolved from API key |
+| `application_id` | Resolved from the key's linked application |
+| `ingested_at` | Server UTC timestamp at ingestion time |
+| `source` | `"client"` for public tokens (`wpub_`), `"server"` for secret keys (`wt_`) |
+| `service_name` | From `X-Service-Name` header — developer-set component label (e.g. `"payment-api"`) |
+| `ip_address` | Client IP from the request |
+| `sdk_version` | From `X-SDK-Version` header |
+| `runtime` | From `X-Runtime` header |
+| `region` | Server region tag |
+
+---
+
+## Error responses
+
+All errors return JSON with `error` and `code` fields:
+
+```json
+{ "error": "message is required", "code": "INVALID_PAYLOAD" }
+```
+
+| HTTP status | Code | Meaning |
+|-------------|------|---------|
+| `400` | `INVALID_PAYLOAD` | Body is not valid JSON, or `message`/`event_type`/`severity` is missing or invalid |
+| `401` | `MISSING_API_KEY` | No `Authorization` header provided |
+| `401` | `INVALID_API_KEY` | Key not found, disabled, or expired |
+| `403` | `ORIGIN_NOT_ALLOWED` | Public token: `Origin` header is missing or not in the token's allowlist |
+| `413` | `BATCH_TOO_LARGE` | Batch array exceeds 500 events |
+| `429` | `EVENT_LIMIT_EXCEEDED` | Org has reached the monthly event quota for their plan |
+| `429` | `RATE_LIMIT_EXCEEDED` | Public token: per-minute rate cap exceeded |
+| `500` | `INTERNAL_ERROR` | Gateway or queue failure |
+
+<Callout type="note">
+When you receive `429 EVENT_LIMIT_EXCEEDED`, events are rejected at the gateway — nothing is queued. Upgrade your plan or wait for the next calendar month to resume ingestion.
+</Callout>

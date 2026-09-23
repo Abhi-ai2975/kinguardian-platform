@@ -1,0 +1,184 @@
+{
+  "id": "claim-response-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "claim-response-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_claim_response" },
+        "submitLabel": { "literalString": "Record Adjudication" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "cr-form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Step 2: Record Adjudication" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "cr-form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Record the payer's adjudication decision for the claim submitted in step 1." },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "cr-divider-top", "type": "Divider", "properties": {} },
+          {
+            "id": "cr-section-core",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Adjudication Details" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "cr-status-use-outcome-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "cr_status",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Status" },
+                    "placeholder": { "literalString": "Select status…" },
+                    "items": "$cr_status_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "use",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Use" },
+                    "placeholder": { "literalString": "Select use…" },
+                    "items": "$use_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "outcome",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Outcome" },
+                    "placeholder": { "literalString": "Select outcome…" },
+                    "items": "$outcome_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                }
+              ]
+            }
+          },
+          { "id": "cr-divider-insurer", "type": "Divider", "properties": {} },
+          {
+            "id": "cr-section-insurer",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Insurer" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "insurer",
+            "type": "DataSelect",
+            "properties": {
+              "label": { "literalString": "Insurer (optional)" },
+              "placeholder": { "literalString": "Search organisation…" },
+              "items": "$my_organizations.data",
+              "labelPath": "name",
+              "emits": [
+                { "key": "ref_id", "path": "id" },
+                { "key": "display", "path": "name" }
+              ]
+            }
+          },
+          { "id": "cr-divider-payment", "type": "Divider", "properties": {} },
+          {
+            "id": "cr-section-payment",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Payment" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "cr-payment-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "payment_amount",
+                  "type": "TextField",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "Payment Amount (optional)" },
+                    "placeholder": { "literalString": "e.g. 120.00" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "payment_currency",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Currency (optional)" },
+                    "placeholder": { "literalString": "USD" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "cr_created",
+                  "type": "DateTimeInput",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "Created (optional)" },
+                    "enableDate": true,
+                    "enableTime": true
+                  }
+                }
+              ]
+            }
+          },
+          { "id": "cr-divider-disposition", "type": "Divider", "properties": {} },
+          {
+            "id": "cr-section-disposition",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Disposition" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "disposition",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Disposition Note (optional)" },
+              "placeholder": { "literalString": "Claim settled as per contract" },
+              "textFieldType": "longText"
+            }
+          },
+          {
+            "id": "cr-info-note",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Linked to the claim from step 1." },
+              "usageHint": "caption"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

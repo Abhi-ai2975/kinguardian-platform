@@ -1,0 +1,60 @@
+spark:
+  app_name: "S3SparkConnector"
+  packages:
+    - "org.apache.hadoop:hadoop-aws:3.3.4"
+    - "com.amazonaws:aws-java-sdk-bundle:1.12.262"
+    - "org.elasticsearch:elasticsearch-spark-30_2.13:8.15.1"
+
+  conf:
+    "spark.hadoop.fs.s3a.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem"
+    "spark.hadoop.fs.s3a.aws.credentials.provider": "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider"
+    "spark.hadoop.fs.s3a.committer.name": "magic"
+    "spark.hadoop.fs.s3a.committer.magic.enabled": "true"
+    "spark.hadoop.fs.s3a.fast.upload": "true"
+    "spark.hadoop.fs.s3a.path.style.access": "true"
+    "spark.hadoop.fs.s3a.connection.timeout": 60000
+    "spark.hadoop.fs.s3a.connection.establish.timeout": 60000
+
+extractor:
+  path: "s3a://data-engineering-bucket-s3/tiny_commerce.csv"
+  format: "csv"
+  batch_size_mb: 20
+  options:
+    header: true
+    inferSchema: true
+    sep: ","
+
+transformation:
+  id_column: "" 
+
+embedding:
+  model_name: "all-MiniLM-L6-v2"
+  output_column: "row_vector"
+  checkpoint_path: "file:///home/logi/github/alphaesai/aiplatform/static/health_data/embedder"
+
+elasticsearch:
+  host: "127.0.0.1"
+  port: 9200
+  username: "elastic"
+  password: "123456"
+  index_name: "sales_data"
+  write_mode: "append"
+  vector_column: "row_vector"
+  checkpoint_path: "file:///home/logi/github/alphaesai/aiplatform/static/health_data/embedder"
+  # SSL Configuration - Different formats for different components
+  use_ssl: "true"
+  verify_ssl: "true"
+  ssl_pem_path: "/home/logi/github/alphaesai/aiplatform/secrets/http_ca.crt"
+  ssl_jks_path: "/home/logi/github/alphaesai/aiplatform/secrets/truststore.jks"
+  jks_password: "changeit"
+  settings:
+    index:
+      number_of_shards: 1
+      number_of_replicas: 0
+      refresh_interval: "-1"  # Disable background refreshes during ingestion
+  mappings:
+    properties:
+      id: {type: "keyword"}
+      text: {type: "text"}
+      row_vector: {type: "dense_vector", dims: 384}
+      metadata: {type: "object"}

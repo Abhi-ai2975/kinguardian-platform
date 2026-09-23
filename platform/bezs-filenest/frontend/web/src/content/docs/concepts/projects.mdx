@@ -1,0 +1,49 @@
+---
+title: "Projects"
+description: "A project is the unit of storage and processing configuration in FileNest."
+---
+
+# Projects
+
+A **project** belongs to one organization and is the unit of storage and processing configuration. All files, webhooks, metadata schemas, and compliance settings belong to a project.
+
+## Creating a project
+
+```bash
+curl -X POST https://api.filenest.io/v1/projects \
+  -H "Authorization: Bearer fn_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Production",
+    "slug": "production",
+    "storage_mode": "managed",
+    "storage_provider": "s3"
+  }'
+```
+
+## Storage modes
+
+| Mode | Description |
+|------|-------------|
+| `managed` | FileNest manages the S3 bucket — zero configuration |
+| `byob` | Bring your own bucket — provide credentials for any supported provider |
+
+See [Storage Overview](/docs/storage/overview) for the full provider list.
+
+## Project slug
+
+The slug is a URL-safe identifier for the project (`[a-z0-9-]`). It is immutable after creation and appears in API paths: `/v1/projects/{slug}/files/...`.
+
+## Project settings
+
+Each project has independent configuration for:
+
+- **Storage** — provider, credentials (BYOB), server-side encryption
+- **Uploads** — allowed MIME types, max file size, filename patterns
+- **Processing** — virus scan (always on), OCR, preview generation
+- **Security** — IP allowlist, CORS origins
+- **Compliance** — retention periods, WORM, legal hold (Phase 8)
+
+## Soft delete
+
+Deleting a project sets `deleted_at` — it does not immediately remove files from storage. A background job purges storage after a configurable grace period.

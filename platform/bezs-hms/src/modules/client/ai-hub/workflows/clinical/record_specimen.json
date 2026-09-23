@@ -1,0 +1,110 @@
+{
+  "id": "record_specimen",
+  "name": "Record Specimen",
+  "description": "Record a biological specimen collected from the current patient, including type, accession identifier, collection details, and body site.",
+  "version": "1.0.0",
+  "tags": [
+    "fhir",
+    "specimen",
+    "clinical",
+    "create",
+    "laboratory",
+    "healthcare"
+  ],
+  "llm_hints": {
+    "intent_examples": [
+      "Record a specimen",
+      "Log a blood sample",
+      "Document specimen collection",
+      "Add a specimen for a patient",
+      "Record a tissue sample"
+    ],
+    "when_to_use": [
+      "User wants to record or document a specimen collection",
+      "User wants to create a Specimen resource for a patient"
+    ],
+    "when_not_to_use": [
+      "User wants to record a diagnostic report",
+      "User wants to book an appointment"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you record a specimen collected from the current patient.",
+  "completion": {
+    "message": "Specimen recorded successfully.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "record_specimen_resource",
+      "name": "Record Specimen",
+      "step_type": "form",
+      "description": "Enter the specimen details including type, status, collection details, and body site.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "field": "me_patient.id"
+          },
+          "specimen_id": {
+            "type": "integer",
+            "resource": "Specimen",
+            "field": "id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Resolve current patient from session.",
+          "context_key": "me_patient",
+          "tool_name": "get_my_patient",
+          "url": "$fhir_gql_url/patients/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch specimen status value set.",
+          "context_key": "status_concepts",
+          "tool_name": "get_specimen_status_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Specimen&field=status",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Load practitioners available for booking.",
+          "context_key": "booking_practitioners",
+          "tool_name": "list_practitioners_for_booking",
+          "url": "$fhir_gql_url/practitioner-roles/booking",
+          "method": "GET",
+          "timeout_ms": 10000
+        }
+      ],
+      "ui": {
+        "schema": "specimen_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "record_specimen",
+          "tool_name": "record_specimen",
+          "url": "$fhir_gql_url/specimens/",
+          "method": "POST",
+          "validation_schema": "specimen_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    }
+  ]
+}

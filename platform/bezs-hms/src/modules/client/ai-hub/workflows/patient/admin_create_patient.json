@@ -1,0 +1,717 @@
+{
+  "id": "admin_create_patient",
+  "name": "Admin: Create Patient",
+  "description": "Admin-only workflow to register a new Patient for any platform user in 10 steps: target user selection and demographics, then names, identifiers, telecom, addresses, communication languages, emergency contacts, general practitioners, photos, and patient links. Unlike the standard workflow the target user ID is provided explicitly — not derived from the admin's own session.",
+  "version": "1.0.0",
+  "tags": [
+    "fhir",
+    "patient",
+    "create",
+    "crud",
+    "healthcare",
+    "onboarding",
+    "admin"
+  ],
+  "required_permissions": ["patient:create"],
+  "llm_hints": {
+    "intent_examples": [
+      "Admin create patient",
+      "Register a patient for another user",
+      "Create a patient account for a specific user",
+      "Admin register a new patient",
+      "Onboard a patient for a user account"
+    ],
+    "when_to_use": [
+      "Admin wants to create a Patient resource for a specific platform user",
+      "The patient's user ID is known and must be provided explicitly",
+      "Creating a patient that is NOT linked to the current session user"
+    ],
+    "when_not_to_use": [
+      "User wants to register themselves as a patient (use create_patient)",
+      "User wants to update an existing patient",
+      "User wants to book an appointment"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you register a new patient for a specific user account in 10 steps — target user and demographics first, then names, identifiers, contact points, addresses, languages, emergency contacts, general practitioners, photos, and patient links.",
+  "completion": {
+    "message": "Patient registration complete. The patient record has been created and configured with the provided details.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "admin_create_patient_resource",
+      "name": "Create Patient Resource",
+      "step_type": "form",
+      "description": "Provide the target user ID and core demographic details for the new patient.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "field": "create_patient.id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Fetch administrative-gender value set for the Gender select.",
+          "context_key": "gender_concepts",
+          "tool_name": "get_gender_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=gender",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch marital-status value set for the Marital Status select.",
+          "context_key": "marital_status_concepts",
+          "tool_name": "get_marital_status_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=maritalStatus",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "admin_patient_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "graphql",
+          "purpose": "create_patient",
+          "tool_name": "create_patient",
+          "graphql_document": "create_patient",
+          "graphql_input_fields": [
+            "user_id",
+            "org_id",
+            "gender",
+            "birth_date",
+            "active",
+            "deceased_boolean",
+            "deceased_datetime",
+            "marital_status_code",
+            "marital_status_system",
+            "marital_status_display",
+            "marital_status_text"
+          ],
+          "validation_schema": "admin_patient_create_schema",
+          "retryable": true,
+          "timeout_ms": 10000
+        }
+      ]
+    },
+    {
+      "sequence_number": 2,
+      "id": "add_patient_names",
+      "name": "Add Patient Names",
+      "step_type": "form",
+      "optional": true,
+      "description": "Add one or more names for the patient — official, nickname, maiden name, and so on.",
+      "context": {
+        "inputs": {
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "source": "workflow"
+          }
+        },
+        "outputs": {
+          "patient_name_resource": {
+            "type": "HumanName"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Confirm the Patient still exists before appending names.",
+          "tool_name": "get_patient_by_id",
+          "type": "graphql",
+          "graphql_document": "get_patient_by_id",
+          "graphql_variables": ["patient_id"],
+          "timeout_ms": 10000
+        },
+        {
+          "description": "Fetch name-use value set for the Name Use terminology select.",
+          "context_key": "name_use_concepts",
+          "tool_name": "get_name_use_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=name.use",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "patient_name_form",
+        "mode": "append",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "graphql",
+          "purpose": "add_patient_name",
+          "tool_name": "add_patient_name",
+          "graphql_document": "add_patient_name",
+          "graphql_variables": ["patient_id"],
+          "graphql_input_fields": ["use", "family", "given", "prefix", "suffix"],
+          "iterate_key": "names",
+          "validation_schema": "name_create_schema",
+          "retryable": true,
+          "timeout_ms": 10000
+        }
+      ]
+    },
+    {
+      "sequence_number": 3,
+      "id": "add_patient_identifier",
+      "name": "Add Patient Identifiers",
+      "step_type": "form",
+      "optional": true,
+      "description": "Append one or more business identifiers such as MRN, insurance ID, passport number, or national identifier to the Patient resource.",
+      "context": {
+        "inputs": {
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "source": "workflow"
+          }
+        },
+        "outputs": {
+          "patient_identifier_resource": {
+            "type": "Identifier"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Confirm the Patient still exists before appending identifiers.",
+          "tool_name": "get_patient_by_id",
+          "type": "graphql",
+          "graphql_document": "get_patient_by_id",
+          "graphql_variables": ["patient_id"],
+          "timeout_ms": 10000
+        },
+        {
+          "description": "Fetch identifier-use value set for the Identifier Use terminology select.",
+          "context_key": "identifier_use_concepts",
+          "tool_name": "get_identifier_use_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=identifier.use",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch identifier-type value set for the Identifier Type terminology select.",
+          "context_key": "identifier_type_concepts",
+          "tool_name": "get_identifier_type_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=identifier.type",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "patient_identifier_form",
+        "mode": "append",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "graphql",
+          "purpose": "add_patient_identifier",
+          "tool_name": "add_patient_identifier",
+          "graphql_document": "add_patient_identifier",
+          "graphql_variables": ["patient_id"],
+          "graphql_input_fields": [
+            "use",
+            "type_code",
+            "type_system",
+            "type_display",
+            "type_text",
+            "system",
+            "value",
+            "period_start",
+            "period_end"
+          ],
+          "iterate_key": "identifiers",
+          "validation_schema": "identifier_create_schema",
+          "retryable": true,
+          "timeout_ms": 10000
+        }
+      ]
+    },
+    {
+      "sequence_number": 4,
+      "id": "add_patient_telecom",
+      "name": "Add Patient Telecom",
+      "step_type": "form",
+      "optional": true,
+      "description": "Append one or more telecom contact points such as mobile number, phone number, email address, or fax.",
+      "context": {
+        "inputs": {
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "source": "workflow"
+          }
+        },
+        "outputs": {
+          "patient_telecom_resource": {
+            "type": "ContactPoint"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Confirm the Patient still exists before appending telecom.",
+          "tool_name": "get_patient_by_id",
+          "type": "graphql",
+          "graphql_document": "get_patient_by_id",
+          "graphql_variables": ["patient_id"],
+          "timeout_ms": 10000
+        },
+        {
+          "description": "Fetch telecom-system value set for the Contact Type terminology select.",
+          "context_key": "telecom_system_concepts",
+          "tool_name": "get_telecom_system_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=telecom.system",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch telecom-use value set for the Use terminology select.",
+          "context_key": "telecom_use_concepts",
+          "tool_name": "get_telecom_use_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=telecom.use",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "patient_telecom_form",
+        "mode": "append",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "graphql",
+          "purpose": "add_patient_telecom",
+          "tool_name": "add_patient_telecom",
+          "graphql_document": "add_patient_telecom",
+          "graphql_variables": ["patient_id"],
+          "graphql_input_fields": ["system", "value", "use", "rank", "period_start", "period_end"],
+          "iterate_key": "telecom",
+          "validation_schema": "telecom_create_schema",
+          "retryable": true,
+          "timeout_ms": 10000
+        }
+      ]
+    },
+    {
+      "sequence_number": 5,
+      "id": "add_patient_address",
+      "name": "Add Patient Addresses",
+      "step_type": "form",
+      "optional": true,
+      "description": "Append one or more postal or physical address records to the Patient resource.",
+      "context": {
+        "inputs": {
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "source": "workflow"
+          }
+        },
+        "outputs": {
+          "patient_address_resource": {
+            "type": "Address"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Confirm the Patient still exists before appending an address.",
+          "tool_name": "get_patient_by_id",
+          "type": "graphql",
+          "graphql_document": "get_patient_by_id",
+          "graphql_variables": ["patient_id"],
+          "timeout_ms": 10000
+        },
+        {
+          "description": "Fetch address-use value set for the Address Use terminology select.",
+          "context_key": "address_use_concepts",
+          "tool_name": "get_address_use_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=address.use",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch address-type value set for the Address Type terminology select.",
+          "context_key": "address_type_concepts",
+          "tool_name": "get_address_type_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=address.type",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "patient_address_form",
+        "mode": "append",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "graphql",
+          "purpose": "add_patient_address",
+          "tool_name": "add_patient_address",
+          "graphql_document": "add_patient_address",
+          "graphql_variables": ["patient_id"],
+          "graphql_input_fields": [
+            "use",
+            "type",
+            "text",
+            "line",
+            "city",
+            "district",
+            "state",
+            "postal_code",
+            "country",
+            "period_start",
+            "period_end"
+          ],
+          "iterate_key": "addresses",
+          "validation_schema": "address_create_schema",
+          "retryable": true,
+          "timeout_ms": 10000
+        }
+      ]
+    },
+    {
+      "sequence_number": 6,
+      "id": "add_patient_communication",
+      "name": "Add Communication Languages",
+      "step_type": "form",
+      "optional": true,
+      "description": "Record one or more languages the patient can use to communicate with their care team.",
+      "context": {
+        "inputs": {
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "source": "workflow"
+          }
+        },
+        "outputs": {
+          "patient_communication_resource": {
+            "type": "Communication"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Confirm the Patient still exists before appending communication languages.",
+          "tool_name": "get_patient_by_id",
+          "type": "graphql",
+          "graphql_document": "get_patient_by_id",
+          "graphql_variables": ["patient_id"],
+          "timeout_ms": 10000
+        },
+        {
+          "description": "Fetch communication-language value set for the Language terminology select.",
+          "context_key": "communication_language_concepts",
+          "tool_name": "get_communication_language_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=communication.language",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "patient_communication_form",
+        "mode": "append",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "graphql",
+          "purpose": "add_patient_communication",
+          "tool_name": "add_patient_communication",
+          "graphql_document": "add_patient_communication",
+          "graphql_variables": ["patient_id"],
+          "graphql_input_fields": [
+            "language_code",
+            "language_system",
+            "language_display",
+            "language_text",
+            "preferred"
+          ],
+          "iterate_key": "communications",
+          "validation_schema": "communication_create_schema",
+          "retryable": true,
+          "timeout_ms": 10000
+        }
+      ]
+    },
+    {
+      "sequence_number": 7,
+      "id": "add_patient_contact",
+      "name": "Add Emergency Contact",
+      "step_type": "form",
+      "optional": true,
+      "description": "Add a next-of-kin, guardian, or emergency contact (name, address, and gender) to the Patient resource.",
+      "context": {
+        "inputs": {
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "source": "workflow"
+          }
+        },
+        "outputs": {
+          "patient_contact_resource": {
+            "type": "Contact"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Confirm the Patient still exists before appending a contact.",
+          "tool_name": "get_patient_by_id",
+          "type": "graphql",
+          "graphql_document": "get_patient_by_id",
+          "graphql_variables": ["patient_id"],
+          "timeout_ms": 10000
+        },
+        {
+          "description": "Fetch name-use value set for the Name Use select.",
+          "context_key": "name_use_concepts",
+          "tool_name": "get_name_use_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=name.use",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch administrative-gender value set for the Gender select.",
+          "context_key": "gender_concepts",
+          "tool_name": "get_gender_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=gender",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch address-use value set for the Address Use select.",
+          "context_key": "address_use_concepts",
+          "tool_name": "get_address_use_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=address.use",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch address-type value set for the Address Type select.",
+          "context_key": "address_type_concepts",
+          "tool_name": "get_address_type_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=address.type",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "patient_contact_form",
+        "mode": "append",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "graphql",
+          "purpose": "add_patient_contact",
+          "tool_name": "add_patient_contact",
+          "graphql_document": "add_patient_contact",
+          "graphql_variables": ["patient_id"],
+          "graphql_input_fields": [
+            "name_use",
+            "name_text",
+            "name_family",
+            "name_given",
+            "name_prefix",
+            "name_suffix",
+            "gender",
+            "address_use",
+            "address_type",
+            "address_text",
+            "address_line",
+            "address_city",
+            "address_district",
+            "address_state",
+            "address_postal_code",
+            "address_country",
+            "organization",
+            "organization_display"
+          ],
+          "validation_schema": "contact_create_schema",
+          "retryable": true,
+          "timeout_ms": 10000
+        }
+      ]
+    },
+    {
+      "sequence_number": 8,
+      "id": "add_patient_general_practitioner",
+      "name": "Add General Practitioners",
+      "step_type": "form",
+      "optional": true,
+      "description": "Link one or more primary care providers — organisations, practitioners, or practitioner roles — to this patient.",
+      "context": {
+        "inputs": {
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "source": "workflow"
+          }
+        },
+        "outputs": {
+          "patient_gp_resource": {
+            "type": "GeneralPractitioner"
+          }
+        }
+      },
+      "context_resolver": {
+        "description": "Confirm the Patient still exists before appending general practitioners.",
+        "tool_name": "get_patient_by_id",
+        "type": "graphql",
+        "graphql_document": "get_patient_by_id",
+        "graphql_variables": ["patient_id"],
+        "timeout_ms": 10000
+      },
+      "ui": {
+        "schema": "patient_gp_form",
+        "mode": "append",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "graphql",
+          "purpose": "add_patient_general_practitioner",
+          "tool_name": "add_patient_general_practitioner",
+          "graphql_document": "add_patient_general_practitioner",
+          "graphql_variables": ["patient_id"],
+          "graphql_input_fields": ["reference_type", "reference_id", "reference_display"],
+          "iterate_key": "general_practitioners",
+          "validation_schema": "gp_create_schema",
+          "retryable": true,
+          "timeout_ms": 10000
+        }
+      ]
+    },
+    {
+      "sequence_number": 9,
+      "id": "add_patient_photo",
+      "name": "Add Patient Photo",
+      "step_type": "form",
+      "optional": true,
+      "description": "Upload a profile photo for the patient via FileNest. JPEG, PNG, WebP or GIF, max 5 MB.",
+      "context": {
+        "inputs": {
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "source": "workflow"
+          }
+        },
+        "outputs": {
+          "patient_photo_id": {
+            "type": "integer",
+            "resource": "PatientPhoto"
+          }
+        }
+      },
+      "context_resolver": {
+        "description": "Confirm the Patient still exists before uploading a photo.",
+        "tool_name": "get_patient_by_id",
+        "type": "graphql",
+        "graphql_document": "get_patient_by_id",
+        "graphql_variables": ["patient_id"],
+        "timeout_ms": 10000
+      },
+      "ui": {
+        "schema": "patient_photo_upload_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "graphql",
+          "purpose": "add_patient_photo",
+          "tool_name": "add_patient_photo",
+          "graphql_document": "add_patient_photo",
+          "graphql_variables": ["patient_id"],
+          "graphql_input_fields": ["url", "content_type", "size", "title", "creation"],
+          "validation_schema": "patient_photo_upload_schema",
+          "retryable": false,
+          "timeout_ms": 15000
+        }
+      ]
+    },
+    {
+      "sequence_number": 10,
+      "id": "add_patient_link",
+      "name": "Add Patient Links",
+      "step_type": "form",
+      "optional": true,
+      "description": "Link this patient to another Patient or RelatedPerson record — for example to represent merged records or family relationships.",
+      "context": {
+        "inputs": {
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "source": "workflow"
+          }
+        },
+        "outputs": {
+          "patient_link_resource": {
+            "type": "Link"
+          }
+        }
+      },
+      "context_resolver": {
+        "description": "Confirm the Patient still exists before appending links.",
+        "tool_name": "get_patient_by_id",
+        "type": "graphql",
+        "graphql_document": "get_patient_by_id",
+        "graphql_variables": ["patient_id"],
+        "timeout_ms": 10000
+      },
+      "ui": {
+        "schema": "patient_link_form",
+        "mode": "append",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "graphql",
+          "purpose": "add_patient_link",
+          "tool_name": "add_patient_link",
+          "graphql_document": "add_patient_link",
+          "graphql_variables": ["patient_id"],
+          "graphql_input_fields": ["other_type", "other_id", "type", "other_display"],
+          "iterate_key": "links",
+          "validation_schema": "link_create_schema",
+          "retryable": true,
+          "timeout_ms": 10000
+        }
+      ]
+    }
+  ]
+}

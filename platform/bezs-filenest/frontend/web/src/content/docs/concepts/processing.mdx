@@ -1,0 +1,147 @@
+---
+title: "Upload Flow & Processing"
+description: "How FileNest handles file uploads, the processing pipeline, and security enforcement."
+---
+
+# Upload Flow & Processing
+
+FileNest never acts as a proxy for file bytes — your client uploads directly to the storage
+backend (S3, MinIO, R2, etc.) using a short-lived presigned URL, and the FileNest API
+orchestrates the rest.
+
+## Single-file upload flow
+
+```
+1.  POST /v1/projects/{id}/files/upload
+    ← { file_id, upload_url, expires_at }
+
+2.  PUT {upload_url}   (direct to S3 — no FileNest auth header)
+    ← 200 OK  (from S3)
+
+3.  POST /v1/projects/{id}/files/{file_id}/confirm
+    ← { id, status: "processing" | "ready" }
+```
+
+**Step 1 — init upload:** Validates your declared `filename`, `content_type`, and `size_bytes`
+against the project's upload restrictions (allowed MIME types, max file size, extension rules).
+Creates the file record in `uploading` status and returns a presigned S3 PUT URL. The presigned
+URL TTL is controlled by the project's `signed_url_ttl_seconds` setting (default 3600 s).
+
+**Step 2 — PUT bytes:** Your client (or SDK) PUTs the raw file bytes directly to the presigned
+URL. No FileNest API key is needed here — the signature is embedded in the URL.
+
+**Step 3 — confirm:** Tells FileNest the PUT succeeded and triggers the processing pipeline.
+If `virus_scan_enabled` is on, the file moves to `processing` and a NATS event is emitted
+for the pipeline workers. If scanning is off, the file moves directly to `ready`.
+
+## Multipart upload flow
+
+For large files (> 100 MB recommended), use multipart:
+
+```
+1.  POST /v1/projects/{id}/files/upload/multipart/start
+    ← { upload_id, file_id }
+
+2.  GET  /v1/projects/{id}/files/upload/multipart/{upload_id}/part-url?part=1
+    ← { url, expires_at }
+    ...repeat for each part (5 MB minimum per part, 10 000 parts max)
+
+3.  PUT  {url}   (direct to S3)
+    ← ETag header in response
+
+4.  POST /v1/projects/{id}/files/upload/multipart/{upload_id}/complete
+    body: { parts: [{ part_number: 1, etag: "..." }, ...] }
+    ← { file_id, status: "processing" | "ready" }
+```
+
+`complete` applies the same pipeline logic as `confirm` — it is effectively the same
+gate into the processing pipeline, just for multipart uploads. To cancel an in-progress
+multipart upload, call `DELETE /v1/projects/{id}/files/upload/multipart/{upload_id}`.
+
+## Processing pipeline stages
+
+After `confirm` or multipart `complete` emits a `file.uploaded` NATS event, the
+`ProcessingWorker` runs these stages in order:
+
+| Stage | What it does | Gate |
+|-------|-------------|------|
+| **Virus scan** | Downloads the first 4 MB from storage and sends to ClamAV. Quarantines the file if a threat is detected. | `virus_scan_enabled = true` |
+| **MIME validation** | Downloads the first 4 096 bytes and byte-sniffs the true content type using `python-magic`. Fails the file if it doesn't match the declared type or the project's allowed MIME list. | Always runs |
+| **Classification** | Assigns a human-readable `category` (`image`, `document`, `video`, `audio`, `archive`, `other`) based on the sniffed MIME type. | Always runs |
+| **Indexing** | Indexes the file record into the project's OpenSearch index for full-text search. Includes filename, content type, tags, metadata, and (when available) OCR text. | Always runs |
+
+The pipeline is **fail-safe** — a stage failure sets `status = "failed"` but the file
+bytes remain in storage and are still downloadable. Virus-detected files are the exception:
+they are quarantined and downloads are blocked.
+
+<Callout type="note">
+**OCR extraction** (text from PDFs and scanned images) is designed into the pipeline but
+not included in v1.0. It will be added in a later release without schema changes.
+</Callout>
+
+## Two-layer MIME validation
+
+FileNest validates MIME types at two points:
+
+| Layer | When | What is checked | Gate |
+|-------|------|----------------|------|
+| **Layer 1 — API gate** | On `POST /files/upload` (before S3 upload) | Declared `content_type`, extension from `filename`, `size_bytes` | Project upload config |
+| **Layer 2 — byte-sniff** | In `MimeValidationStage` (after S3 upload, triggered by `confirm`) | Actual file bytes via `python-magic` | Always |
+
+Layer 1 catches obvious mismatches before consuming storage bandwidth. Layer 2 catches files
+whose bytes don't match the declared type (e.g., a `.pdf` file that is actually a ZIP).
+
+## Security enforcement
+
+Each project has four network security controls enforced on every file API call:
+
+### IP allowlist (`allowed_ips`)
+
+A comma-separated list of CIDR blocks. Requests from IPs not in the list are rejected with `403`.
+Leave empty to allow all IPs.
+
+**Important:** The IP check applies to the **caller server IP** — the machine running your backend
+or SDK — not to end-user browser IPs. Browser-side uploads use the presigned URL directly
+(S3 enforces the signature, not this allowlist).
+
+```
+allowed_ips: "10.0.0.0/8,203.0.113.42/32"
+```
+
+### CORS allowed origins (`allowed_origins`)
+
+Browser requests (from JavaScript) include an `Origin` header. If your project has
+`allowed_origins` set, only matching origins receive CORS response headers. The browser
+blocks cross-origin responses that lack these headers.
+
+```
+allowed_origins: "https://app.example.com,https://www.example.com"
+```
+
+Leave empty to allow all origins (`*`).
+
+### Require signed URLs (`require_signed_urls`)
+
+When enabled, the SDK defaults to presigned URL mode for **both uploads and downloads**.
+Individual SDK calls can still override this per-request.
+
+When enabled, callers cannot override the TTL — `signed_url_ttl_seconds` is always used.
+
+### Signed URL TTL (`signed_url_ttl_seconds`)
+
+The lifetime (in seconds) of all generated presigned URLs — upload init, multipart part
+URLs, and download URLs. Default: 3 600 s (1 hour). Range: 60 s – 86 400 s (24 hours).
+
+When `require_signed_urls` is on, any `ttl` query parameter sent by the caller is ignored.
+
+## Using the API without the SDK
+
+The SDK handles the full flow automatically. If you're calling the API manually:
+
+1. Call `POST /files/upload` with your file metadata — store the returned `upload_url` and `file_id`.
+2. PUT the file bytes to `upload_url` (standard HTTP PUT, no auth header).
+3. Save the `ETag` from the PUT response (only needed for multipart).
+4. Call `POST /files/{file_id}/confirm` immediately after a successful PUT.
+5. Poll `GET /files/{file_id}` until `status` is `ready`, `quarantined`, or `failed`.
+
+For multipart, collect each part's `ETag` from the PUT responses and pass them all to `complete`.

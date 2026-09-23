@@ -1,0 +1,114 @@
+{
+  "id": "record_observation",
+  "name": "Record Observation",
+  "description": "Record a clinical observation with a LOINC code, status, value, interpretation, and performer details.",
+  "version": "1.0.0",
+  "tags": ["fhir", "clinical", "observation", "create"],
+  "llm_hints": {
+    "intent_examples": [
+      "Record an observation",
+      "Add a lab result",
+      "Document a clinical measurement",
+      "Record an observation for a patient",
+      "Add LOINC observation"
+    ],
+    "when_to_use": [
+      "User wants to record a new FHIR Observation resource",
+      "User wants to document a lab result, clinical finding, or measurement using a LOINC code"
+    ],
+    "when_not_to_use": [
+      "User wants to record vital signs directly (use record_vitals instead)",
+      "User wants to record a diagnosis (use record_condition instead)"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you record a clinical observation — LOINC code, status, value, interpretation, and timing.",
+  "completion": {
+    "message": "Observation recorded successfully.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "record_observation_step",
+      "name": "Record Observation",
+      "step_type": "form",
+      "description": "Enter the observation details including LOINC code, status, value, and performer.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "field": "me_patient.id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Resolve the current patient from session.",
+          "context_key": "me_patient",
+          "tool_name": "get_my_patient",
+          "url": "$fhir_gql_url/patients/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Load practitioners available for booking.",
+          "context_key": "booking_practitioners",
+          "tool_name": "list_practitioners",
+          "url": "$fhir_gql_url/practitioner-roles/booking",
+          "method": "GET",
+          "timeout_ms": 10000
+        },
+        {
+          "description": "Fetch status value set for Observation.",
+          "context_key": "status_concepts",
+          "tool_name": "get_observation_status",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Observation&field=status",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch category value set for Observation.",
+          "context_key": "category_concepts",
+          "tool_name": "get_observation_category",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Observation&field=category",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch interpretation value set for Observation.",
+          "context_key": "interpretation_concepts",
+          "tool_name": "get_observation_interpretation",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Observation&field=interpretation",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "observation_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_observation",
+          "tool_name": "create_observation",
+          "url": "$fhir_gql_url/observations/",
+          "method": "POST",
+          "validation_schema": "observation_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    }
+  ]
+}

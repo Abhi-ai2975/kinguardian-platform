@@ -1,0 +1,81 @@
+{
+  "id": "close_encounter",
+  "name": "Close Encounter",
+  "description": "Close an active clinical encounter by setting its final status and recording the actual end time.",
+  "version": "1.0.0",
+  "tags": ["fhir", "encounter", "close", "discharge", "update"],
+  "llm_hints": {
+    "intent_examples": [
+      "Close an encounter",
+      "Discharge a patient encounter",
+      "End a clinical encounter",
+      "Mark an encounter as completed",
+      "Close the current patient visit",
+      "Finish an encounter"
+    ],
+    "when_to_use": [
+      "User wants to close or complete an existing Encounter",
+      "User wants to discharge a patient from an encounter",
+      "User wants to set the final status of an Encounter and record the end time"
+    ],
+    "when_not_to_use": [
+      "User wants to open a new encounter (use open_encounter)",
+      "User wants to create a new patient visit",
+      "User wants to cancel an appointment"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you close the encounter by recording the final status and end time.",
+  "completion": {
+    "message": "Encounter closed successfully.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "close_encounter_step",
+      "name": "Close Encounter",
+      "step_type": "form",
+      "description": "Set the final status and record the actual end time for this encounter.",
+      "context": {
+        "inputs": {
+          "encounter_id": { "type": "integer", "source": "workflow" }
+        },
+        "outputs": {}
+      },
+      "context_resolvers": [
+        {
+          "description": "Fetch Encounter status value set.",
+          "context_key": "status_concepts",
+          "tool_name": "get_encounter_status_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Encounter&field=status",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "encounter_close_form",
+        "mode": "edit",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "close_encounter",
+          "tool_name": "close_encounter",
+          "url": "$fhir_gql_url/encounters/$encounter_id",
+          "method": "PATCH",
+          "validation_schema": "encounter_close_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    }
+  ]
+}

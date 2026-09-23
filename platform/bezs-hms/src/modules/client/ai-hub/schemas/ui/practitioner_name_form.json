@@ -1,0 +1,119 @@
+{
+  "id": "practitioner-name-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "practitioner-name-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "add_practitioner_name" },
+        "submitLabel": { "literalString": "Save Names" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "form-title",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Step 2: Add Names" }, "usageHint": "h2" }
+          },
+          {
+            "id": "form-subtitle",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Add one or more names for this practitioner." }, "usageHint": "caption" }
+          },
+          { "id": "divider-top", "type": "Divider", "properties": {} },
+          {
+            "id": "names",
+            "type": "RepeatableGroup",
+            "properties": {
+              "addLabel": { "literalString": "Add Name" },
+              "minItems": { "literalNumber": 1 },
+              "defaultCount": { "literalNumber": 1 },
+              "template": [
+                {
+                  "id": "use",
+                  "type": "TerminologySelect",
+                  "properties": {
+                    "label": { "literalString": "Name Use" },
+                    "placeholder": { "literalString": "Search name use…" },
+                    "items": "$name_use_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "text",
+                  "type": "TextField",
+                  "properties": {
+                    "label": { "literalString": "Full Name (display)" },
+                    "placeholder": { "literalString": "e.g. Dr. Jane Smith" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "prac-given-family-row",
+                  "type": "Row",
+                  "properties": {
+                    "gap": "medium",
+                    "alignment": "stretch",
+                    "children": [
+                      {
+                        "id": "given",
+                        "type": "TextField",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Given Name" },
+                          "placeholder": { "literalString": "First name" },
+                          "textFieldType": "shortText"
+                        }
+                      },
+                      {
+                        "id": "family",
+                        "type": "TextField",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Family Name" },
+                          "placeholder": { "literalString": "Last name" },
+                          "textFieldType": "shortText"
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "prac-prefix-suffix-row",
+                  "type": "Row",
+                  "properties": {
+                    "gap": "medium",
+                    "alignment": "stretch",
+                    "children": [
+                      {
+                        "id": "prefix",
+                        "type": "TextField",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Prefix (optional)" },
+                          "placeholder": { "literalString": "e.g. Dr." },
+                          "textFieldType": "shortText"
+                        }
+                      },
+                      {
+                        "id": "suffix",
+                        "type": "TextField",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Suffix (optional)" },
+                          "placeholder": { "literalString": "e.g. MD, FRCS" },
+                          "textFieldType": "shortText"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

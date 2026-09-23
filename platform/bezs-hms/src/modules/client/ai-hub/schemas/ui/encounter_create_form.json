@@ -1,0 +1,193 @@
+{
+  "id": "encounter-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "encounter-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_encounter" },
+        "submitLabel": { "literalString": "Open Encounter" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "enc-form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Step 2: Open Encounter" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "enc-form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Provide encounter details. Patient and Episode of Care are resolved automatically." },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "enc-divider-top", "type": "Divider", "properties": {} },
+          {
+            "id": "enc-section-core",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Encounter Details" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "status",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Status" },
+              "placeholder": { "literalString": "Select encounter status…" },
+              "items": "$status_concepts.concepts",
+              "valueType": { "literalString": "code" }
+            }
+          },
+          {
+            "id": "class",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Class (e.g. AMB = ambulatory, VR = virtual)" },
+              "placeholder": { "literalString": "Select encounter class…" },
+              "items": "$class_concepts.concepts",
+              "valueType": { "literalString": "CodeableConcept" }
+            }
+          },
+          {
+            "id": "service_type",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Service Type (optional)" },
+              "placeholder": { "literalString": "Select service type…" },
+              "items": "$service_type_concepts.concepts",
+              "valueType": { "literalString": "CodeableConcept" }
+            }
+          },
+          { "id": "enc-divider-provider", "type": "Divider", "properties": {} },
+          {
+            "id": "enc-section-provider",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Provider & Location" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "provider",
+            "type": "DataSelect",
+            "properties": {
+              "label": { "literalString": "Service Provider" },
+              "placeholder": { "literalString": "Select organisation…" },
+              "items": "$my_organizations.data",
+              "labelPath": "name",
+              "emits": [
+                { "key": "ref_id", "path": "id" },
+                { "key": "display", "path": "name" }
+              ]
+            }
+          },
+          {
+            "id": "location",
+            "type": "DataSelect",
+            "properties": {
+              "label": { "literalString": "Location (optional)" },
+              "placeholder": { "literalString": "Select location…" },
+              "items": "$my_locations.data",
+              "labelPath": "name",
+              "emits": [
+                { "key": "ref_id", "path": "id" },
+                { "key": "display", "path": "name" }
+              ]
+            }
+          },
+          { "id": "enc-divider-practitioner", "type": "Divider", "properties": {} },
+          {
+            "id": "enc-section-practitioner",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Attending Practitioner" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "practitioner",
+            "type": "DataSelect",
+            "properties": {
+              "label": { "literalString": "Attending Practitioner (optional)" },
+              "placeholder": { "literalString": "Search practitioner…" },
+              "items": "$booking_practitioners.data",
+              "labelPath": "practitioner_detail.name.text",
+              "emits": [
+                { "key": "ref_id", "path": "practitioner_ref_id" }
+              ]
+            }
+          },
+          { "id": "enc-divider-timing", "type": "Divider", "properties": {} },
+          {
+            "id": "enc-section-timing",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Encounter Timing" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "enc-timing-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "actual_period_start",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Encounter Start" },
+                    "enableDate": true,
+                    "enableTime": true
+                  }
+                }
+              ]
+            }
+          },
+          { "id": "enc-divider-reason", "type": "Divider", "properties": {} },
+          {
+            "id": "enc-section-reason",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Reason / Chief Complaint" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "reason",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Reason / Chief Complaint (optional)" },
+              "placeholder": { "literalString": "Search SNOMED…" },
+              "valueType": { "literalString": "CodeableConcept" },
+              "serverSearch": {
+                "system": "http://snomed.info/sct",
+                "minChars": 2,
+                "debounceMs": 200
+              }
+            }
+          },
+          { "id": "enc-divider-note", "type": "Divider", "properties": {} },
+          {
+            "id": "enc-auto-note",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Note: Patient and Episode of Care are resolved automatically from your session." },
+              "usageHint": "caption"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,202 @@
+{
+  "id": "task-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "task-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_task" },
+        "submitLabel": { "literalString": "Create Task" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "task-form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Step 2: Create Follow-up Task" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "task-form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Automatically linked to the care plan from step 1. Assign a responsible practitioner and set a due date." },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "task-divider-top", "type": "Divider", "properties": {} },
+          {
+            "id": "task-section-core",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Task Details" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "task-status-intent-priority-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "task_status",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Status" },
+                    "placeholder": { "literalString": "Select status…" },
+                    "items": "$task_status_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "task_intent",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Intent" },
+                    "placeholder": { "literalString": "Select intent…" },
+                    "items": "$task_intent_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "priority",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Priority (optional)" },
+                    "placeholder": { "literalString": "Select priority…" },
+                    "items": "$priority_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "task_code",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Task Action Code (optional)" },
+              "placeholder": { "literalString": "Search action code…" },
+              "valueType": { "literalString": "CodeableConcept" },
+              "serverSearch": {
+                "minChars": 2,
+                "debounceMs": 200
+              }
+            }
+          },
+          {
+            "id": "task_description",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Task Description (optional)" },
+              "placeholder": { "literalString": "e.g. Schedule follow-up spirometry" },
+              "textFieldType": "longText"
+            }
+          },
+          { "id": "task-divider-assignment", "type": "Divider", "properties": {} },
+          {
+            "id": "task-section-assignment",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Assignment" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "task-assignment-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "requester",
+                  "type": "DataSelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Requester (optional)" },
+                    "placeholder": { "literalString": "Search practitioner…" },
+                    "items": "$booking_practitioners.data",
+                    "labelPath": "practitioner_detail.name.text",
+                    "emits": [
+                      { "key": "ref_id", "path": "practitioner_ref_id" }
+                    ]
+                  }
+                },
+                {
+                  "id": "owner",
+                  "type": "DataSelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Owner (optional)" },
+                    "placeholder": { "literalString": "Search practitioner…" },
+                    "items": "$booking_practitioners.data",
+                    "labelPath": "practitioner_detail.name.text",
+                    "emits": [
+                      { "key": "ref_id", "path": "practitioner_ref_id" }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          { "id": "task-divider-timing", "type": "Divider", "properties": {} },
+          {
+            "id": "task-section-timing",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Timing" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "task-timing-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "authored_on",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Authored On (optional)" },
+                    "enableDate": true,
+                    "enableTime": true
+                  }
+                },
+                {
+                  "id": "restriction_period_end",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Due By (optional)" },
+                    "enableDate": true,
+                    "enableTime": true
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "task-info-note",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Automatically linked to the care plan from step 1." },
+              "usageHint": "caption"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

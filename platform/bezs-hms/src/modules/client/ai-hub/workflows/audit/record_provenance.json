@@ -1,0 +1,95 @@
+{
+  "id": "record_provenance",
+  "name": "Record Provenance",
+  "description": "Record a FHIR Provenance entry to document the origin, chain of custody, and activity for any FHIR resource.",
+  "version": "1.0.0",
+  "tags": ["fhir", "provenance", "audit", "create"],
+  "llm_hints": {
+    "intent_examples": [
+      "Record provenance",
+      "Add an audit trail entry",
+      "Document who created this resource",
+      "Record the origin of a FHIR resource",
+      "Add provenance for a condition",
+      "Track who authored this record"
+    ],
+    "when_to_use": [
+      "User wants to create a Provenance resource",
+      "User wants to record the audit trail or chain of custody for a FHIR resource",
+      "User wants to document who authored or modified a clinical record"
+    ],
+    "when_not_to_use": [
+      "User wants to create a care plan",
+      "User wants to book an appointment",
+      "User wants to submit a claim"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you record a provenance entry for any FHIR resource.",
+  "completion": {
+    "message": "Provenance record saved successfully.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "create_provenance_resource",
+      "name": "Record Provenance",
+      "step_type": "form",
+      "description": "Document the target resource, the activity performed, and the responsible agent.",
+      "context": {
+        "inputs": {},
+        "outputs": {}
+      },
+      "context_resolvers": [
+        {
+          "description": "Resolve patient from session.",
+          "context_key": "me_patient",
+          "tool_name": "get_my_patient",
+          "url": "$fhir_gql_url/patients/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Load practitioners available for booking.",
+          "context_key": "booking_practitioners",
+          "tool_name": "list_practitioners",
+          "url": "$fhir_gql_url/practitioner-roles/booking",
+          "method": "GET",
+          "timeout_ms": 10000
+        },
+        {
+          "description": "Fetch Provenance activity value set.",
+          "context_key": "activity_concepts",
+          "tool_name": "get_provenance_activity",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Provenance&field=activity",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "provenance_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_provenance",
+          "tool_name": "create_provenance",
+          "url": "$fhir_gql_url/provenances/",
+          "method": "POST",
+          "validation_schema": "provenance_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    }
+  ]
+}

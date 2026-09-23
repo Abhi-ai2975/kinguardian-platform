@@ -1,0 +1,204 @@
+{
+  "id": "imm-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "imm-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "record_immunization" },
+        "submitLabel": { "literalString": "Place Order" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "imm-form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Record Immunization" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "imm-form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Document a vaccination event for the patient. Search for the vaccine code, enter occurrence details, and confirm the administering practitioner." },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "imm-divider-top", "type": "Divider", "properties": {} },
+          {
+            "id": "imm-section-vaccine",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Vaccine" }, "usageHint": "h4" }
+          },
+          {
+            "id": "vaccine_code",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Vaccine Code (CVX / SNOMED)" },
+              "placeholder": { "literalString": "Search vaccine…" },
+              "valueType": { "literalString": "CodeableConcept" },
+              "serverSearch": { "minChars": 2, "debounceMs": 200 }
+            }
+          },
+          { "id": "imm-divider-status", "type": "Divider", "properties": {} },
+          {
+            "id": "imm-section-status",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Status & Timing" }, "usageHint": "h4" }
+          },
+          {
+            "id": "imm-status-datetime-source-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "status",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Status" },
+                    "placeholder": { "literalString": "Select status…" },
+                    "items": "$status_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "occurrence_datetime",
+                  "type": "DateTimeInput",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "Occurrence Date & Time" },
+                    "enableDate": true,
+                    "enableTime": true
+                  }
+                },
+                {
+                  "id": "primary_source",
+                  "type": "CheckBox",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Primary Source" },
+                    "value": { "literalBoolean": true }
+                  }
+                }
+              ]
+            }
+          },
+          { "id": "imm-divider-lot", "type": "Divider", "properties": {} },
+          {
+            "id": "imm-section-lot",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Lot" }, "usageHint": "h4" }
+          },
+          {
+            "id": "imm-lot-expiry-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "lot_number",
+                  "type": "TextField",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "Lot Number (optional)" },
+                    "placeholder": { "literalString": "e.g. ABC123" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "expiration_date",
+                  "type": "DateTimeInput",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "Expiration Date (optional)" },
+                    "enableDate": true,
+                    "enableTime": false
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "imm-dose-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "dose_quantity_value",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Dose Quantity (optional)" },
+                    "placeholder": { "literalString": "e.g. 0.5" },
+                    "textFieldType": "number"
+                  }
+                },
+                {
+                  "id": "dose_quantity_unit",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Dose Unit (optional)" },
+                    "placeholder": { "literalString": "mL" },
+                    "textFieldType": "shortText"
+                  }
+                }
+              ]
+            }
+          },
+          { "id": "imm-divider-site", "type": "Divider", "properties": {} },
+          {
+            "id": "imm-section-site",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Site & Performer" }, "usageHint": "h4" }
+          },
+          {
+            "id": "site",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Injection Site (optional)" },
+              "placeholder": { "literalString": "Search injection site…" },
+              "valueType": { "literalString": "CodeableConcept" },
+              "serverSearch": {
+                "system": "http://snomed.info/sct",
+                "minChars": 2,
+                "debounceMs": 200
+              }
+            }
+          },
+          {
+            "id": "performer",
+            "type": "DataSelect",
+            "properties": {
+              "label": { "literalString": "Administering Practitioner (optional)" },
+              "placeholder": { "literalString": "Search practitioners…" },
+              "items": "$booking_practitioners.data",
+              "labelPath": "practitioner_detail.name.text",
+              "descriptionPath": "specialty.0.coding_display",
+              "emits": [
+                { "key": "ref_id", "path": "practitioner_ref_id" }
+              ]
+            }
+          },
+          {
+            "id": "imm-session-note",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Patient and encounter resolved from session." },
+              "usageHint": "caption"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

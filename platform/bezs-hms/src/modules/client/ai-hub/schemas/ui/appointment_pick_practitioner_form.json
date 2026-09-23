@@ -1,0 +1,60 @@
+{
+  "id": "appointment-pick-practitioner-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "appointment-pick-practitioner-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "fetch_available_slots" },
+        "submitLabel": { "literalString": "Continue — Load Available Slots" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Step 1: Select Practitioner" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Choose a practitioner from your organisation's booking directory. Their available slots will load in the next step." },
+              "usageHint": "caption"
+            }
+          },
+          {
+            "id": "divider-top",
+            "type": "Divider",
+            "properties": {}
+          },
+          {
+            "id": "practitioner",
+            "type": "DataSelect",
+            "properties": {
+              "label": { "literalString": "Practitioner" },
+              "placeholder": { "literalString": "Search practitioners…" },
+              "items": "$booking_practitioners.data",
+              "labelPath": "practitioner_detail.name.text",
+              "descriptionPath": "specialty.0.coding_display",
+              "emits": [
+                { "key": "role_id", "path": "id" },
+                { "key": "ref_id", "path": "practitioner_ref_id" },
+                { "key": "display", "path": "practitioner_detail.name.text" },
+                { "key": "spec_system", "path": "specialty.0.coding_system" },
+                { "key": "spec_code", "path": "specialty.0.coding_code" },
+                { "key": "spec_display", "path": "specialty.0.coding_display" },
+                { "key": "svc_ref_id", "path": "healthcare_service.0.reference_id" },
+                { "key": "svc_display", "path": "healthcare_service.0.reference_display" }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

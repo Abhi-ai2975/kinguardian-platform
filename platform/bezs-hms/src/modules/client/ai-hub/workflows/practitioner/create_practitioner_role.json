@@ -1,0 +1,76 @@
+{
+  "id": "create_practitioner_role",
+  "name": "Create Practitioner Role",
+  "description": "Assign a practitioner to an organisation, location, and healthcare service, and define their role codes, specialty, and availability.",
+  "version": "1.0.0",
+  "tags": ["fhir", "practitioner-role", "create", "crud"],
+  "required_permissions": ["practitioner_role:create"],
+  "llm_hints": {
+    "intent_examples": [
+      "Create a practitioner role",
+      "Assign a doctor to an organisation",
+      "Link a practitioner to a healthcare service",
+      "Set up a practitioner's availability",
+      "Register a practitioner at a clinic"
+    ],
+    "when_to_use": [
+      "User wants to create a new PractitionerRole resource",
+      "User wants to assign a practitioner to an organisation or location",
+      "User wants to define a practitioner's working hours or specialty in a role"
+    ],
+    "when_not_to_use": [
+      "User wants to create a new practitioner (use Create Practitioner workflow)",
+      "User wants to create a Schedule or Slots (use Create Schedule workflow)",
+      "User wants to update an existing role"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you assign a practitioner to a role within your organisation.",
+  "completion": {
+    "message": "Practitioner role created successfully.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "create_practitioner_role_resource",
+      "name": "Create Practitioner Role",
+      "step_type": "form",
+      "description": "Select the practitioner, link them to an organisation, location, and healthcare service, and define their availability.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "practitioner_role_id": {
+            "type": "integer",
+            "resource": "PractitionerRole",
+            "field": "id"
+          }
+        }
+      },
+      "context_resolvers": [],
+      "ui": {
+        "schema": "practitioner_role_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_practitioner_role",
+          "tool_name": "create_practitioner_role",
+          "url": "$fhir_gql_url/practitioner-roles/",
+          "method": "POST",
+          "validation_schema": "practitioner_role_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+{
+  "id": "record_procedure",
+  "name": "Record Procedure",
+  "description": "Record a clinical procedure performed on the current patient, including the procedure code, status, performer, location, and outcome.",
+  "version": "1.0.0",
+  "tags": ["fhir", "procedure", "clinical", "create", "healthcare"],
+  "llm_hints": {
+    "intent_examples": [
+      "Record a procedure",
+      "Log a clinical procedure",
+      "Document a procedure performed",
+      "Record a surgery",
+      "Add a procedure for a patient"
+    ],
+    "when_to_use": [
+      "User wants to record or document a clinical procedure",
+      "User wants to create a Procedure resource for a patient"
+    ],
+    "when_not_to_use": [
+      "User wants to record an observation or vitals",
+      "User wants to book an appointment"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you record a clinical procedure for the current patient.",
+  "completion": {
+    "message": "Procedure recorded successfully.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "record_procedure_resource",
+      "name": "Record Procedure",
+      "step_type": "form",
+      "description": "Enter the procedure details including code, status, performer, and outcome.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "field": "me_patient.id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Resolve current patient from session.",
+          "context_key": "me_patient",
+          "tool_name": "get_my_patient",
+          "url": "$fhir_gql_url/patients/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch procedure status value set.",
+          "context_key": "status_concepts",
+          "tool_name": "get_procedure_status_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Procedure&field=status",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch procedure category value set.",
+          "context_key": "category_concepts",
+          "tool_name": "get_procedure_category_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Procedure&field=category",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch procedure outcome value set.",
+          "context_key": "outcome_concepts",
+          "tool_name": "get_procedure_outcome_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Procedure&field=outcome",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Load practitioners available for booking.",
+          "context_key": "booking_practitioners",
+          "tool_name": "list_practitioners_for_booking",
+          "url": "$fhir_gql_url/practitioner-roles/booking",
+          "method": "GET",
+          "timeout_ms": 10000
+        },
+        {
+          "description": "Load locations for selection.",
+          "context_key": "my_locations",
+          "tool_name": "get_my_locations",
+          "url": "$fhir_gql_url/locations/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "procedure_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "record_procedure",
+          "tool_name": "record_procedure",
+          "url": "$fhir_gql_url/procedures/",
+          "method": "POST",
+          "validation_schema": "procedure_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    }
+  ]
+}

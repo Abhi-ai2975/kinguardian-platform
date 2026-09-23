@@ -1,0 +1,18 @@
+[package]
+name = "watcher-sdk"
+version = "0.1.0"
+edition = "2021"
+description = "Official Watcher24 SDK for Rust — ingest logs, audit events, traces, and metrics."
+license = "MIT"
+repository = "https://github.com/watcher24/rust-sdk"
+keywords = ["observability", "logging", "tracing", "audit", "telemetry"]
+
+[dependencies]
+# serde / serde_json — serialise WireEvents to JSON for the gateway
+serde      = { version = "1", features = ["derive"] }
+serde_json = "1"
+# ureq — lightweight blocking HTTP client; no async runtime required
+ureq = { version = "2", features = ["json"] }
+
+[dev-dependencies]
+# No extra dev deps — tests use std only and a FakeTransport defined in-module

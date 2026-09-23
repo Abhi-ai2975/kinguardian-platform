@@ -1,0 +1,65 @@
+---
+title: "Bring Your Own Bucket"
+description: "Connect your own storage backend to a FileNest project."
+---
+
+# Bring Your Own Bucket (BYOB)
+
+BYOB lets you connect your own storage backend to a FileNest project. FileNest stores credentials encrypted in its database and uses them to upload, download, and manage objects in your bucket.
+
+## Supported BYOB providers
+
+| Provider | Credentials needed |
+|----------|--------------------|
+| AWS S3 | Access key ID, secret access key, bucket, region |
+| Azure Blob Storage | Account name, account key, container name |
+| Google Cloud Storage | Service account JSON, bucket name |
+| Cloudflare R2 | Access key ID, secret access key, account endpoint, bucket |
+| MinIO | Access key ID, secret access key, endpoint URL, bucket |
+| RustFS | Access key ID, secret access key, endpoint URL, bucket |
+
+## Setup flow
+
+1. Create a project with `storage_mode: "byob"` and the desired `storage_provider`
+2. Save credentials via `PATCH /v1/projects/{id}/storage`
+3. Verify connectivity via `POST /v1/projects/{id}/storage/verify`
+4. Start uploading files — FileNest routes all I/O through your bucket
+
+## Saving credentials
+
+```bash
+curl -X PATCH https://api.filenest.io/v1/projects/{id}/storage \
+  -H "Authorization: Bearer fn_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "s3",
+    "storage_mode": "byob",
+    "bucket_name": "my-company-files",
+    "region": "us-east-1",
+    "access_key_id": "AKIA...",
+    "secret_access_key": "..."
+  }'
+```
+
+## Credential encryption
+
+Credentials are encrypted with **AES-256-GCM** before being stored. The plaintext is never written to disk or logs. Only FileNest's API processes can decrypt credentials at runtime.
+
+<Callout type="note">
+The `GET /v1/projects/{id}/storage` endpoint returns non-sensitive fields only (`mode`, `provider`, `bucket_name`, `region`, `endpoint_url`). Credentials are never returned after being saved.
+</Callout>
+
+## Verify connectivity
+
+After saving credentials, run a connectivity test. FileNest writes and immediately deletes a probe object to confirm read/write access:
+
+```bash
+curl -X POST https://api.filenest.io/v1/projects/{id}/storage/verify \
+  -H "Authorization: Bearer fn_live_..."
+```
+
+```json
+{ "ok": true, "latency_ms": 87 }
+```
+
+If verification fails, check that the IAM policy on your credentials allows `s3:PutObject`, `s3:GetObject`, and `s3:DeleteObject` on the target bucket.

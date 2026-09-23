@@ -1,0 +1,197 @@
+{
+  "id": "invoice-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "invoice-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_invoice" },
+        "submitLabel": { "literalString": "Issue Invoice" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "inv-form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Step 3: Issue Patient Invoice" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "inv-form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Issue a patient-facing invoice reflecting the amounts owed after adjudication. Patient resolved from session." },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "inv-divider-top", "type": "Divider", "properties": {} },
+          {
+            "id": "inv-section-core",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Invoice Details" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "inv-status-date-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "status",
+                  "type": "TerminologySelect",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "Status" },
+                    "placeholder": { "literalString": "Select status…" },
+                    "items": "$status_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "date",
+                  "type": "DateTimeInput",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "Invoice Date (optional)" },
+                    "enableDate": true,
+                    "enableTime": true
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "issuer",
+            "type": "DataSelect",
+            "properties": {
+              "label": { "literalString": "Issuer (optional)" },
+              "placeholder": { "literalString": "Search organisation…" },
+              "items": "$my_organizations.data",
+              "labelPath": "name",
+              "emits": [
+                { "key": "ref_id", "path": "id" },
+                { "key": "display", "path": "name" }
+              ]
+            }
+          },
+          { "id": "inv-divider-amounts", "type": "Divider", "properties": {} },
+          {
+            "id": "inv-section-amounts",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Amounts" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "inv-amounts-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "total_gross_value",
+                  "type": "TextField",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "Gross Total (optional)" },
+                    "placeholder": { "literalString": "e.g. 150.00" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "total_net_value",
+                  "type": "TextField",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "Net (Patient Owes) (optional)" },
+                    "placeholder": { "literalString": "e.g. 30.00" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "currency",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Currency (optional)" },
+                    "placeholder": { "literalString": "USD" },
+                    "textFieldType": "shortText"
+                  }
+                }
+              ]
+            }
+          },
+          { "id": "inv-divider-lineitem", "type": "Divider", "properties": {} },
+          {
+            "id": "inv-section-lineitem",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Line Item" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "item_code",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Service Code (optional)" },
+              "placeholder": { "literalString": "Search service code…" },
+              "valueType": { "literalString": "CodeableConcept" },
+              "serverSearch": {
+                "minChars": 2,
+                "debounceMs": 200
+              }
+            }
+          },
+          {
+            "id": "inv-lineitem-amount-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "item_amount",
+                  "type": "TextField",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "Amount (optional)" },
+                    "placeholder": { "literalString": "e.g. 30.00" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "item_currency",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Currency (optional)" },
+                    "placeholder": { "literalString": "USD" },
+                    "textFieldType": "shortText"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "inv-info-note",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Patient resolved from session." },
+              "usageHint": "caption"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

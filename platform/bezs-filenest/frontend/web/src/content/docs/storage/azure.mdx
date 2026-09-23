@@ -1,0 +1,47 @@
+---
+title: "Azure Blob Storage"
+description: "Connect a FileNest project to an Azure Blob Storage container."
+---
+
+# Azure Blob Storage
+
+Connect a FileNest project to an Azure Blob Storage container using a storage account key.
+
+## Prerequisites
+
+1. An Azure Storage Account with a container created
+2. The storage account's **access key** (found under Storage Account → Access keys in the Azure portal)
+
+## Connecting Azure Blob Storage
+
+```bash
+curl -X PATCH https://api.filenest.io/v1/projects/{id}/storage \
+  -H "Authorization: Bearer fn_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "azure_blob",
+    "storage_mode": "byob",
+    "bucket_name": "my-container",
+    "account_name": "mystorageaccount",
+    "account_key": "base64encodedkey=="
+  }'
+```
+
+<Callout type="note">
+`bucket_name` maps to the **container name** in Azure terminology.
+</Callout>
+
+## Encryption
+
+Azure Blob Storage encrypts all data at rest by default using Microsoft-managed keys. This cannot be disabled and does not require any FileNest configuration. The `sse_enabled` field is always `true` for Azure projects.
+
+## Permissions
+
+The storage account key grants full read/write access to all containers in the account. For least-privilege access, consider using a **SAS token** or **Managed Identity** — contact FileNest support for those options.
+
+## Verify connectivity
+
+```bash
+curl -X POST https://api.filenest.io/v1/projects/{id}/storage/verify \
+  -H "Authorization: Bearer fn_live_..."
+```

@@ -1,0 +1,103 @@
+{
+  "id": "patient-photo-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "patient-photo-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "add_patient_photo" },
+        "submitLabel": { "literalString": "Save Photos" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Add Patient Photos" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Attach one or more photo URLs to the patient record." },
+              "usageHint": "caption"
+            }
+          },
+          {
+            "id": "divider-top",
+            "type": "Divider",
+            "properties": {}
+          },
+          {
+            "id": "photos",
+            "type": "RepeatableGroup",
+            "properties": {
+              "addLabel": { "literalString": "Add Photo" },
+              "minItems": { "literalNumber": 1 },
+              "defaultCount": { "literalNumber": 1 },
+              "template": [
+                {
+                  "id": "url",
+                  "type": "TextField",
+                  "properties": {
+                    "label": { "literalString": "Photo URL" },
+                    "placeholder": { "literalString": "https://example.com/photo.jpg" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "photo-meta-row",
+                  "type": "Row",
+                  "properties": {
+                    "gap": "medium",
+                    "alignment": "stretch",
+                    "children": [
+                      {
+                        "id": "content_type",
+                        "type": "MultipleChoice",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Content Type" },
+                          "placeholder": { "literalString": "Select MIME type" },
+                          "items": [
+                            { "label": { "literalString": "image/jpeg" }, "value": "image/jpeg" },
+                            { "label": { "literalString": "image/png" }, "value": "image/png" },
+                            { "label": { "literalString": "image/gif" }, "value": "image/gif" },
+                            { "label": { "literalString": "image/webp" }, "value": "image/webp" }
+                          ]
+                        }
+                      },
+                      {
+                        "id": "title",
+                        "type": "TextField",
+                        "weight": 2,
+                        "properties": {
+                          "label": { "literalString": "Title (optional)" },
+                          "placeholder": { "literalString": "e.g. Profile photo" },
+                          "textFieldType": "shortText"
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "language",
+                  "type": "TextField",
+                  "properties": {
+                    "label": { "literalString": "Language (optional)" },
+                    "placeholder": { "literalString": "BCP-47 code, e.g. en, fr" },
+                    "textFieldType": "shortText"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

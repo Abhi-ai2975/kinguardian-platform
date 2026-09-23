@@ -1,0 +1,75 @@
+{
+  "id": "admin-upload-report-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "admin-upload-report-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "upload_patient_report" },
+        "submitLabel": { "literalString": "Upload Report" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "upload-form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Step 3: Upload Report" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "upload-form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": {
+                "literalString": "Select the test order this report belongs to, then upload the result file (PDF, JPEG, or PNG). A Diagnostic Report is created automatically on submit."
+              },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "upload-divider", "type": "Divider", "properties": {} },
+          {
+            "id": "service_request_select",
+            "type": "DataSelect",
+            "properties": {
+              "label": { "literalString": "Test Order (Service Request)" },
+              "placeholder": { "literalString": "Select the test order…" },
+              "items": "$encounter_service_requests.data",
+              "labelPath": "code_display",
+              "descriptionTemplate": "{code_text} · {status}",
+              "emits": [
+                { "key": "service_request_id", "path": "id" }
+              ]
+            }
+          },
+          {
+            "id": "report_file",
+            "type": "FileUpload",
+            "properties": {
+              "label": { "literalString": "Report File" },
+              "tokenEndpoint": { "literalString": "/api/filenest-token" },
+              "filePath": "$patient_id/reports",
+              "allowedMimeTypes": [
+                "application/pdf",
+                "image/jpeg",
+                "image/png",
+                "image/webp"
+              ],
+              "maxFiles": { "literalNumber": 1 },
+              "maxSizeMb": { "literalNumber": 20 },
+              "metadata": {
+                "source": { "literalString": "emr-chat" },
+                "patientFhirId": { "path": "$patient_id" },
+                "encounterId": { "path": "$encounter_id" }
+              },
+              "userId": { "path": "$user_id" },
+              "orgId": { "path": "$org_id" }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

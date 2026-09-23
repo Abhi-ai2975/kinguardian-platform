@@ -1,0 +1,46 @@
+---
+title: "Storage Overview"
+description: "FileNest supports managed storage and bring-your-own-bucket across six providers."
+---
+
+# Storage Overview
+
+FileNest supports two storage modes: **Managed** (FileNest owns the bucket) and **BYOB** (you supply the credentials).
+
+## Storage modes
+
+| Mode | Who manages the bucket | When to use |
+|------|------------------------|-------------|
+| `managed` | FileNest | Getting started, no storage preferences |
+| `byob` | You | Compliance requirements, existing bucket, cost control |
+
+## Supported providers
+
+| Provider | Mode | SSE default |
+|----------|------|-------------|
+| AWS S3 | managed + byob | Always on (AES-256) |
+| Azure Blob Storage | byob | Always on (Azure-managed) |
+| Google Cloud Storage | byob | Always on (Google-managed) |
+| Cloudflare R2 | byob | Always on (AES-256) |
+| MinIO | managed + byob | Off by default (togglable) |
+| RustFS | managed + byob | Off by default (togglable) |
+
+## Choosing a provider
+
+- **Start with Managed S3** — zero configuration, SSE always on, scales automatically.
+- **Switch to BYOB** when you need to store data in your own AWS account, use an existing bucket, or comply with data residency requirements.
+- **MinIO or RustFS** — for on-premises or air-gapped deployments where data cannot leave your infrastructure.
+
+## Server-side encryption
+
+All cloud providers (S3, R2, Azure, GCS) have encryption enforced at all times and cannot be disabled.
+
+MinIO and RustFS support optional SSE-S3 encryption. When enabled, FileNest sends `ServerSideEncryption: AES256` on every upload. The MinIO/RustFS server must have a KMS key configured.
+
+See [Encryption (SSE)](/docs/storage/encryption) for full details.
+
+## Next steps
+
+- [Managed Storage](/docs/storage/managed) — what's included with managed mode
+- [Bring Your Own Bucket](/docs/storage/byob) — how BYOB credentials work
+- Provider-specific guides: [S3](/docs/storage/s3) · [Azure](/docs/storage/azure) · [GCS](/docs/storage/gcs) · [MinIO](/docs/storage/minio) · [R2](/docs/storage/r2) · [RustFS](/docs/storage/rustfs)

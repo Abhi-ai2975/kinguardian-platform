@@ -1,0 +1,145 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "KinGuardian Mobile Client Request & Response Examples",
+  "examples": {
+    "coordinator_home": {
+      "endpoint": "GET /families/{family_id}/home",
+      "headers": {
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        "X-Request-ID": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d"
+      },
+      "response_status": 200,
+      "response_body": {
+        "family": {
+          "id": "e4b1a8d0-9923-4e8a-b851-f7614d9b3a01",
+          "name": "Sharma Family Circle",
+          "coordinator_name": "Anjali Sharma"
+        },
+        "parents": [
+          {
+            "subject_id": "c1a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b5c",
+            "display_name": "Ramesh Sharma",
+            "city": "Bengaluru",
+            "timezone": "Asia/Kolkata",
+            "health_status": "stable",
+            "adherence_rate_today": 100.0,
+            "latest_feeling": "good"
+          }
+        ],
+        "guardian_moments": [
+          {
+            "id": "99a8b7c6-d5e4-4f3a-2b1c-0d9e8f7a6b5c",
+            "title": "Blood Pressure Stabilization Milestone",
+            "summary": "Ramesh's systolic blood pressure averaged 122 mmHg over the past 7 days, reflecting a 12% improvement.",
+            "severity": "positive",
+            "actionability": "send_celebration_note",
+            "created_at": "2026-08-27T08:00:00Z"
+          }
+        ],
+        "today_medications": [
+          {
+            "id": "11223344-5566-7788-99aa-bbccddeeff00",
+            "subject_id": "c1a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b5c",
+            "fhir_medication_request_id": "med-rx-metformin-500",
+            "scheduled_at": "2026-08-27T08:30:00Z",
+            "status": "taken",
+            "confirmed_at": "2026-08-27T08:35:10Z"
+          }
+        ],
+        "upcoming_appointments": [
+          {
+            "id": "aabbccdd-eeff-0011-2233-445566778899",
+            "fhir_appointment_id": "appt-cardio-dr-rao",
+            "preparation_status": "completed",
+            "summary_status": "pending",
+            "assigned_caregiver_name": "Vikram (Driver & Escort)",
+            "created_at": "2026-08-27T10:00:00Z"
+          }
+        ],
+        "pending_care_tasks": [
+          {
+            "id": "ffeeddcc-bbaa-9988-7766-554433221100",
+            "title": "Pick up monthly prescription refill",
+            "category": "medication",
+            "priority": "high",
+            "due_at": "2026-08-28T14:00:00Z"
+          }
+        ]
+      }
+    },
+    "parent_home": {
+      "endpoint": "GET /parent/home",
+      "headers": {
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        "X-Request-ID": "b2c3d4e5-f6a7-4b5c-8d9e-0f1a2b3c4d5e"
+      },
+      "response_status": 200,
+      "response_body": {
+        "parent_profile_id": "c1a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b5c",
+        "checkin_status": {
+          "submitted": true,
+          "feeling": "good",
+          "notes": "Walked in the park, feeling energetic.",
+          "submitted_at": "2026-08-27T07:15:00Z"
+        },
+        "today_medications": [
+          {
+            "id": "11223344-5566-7788-99aa-bbccddeeff00",
+            "fhir_medication_request_id": "med-rx-metformin-500",
+            "scheduled_at": "2026-08-27T08:30:00Z",
+            "status": "taken",
+            "confirmed_at": "2026-08-27T08:35:10Z"
+          }
+        ],
+        "upcoming_appointment": {
+          "id": "aabbccdd-eeff-0011-2233-445566778899",
+          "fhir_appointment_id": "appt-cardio-dr-rao",
+          "preparation_status": "completed",
+          "assigned_caregiver_name": "Vikram"
+        },
+        "pending_actions": []
+      }
+    },
+    "submit_checkin": {
+      "endpoint": "POST /families/{family_id}/subjects/{subject_id}/checkins",
+      "headers": {
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        "Content-Type": "application/json",
+        "Idempotency-Key": "checkin-2026-08-27-morning"
+      },
+      "request_body": {
+        "feeling": "good",
+        "notes": "Slept 7.5 hours, took morning tea.",
+        "severity": "low"
+      },
+      "response_status": 201,
+      "response_body": {
+        "id": "55667788-99aa-bbcc-ddee-ff0011223344",
+        "feeling": "good",
+        "notes": "Slept 7.5 hours, took morning tea.",
+        "severity": "low",
+        "submitted_at": "2026-08-27T07:15:00Z"
+      }
+    },
+    "confirm_medication": {
+      "endpoint": "POST /families/{family_id}/subjects/{subject_id}/medications/confirm",
+      "headers": {
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        "Content-Type": "application/json",
+        "Idempotency-Key": "med-take-2026-08-27-0830"
+      },
+      "request_body": {
+        "fhir_medication_request_id": "med-rx-metformin-500",
+        "scheduled_at": "2026-08-27T08:30:00Z",
+        "status": "taken",
+        "source": "parent"
+      },
+      "response_status": 200,
+      "response_body": {
+        "id": "11223344-5566-7788-99aa-bbccddeeff00",
+        "status": "taken",
+        "confirmed_at": "2026-08-27T08:35:10Z"
+      }
+    }
+  }
+}

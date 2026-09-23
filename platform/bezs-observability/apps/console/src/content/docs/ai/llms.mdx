@@ -1,0 +1,135 @@
+---
+title: LLMs.txt
+description: Machine-readable documentation for AI assistants — the llms.txt standard.
+---
+
+# LLMs.txt
+
+Watcher24 publishes a `/llms.txt` file at the root of this site. It gives AI assistants a concise, structured summary of the product so they can help you integrate it without needing to read every doc page.
+
+## What is llms.txt?
+
+[llms.txt](https://llmstxt.org) is an emerging standard (similar to `robots.txt`) for providing AI-friendly documentation. Place a plain-text file at `/llms.txt` describing your product, its APIs, and usage patterns.
+
+AI assistants that support the standard will automatically fetch this file when they detect your domain in a conversation — giving them accurate, up-to-date context.
+
+## Watcher24's llms.txt
+
+Our `/llms.txt` covers:
+
+- What Watcher24 is and what problems it solves
+- SDK packages and their install commands
+- Core API methods with signatures
+- Event types and when to use each
+- Environment variable names
+- Common integration patterns
+
+You can view or fetch it directly:
+
+```bash
+curl https://watcher24.io/llms.txt
+```
+
+## Using it with AI assistants
+
+### Claude
+
+Paste the URL into your conversation:
+
+```
+Read https://watcher24.io/llms.txt and help me integrate Watcher24 into my Node.js app.
+```
+
+Or use the **Open in Claude** button on any doc page to pre-load the current page's markdown.
+
+### ChatGPT
+
+```
+Read the documentation at https://watcher24.io/llms.txt and explain how to send audit events.
+```
+
+### Cursor / Copilot
+
+Add to your `.cursorrules` or `copilot-instructions.md`:
+
+```
+For observability, this project uses Watcher24.
+SDK reference: https://watcher24.io/llms.txt
+Always use the typed helpers: audit(), log(), trace(), metric().
+Never hardcode apiKey — use process.env.W24_API_KEY.
+```
+
+## llms-full.txt
+
+We also publish `/llms-full.txt` which includes the complete content of every documentation page in a single file — useful for AI assistants that support large context windows.
+
+```bash
+curl https://watcher24.io/llms-full.txt
+```
+
+<Callout type="note">
+`llms-full.txt` is regenerated on every request and always reflects the latest SDK version and API.
+</Callout>
+
+## Format reference
+
+Our `llms.txt` follows this structure:
+
+```
+# Watcher24
+
+> Real-time observability and audit logging platform.
+
+Watcher24 ingests telemetry (logs, metrics, traces, audit events) from SDKs,
+processes them, and displays them on a realtime dashboard.
+
+## SDKs
+
+- JavaScript / Node.js: `@watcher/node`, `@watcher/browser`, `@watcher/react`, `@watcher/nextjs`
+- Python: `watcher-sdk` (pip / uv)
+
+## Core methods
+
+audit(message, options)  — compliance trail for user actions
+log(severity, message)   — application log events
+trace(message, options)  — distributed trace spans
+metric(message, options) — numeric measurements
+
+## Docs
+
+- [Quickstart](/docs/quickstart)
+- [JavaScript SDK](/docs/sdks/javascript)
+- [Python SDK](/docs/sdks/python)
+- [Event Types](/docs/concepts/events)
+- [API Reference](/docs/api/ingestion)
+```
+
+## For tool builders
+
+If you are building a developer tool that integrates with Watcher24, add our `llms.txt` URL to your context loading pipeline so users get correct SDK usage out of the box:
+
+```typescript
+const WATCHER_DOCS_URL = "https://watcher24.io/llms.txt";
+
+async function loadWatcherContext(): Promise<string> {
+  const res = await fetch(WATCHER_DOCS_URL);
+  return res.text();
+}
+```
+
+## Skill files
+
+For AI coding assistants that need deeper integration guidance, we also publish per-language skill files:
+
+```bash
+# JavaScript / Node.js / React / Next.js
+curl https://watcher24.io/skills/watcher24-js.md
+
+# Python / FastAPI / Django
+curl https://watcher24.io/skills/watcher24-python.md
+
+# Skill index
+curl https://watcher24.io/skills.md
+```
+
+See [Skills →](/docs/ai/skills) for how to load these into Claude Code, Cursor, and Copilot.

@@ -1,0 +1,121 @@
+{
+  "id": "qr-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "qr-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_questionnaire_response" },
+        "submitLabel": { "literalString": "Submit Questionnaire Response" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "qr-form-title",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Record Questionnaire Response" }, "usageHint": "h2" }
+          },
+          {
+            "id": "qr-form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Submit a patient's answers to a FHIR questionnaire. Reference the questionnaire URL, set the status, and add each question-answer pair. Patient and encounter resolved from session context." },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "qr-divider-top", "type": "Divider", "properties": {} },
+          {
+            "id": "qr-section-questionnaire",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Questionnaire" }, "usageHint": "h4" }
+          },
+          {
+            "id": "questionnaire",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Questionnaire URL / Reference" },
+              "placeholder": { "literalString": "http://example.org/fhir/Questionnaire/intake-v1" },
+              "textFieldType": "shortText"
+            }
+          },
+          {
+            "id": "qr-status-authored-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "status",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Status" },
+                    "placeholder": { "literalString": "Select status…" },
+                    "items": "$status_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "authored",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Authored" },
+                    "enableDate": true,
+                    "enableTime": true
+                  }
+                }
+              ]
+            }
+          },
+          { "id": "qr-divider-1", "type": "Divider", "properties": {} },
+          {
+            "id": "qr-section-responses",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Responses" }, "usageHint": "h4" }
+          },
+          {
+            "id": "items",
+            "type": "RepeatableGroup",
+            "properties": {
+              "addLabel": { "literalString": "Add Response Item" },
+              "minItems": { "literalNumber": 1 },
+              "defaultCount": { "literalNumber": 1 },
+              "template": [
+                {
+                  "id": "link_id",
+                  "type": "TextField",
+                  "properties": {
+                    "label": { "literalString": "Question ID" },
+                    "placeholder": { "literalString": "1" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "text",
+                  "type": "TextField",
+                  "properties": {
+                    "label": { "literalString": "Question Text" },
+                    "placeholder": { "literalString": "Chief complaint" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "answer",
+                  "type": "TextField",
+                  "properties": {
+                    "label": { "literalString": "Answer" },
+                    "placeholder": { "literalString": "Patient's response" },
+                    "textFieldType": "longText"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

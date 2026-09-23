@@ -1,0 +1,309 @@
+---
+title: JavaScript / Node.js SDK
+description: Reference for the @watcher/node, @watcher/browser, and @watcher/react packages.
+---
+
+# JavaScript / Node.js SDK
+
+The Watcher24 JavaScript SDK is split into focused packages. Pick the one that matches your runtime.
+
+| Package | Where to use |
+|---------|-------------|
+| `@watcher/node` | Node.js servers, scripts, workers |
+| `@watcher/browser` | Browser bundles (vanilla JS / Vite) |
+| `@watcher/react` | React apps — provides a context provider and hooks |
+| `@watcher/nextjs` | Next.js — middleware, server, and client exports |
+
+## Installation
+
+**Node.js server**
+
+<PackageTabs pkg="@watcher/node" />
+
+**Browser / React SPA**
+
+<PackageTabs pkg="@watcher/browser" />
+<PackageTabs pkg="@watcher/react" />
+
+**Next.js** — see the [Next.js integration guide →](/docs/sdks/nextjs)
+
+## Node.js
+
+### Initialisation
+
+Create a singleton client and register a shutdown hook to prevent event loss on process exit.
+
+```typescript
+// lib/watcher.ts
+import { createNodeClient } from "@watcher/node";
+
+export const watcher = createNodeClient({
+  apiKey: process.env.W24_API_KEY!,
+  appId: process.env.W24_APP_ID,            // links events to a registered app
+  // serviceName labels this component in the dashboard — useful when multiple
+  // services send to the same app (e.g. "payment-api", "auth-worker").
+  serviceName: process.env.W24_SERVICE_NAME,   // optional
+  environment: process.env.NODE_ENV ?? "production",
+  // gatewayUrl is optional — defaults to https://ingest.watcher24.io
+  // Only set W24_GATEWAY_URL for local dev or self-hosted deployments.
+  gatewayUrl: process.env.W24_GATEWAY_URL,
+});
+
+process.on("SIGTERM", () => watcher.shutdown());
+process.on("SIGINT",  () => watcher.shutdown());
+```
+
+| Option | Type | Required | Description |
+|--------|------|----------|-------------|
+| `apiKey` | `string` | Yes | Secret key (`wtch_` prefix) from Settings → API Keys |
+| `appId` | `string` | No | Links events to a registered application in the dashboard. Get the ID from Settings → Apps. |
+| `serviceName` | `string` | No | Label the sending component (e.g. `"payment-api"`, `"ai-agent"`). Stored for filtering in the dashboard. |
+| `environment` | `string` | No | Defaults to `"production"` |
+| `gatewayUrl` | `string` | No | Override the ingest endpoint. Defaults to <GatewayUrl />. Only needed for self-hosted deployments or local dev. |
+| `flushInterval` | `number` | No | How often the background flusher sends events (ms). Default: `500` |
+| `flushAt` | `number` | No | Buffer size that triggers an immediate flush. Default: `100` |
+| `maxBuffer` | `number` | No | Maximum events held in memory; oldest dropped when full. Default: `10 000` |
+
+### Audit events
+
+Record user actions and compliance events. Always include `userId`.
+
+```typescript
+watcher.audit("user.login", {
+  userId: "usr_123",
+  payload: { email: "user@example.com", ip: "1.2.3.4" },
+});
+
+watcher.audit("document.deleted", {
+  userId: "usr_123",
+  payload: { docId: "doc_abc", reason: "gdpr_request" },
+});
+```
+
+### Logs
+
+Application log events with a severity level.
+
+```typescript
+watcher.log("info", "server.started", { payload: { port: 3000 } });
+watcher.log("error", "db.query.failed", { payload: { error: err.message } });
+watcher.log("warn", "rate_limit.approaching", { payload: { used: 9_800, limit: 10_000 } });
+```
+
+Severity levels: `"debug"` · `"info"` · `"warn"` · `"error"` · `"critical"`
+
+### Traces
+
+Distributed trace spans. Pass a shared `traceId` to correlate spans across services.
+
+```typescript
+const traceId = req.headers["x-trace-id"] as string ?? crypto.randomUUID();
+
+watcher.trace("http.request", {
+  traceId,
+  payload: { method: "POST", path: "/api/orders", status: 201, durationMs: 42 },
+});
+```
+
+### Metrics
+
+Numeric measurements. Put the value in `payload.value`.
+
+```typescript
+watcher.metric("orders.total", { payload: { value: 1_042 } });
+watcher.metric("response.latency_ms", { payload: { value: 120, p99: 340 } });
+```
+
+### AI events
+
+Record AI agent telemetry — LLM calls, tool calls, workflow steps, retrievals, and evals.
+Always include a structured `payload` with a `kind` field so the console can display AI-specific columns (model, tokens, cost, latency) and the workflow waterfall.
+
+```typescript
+// LLM call — tracked against a workflow trace
+watcher.ai("info", "llm.call.completed", {
+  traceId: workflowTraceId,
+  spanId:  `llm-${Date.now()}`,
+  payload: {
+    kind:              "llm_call",
+    provider:          "openai",
+    model:             "gpt-4o",
+    prompt_tokens:     840,
+    completion_tokens: 400,
+    total_tokens:      1240,
+    latency_ms:        820,
+    cost_usd:          0.0037,
+    finish_reason:     "stop",
+  },
+});
+
+// Tool call
+watcher.ai("info", "tool.call.completed", {
+  traceId: workflowTraceId,
+  payload: {
+    kind:           "tool_call",
+    tool_name:      "web_search",
+    latency_ms:     340,
+    success:        true,
+    output_summary: "Found 5 results",
+  },
+});
+
+// Retrieval (vectorless wiki lookup)
+watcher.ai("info", "retrieval.completed", {
+  traceId: workflowTraceId,
+  payload: {
+    kind:              "retrieval",
+    retrieval_method:  "wiki",
+    source:            "internal-wiki",
+    query_summary:     "refund policy Q3",
+    chunks_retrieved:  3,
+    empty_result:      false,
+    latency_ms:        45,
+  },
+});
+```
+
+The `EVENT_TYPE_AI` constant is also exported from `@watcher/core` for callers that prefer the constant over the literal string:
+
+```typescript
+import { EVENT_TYPE_AI } from "@watcher/core"; // "ai"
+```
+
+<Callout type="note" title="Server-side only">
+AI agent telemetry (LLM calls, tool costs, token counts) happens server-side — never in the browser. Use `@watcher/node` or `@watcher/nextjs` server exports for `ai()`.
+
+For client-side AI interaction tracking (e.g. "user received AI response, response time was 1.2s"), use `audit()` from the browser SDK instead.
+</Callout>
+
+See the [AI Agent Observability guide →](/docs/ai/overview) for the full payload schema for all AI event kinds.
+
+### Flush and shutdown
+
+```typescript
+await watcher.flush();    // send all buffered events immediately
+await watcher.shutdown(); // flush then stop the background flusher
+```
+
+## Browser
+
+Use `createBrowserClient` from `@watcher/browser` with a **public token** (`wpub_` prefix).
+Public tokens are safe to ship in browser bundles — the gateway enforces an origin allowlist
+and a per-minute rate limit so a leaked token cannot be abused at scale.
+
+```typescript
+import { createBrowserClient } from "@watcher/browser";
+
+const watcher = createBrowserClient({
+  apiKey: import.meta.env.VITE_W24_PUBLIC_TOKEN!,  // starts with wpub_
+  serviceName: "my-app-browser",  // optional — shown in the Service column
+  environment: import.meta.env.MODE,
+});
+
+watcher.audit("button.clicked", { userId, payload: { label: "upgrade" } });
+```
+
+<Callout type="warning" title="Use a public token (wpub_) for the browser — never a secret key">
+Create a public token in **Settings → API Keys → Public Tokens** and store it in `VITE_W24_PUBLIC_TOKEN`.
+Public tokens are write-only and tied to an origin allowlist. Secret `wt_` keys must never appear in browser bundles.
+Events from public tokens are automatically tagged `source: "client"` in the dashboard.
+</Callout>
+
+## React
+
+Wrap your app with `WatcherProvider`, then use the typed hooks in any component.
+
+```tsx
+// main.tsx
+import { createBrowserClient } from "@watcher/browser";
+import { WatcherProvider } from "@watcher/react";
+
+const watcher = createBrowserClient({
+  apiKey: import.meta.env.VITE_W24_PUBLIC_TOKEN!,
+  serviceName: "my-react-app",  // optional
+  environment: import.meta.env.MODE,
+});
+
+<WatcherProvider client={watcher}>
+  <App />
+</WatcherProvider>
+```
+
+```tsx
+// Any component
+import { useAudit, useLog, useTrace, useMetric } from "@watcher/react";
+
+function CheckoutButton({ userId }: { userId: string }) {
+  const audit  = useAudit();
+  const metric = useMetric();
+
+  return (
+    <button onClick={() => {
+      audit("checkout.started", { userId });
+      metric("checkout.clicks", { payload: { value: 1 } });
+    }}>
+      Checkout
+    </button>
+  );
+}
+```
+
+## Method signatures
+
+All methods are on the `Client` instance returned by the factory functions.
+
+```typescript
+// Audit — user actions, compliance trail
+client.audit(message: string, options?: {
+  userId?: string;
+  sessionId?: string;
+  traceId?: string;
+  spanId?: string;
+  payload?: Record<string, unknown>;
+}): void
+
+// Log — application events
+client.log(severity: string, message: string, options?: {
+  traceId?: string;
+  spanId?: string;
+  payload?: Record<string, unknown>;
+}): void
+
+// Trace — distributed spans
+client.trace(message: string, options?: {
+  traceId?: string;
+  spanId?: string;
+  parentSpanId?: string;
+  payload?: Record<string, unknown>;
+}): void
+
+// Metric — numeric measurements
+client.metric(message: string, options?: {
+  payload?: Record<string, unknown>; // always include { value: number }
+}): void
+
+// Lifecycle
+client.flush(): Promise<void>
+client.shutdown(): Promise<void>
+```
+
+## Environment variables
+
+```bash
+# Server-side (never expose to the browser)
+W24_API_KEY=wtch_...
+W24_APP_ID=your_app_id_here    # optional — from Settings → Apps
+W24_SERVICE_NAME=my-api       # optional — component label for filtering
+W24_ENVIRONMENT=production    # optional
+
+# Only needed for local dev or self-hosted (SDK defaults to https://ingest.watcher24.io)
+# W24_GATEWAY_URL=http://localhost:8080
+
+# Browser / Vite (public token — safe to expose)
+VITE_W24_PUBLIC_TOKEN=wpub_...
+# VITE_W24_GATEWAY_URL=http://localhost:8080   # local dev only
+
+# Browser / Next.js (public token — safe to expose)
+NEXT_PUBLIC_W24_PUBLIC_TOKEN=wpub_...
+# NEXT_PUBLIC_W24_GATEWAY_URL=http://localhost:8080   # local dev only
+```

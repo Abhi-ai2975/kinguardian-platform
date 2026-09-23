@@ -1,0 +1,98 @@
+---
+title: "Authentication"
+description: "How to authenticate requests to the FileNest API."
+---
+
+# Authentication
+
+All FileNest API requests require a Bearer token in the `Authorization` header.
+
+## Bearer token
+
+```bash
+curl https://api.filenest.io/v1/projects \
+  -H "Authorization: Bearer fn_live_abc123..."
+```
+
+## Token types
+
+| Prefix | Type | Issued by |
+|--------|------|-----------|
+| `fn_live_...` | Production API key | FileNest Console / IAM |
+| `fn_test_...` | Test API key | FileNest Console / IAM |
+| `fn_sa_...` | Service account | FileNest Console |
+| `fn_upload_token_...` | Short-lived upload token | Your server via `/api/filenest-token` |
+
+## Getting an API key
+
+1. Sign in to the [FileNest Console](/dashboard)
+2. Open a project → **API Keys** tab
+3. Click **Create key** → select scopes → copy the full key
+
+The full key is shown exactly once. Store it in a secret manager (AWS Secrets Manager, Vault, etc.) or as an environment variable.
+
+## Scopes
+
+API keys carry a set of scopes. A request will be rejected with `403 Forbidden` if the key does not have the required scope.
+
+### Files
+
+| Scope | Required for |
+|-------|-------------|
+| `files:upload` | `POST /files/upload`, `/files/multipart/*` |
+| `files:download` | `GET /files/{id}/download`, `/versions/{id}/download` |
+| `files:read` | `GET /files`, `GET /files/{id}`, `GET /files/{id}/versions` |
+| `files:delete` | `DELETE /files/{id}` |
+| `files:metadata` | `PUT/POST /files/{id}/tags`, `PATCH /files/{id}`, `/versions/{id}/restore` |
+
+### Folders
+
+| Scope | Required for |
+|-------|-------------|
+| `folders:read` | `GET /folders`, `GET /folders/by-path`, `GET /folders/{id}`, `GET /folders/{id}/files` |
+| `folders:write` | `POST /folders`, `POST /folders/ensure-path`, `DELETE /folders/{id}`, `POST /files/{id}/move` |
+
+### Upload Tokens
+
+| Scope | Required for |
+|-------|-------------|
+| `upload_tokens:create` | `POST /upload-tokens` |
+
+### Webhooks
+
+| Scope | Required for |
+|-------|-------------|
+| `webhooks:read` | `GET /webhooks`, `GET /webhooks/{id}/deliveries` |
+| `webhooks:write` | `POST /webhooks`, `PUT /webhooks/{id}`, `DELETE /webhooks/{id}` |
+
+### Projects
+
+| Scope | Required for |
+|-------|-------------|
+| `projects:read` | `GET /projects`, `GET /projects/{id}`, `GET /storage`, `GET /usage`, `GET /dashboard` |
+| `projects:update` | `POST /projects`, `PATCH /projects/{id}`, `PUT /storage`, `POST/PUT /metadata-schemas` |
+
+### Audit & Compliance
+
+| Scope | Required for |
+|-------|-------------|
+| `audit:read` | `GET /audit` |
+| `compliance:manage` | Legal hold, WORM, retention policy configuration |
+
+## Error responses
+
+| Status | Code | Meaning |
+|--------|------|---------|
+| `401` | `authentication_required` | No `Authorization` header |
+| `401` | `invalid_token` | Token not recognized or revoked |
+| `403` | `insufficient_scope` | Token lacks the required scope |
+
+```json
+{
+  "error": {
+    "code": "insufficient_scope",
+    "message": "Token does not have scope files:upload",
+    "required_scope": "files:upload"
+  }
+}
+```

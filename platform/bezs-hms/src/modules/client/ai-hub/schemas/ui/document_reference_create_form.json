@@ -1,0 +1,180 @@
+{
+  "id": "doc-ref-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "doc-ref-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_document_reference" },
+        "submitLabel": { "literalString": "Create Document Reference" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "docref-title",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Create Document Reference" }, "usageHint": "h2" }
+          },
+          {
+            "id": "docref-subtitle",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Patient resolved from session." }, "usageHint": "caption" }
+          },
+          { "id": "docref-divider-top", "type": "Divider", "properties": {} },
+          {
+            "id": "docref-type-heading",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Document Type" }, "usageHint": "h4" }
+          },
+          {
+            "id": "doc_type",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Document Type (LOINC)" },
+              "placeholder": { "literalString": "Search LOINC document type…" },
+              "valueType": { "literalString": "CodeableConcept" },
+              "serverSearch": {
+                "system": "http://loinc.org",
+                "minChars": 2,
+                "debounceMs": 200
+              }
+            }
+          },
+          { "id": "docref-divider-status", "type": "Divider", "properties": {} },
+          {
+            "id": "docref-status-heading",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Status" }, "usageHint": "h4" }
+          },
+          {
+            "id": "docref-status-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "status",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Status" },
+                    "placeholder": { "literalString": "Select status…" },
+                    "items": "$status_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "doc_status",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Document Status (optional)" },
+                    "placeholder": { "literalString": "Select doc status…" },
+                    "items": "$doc_status_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                }
+              ]
+            }
+          },
+          { "id": "docref-divider-author", "type": "Divider", "properties": {} },
+          {
+            "id": "docref-author-heading",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Author & Date" }, "usageHint": "h4" }
+          },
+          {
+            "id": "docref-author-date-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "author",
+                  "type": "DataSelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Author (optional)" },
+                    "placeholder": { "literalString": "Select practitioner…" },
+                    "items": "$booking_practitioners.data",
+                    "labelPath": "practitioner_detail.name.text",
+                    "emits": [
+                      { "key": "ref_id", "path": "practitioner_ref_id" }
+                    ]
+                  }
+                },
+                {
+                  "id": "date",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Date (optional)" },
+                    "enableDate": true,
+                    "enableTime": true
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "description",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Description (optional)" },
+              "placeholder": { "literalString": "Brief description of the document…" },
+              "textFieldType": "longText"
+            }
+          },
+          { "id": "docref-divider-content", "type": "Divider", "properties": {} },
+          {
+            "id": "docref-content-heading",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Document Content (Required)" }, "usageHint": "h4" }
+          },
+          {
+            "id": "attachment_url",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Document URL / Link" },
+              "placeholder": { "literalString": "https://docs.example.org/note.pdf" },
+              "textFieldType": "shortText"
+            }
+          },
+          {
+            "id": "docref-content-meta-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "attachment_content_type",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Content Type (optional)" },
+                    "placeholder": { "literalString": "application/pdf" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "attachment_title",
+                  "type": "TextField",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "Document Title (optional)" },
+                    "placeholder": { "literalString": "e.g. Discharge Summary" },
+                    "textFieldType": "shortText"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

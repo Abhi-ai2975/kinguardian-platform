@@ -1,0 +1,109 @@
+{
+  "id": "record_immunization",
+  "name": "Record Immunization",
+  "description": "Record a vaccination event for the current patient, including the vaccine code, occurrence date, lot number, injection site, dose quantity, and administering practitioner.",
+  "version": "1.0.0",
+  "tags": ["fhir", "orders", "immunization", "vaccination", "vaccine"],
+  "llm_hints": {
+    "intent_examples": [
+      "Record a vaccination",
+      "Document an immunization",
+      "Record a flu shot",
+      "Log a COVID vaccine",
+      "Record that the patient received a vaccine",
+      "Document an MMR vaccination",
+      "Add a vaccine record",
+      "Record immunization for the patient"
+    ],
+    "when_to_use": [
+      "User wants to record or document a vaccination event for a patient",
+      "User wants to create a FHIR Immunization resource",
+      "User is logging that a vaccine was administered"
+    ],
+    "when_not_to_use": [
+      "User wants to order a medication (use create_medication_request instead)",
+      "User wants to order a procedure or lab (use create_service_request instead)",
+      "User wants to request a device (use create_device_request instead)",
+      "User wants to view immunization history"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you record an immunization. Search for the vaccine code, enter the occurrence date and lot details, and confirm the administering practitioner.",
+  "completion": {
+    "message": "Immunization recorded successfully. The vaccination event has been saved to the patient's FHIR record.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "record_immunization_step",
+      "name": "Record Immunization",
+      "step_type": "form",
+      "description": "Enter the vaccine code, occurrence details, lot number, injection site, and performer.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "field": "me_patient.id"
+          },
+          "immunization_id": {
+            "type": "integer",
+            "resource": "Immunization",
+            "field": "id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Resolve the logged-in user's Patient record so patient_id is available automatically.",
+          "context_key": "me_patient",
+          "tool_name": "get_my_patient",
+          "url": "$fhir_gql_url/patients/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch allowed status codes for Immunization (completed, entered-in-error, not-done).",
+          "context_key": "status_concepts",
+          "tool_name": "get_immunization_status",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Immunization&field=status",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Load practitioners available for booking to populate the performer select.",
+          "context_key": "booking_practitioners",
+          "tool_name": "list_practitioners",
+          "url": "$fhir_gql_url/practitioner-roles/booking",
+          "method": "GET",
+          "timeout_ms": 10000
+        }
+      ],
+      "ui": {
+        "schema": "immunization_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "record_immunization",
+          "tool_name": "record_immunization",
+          "url": "$fhir_gql_url/immunizations/",
+          "method": "POST",
+          "validation_schema": "immunization_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    }
+  ]
+}

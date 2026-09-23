@@ -1,0 +1,149 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: drgodly-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: iam_user
+      POSTGRES_PASSWORD: iam_password
+      POSTGRES_DB: kinguardian_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-multi-postgres.sh:/docker-entrypoint-initdb.d/init-multi-postgres.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U iam_user -d kinguardian_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: drgodly-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  nats:
+    image: nats:2.10-alpine
+    container_name: drgodly-nats
+    restart: unless-stopped
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    command: ["-js", "-m", "8222"]
+
+  api:
+    build:
+      context: ./platform
+      dockerfile: ./kinguardian-backend/Dockerfile
+    container_name: drgodly-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+asyncpg://iam_user:iam_password@postgres:5432/kinguardian_db
+      REDIS_URL: redis://redis:6379/0
+      NATS_URL: nats://nats:4222
+      IAM_JWKS_URL: ${IAM_JWKS_URL:-http://host.docker.internal:5001/api/auth/jwks}
+      IAM_ISSUER: ${IAM_ISSUER:-http://host.docker.internal:5001}
+      FHIR_API_URL: ${FHIR_API_URL:-http://host.docker.internal:8006/api/v1}
+      FHIR_GQL_URL: ${FHIR_GQL_URL:-http://host.docker.internal:8005/api/v1}
+      FILENEST_URL: ${FILENEST_URL:-http://host.docker.internal:8000}
+      FILENEST_API_KEY: ${FILENEST_API_KEY:-dev_key}
+      FILENEST_PROJECT_ID: ${FILENEST_PROJECT_ID:-dev_proj}
+      AGENT_SERVICE_URL: ${AGENT_SERVICE_URL:-http://host.docker.internal:8000}
+      OBSERVABILITY_URL: ${OBSERVABILITY_URL:-http://host.docker.internal:4318}
+      OPEN_WEARABLES_URL: ${OPEN_WEARABLES_URL:-http://open-wearables:8000}
+      OPEN_WEARABLES_API_KEY: ${OPEN_WEARABLES_API_KEY:-dev_open_wearables_secret_key}
+    volumes:
+      - ./platform/kinguardian-backend/app:/app/app
+      - ./platform/kinguardian-backend/migrations:/app/migrations
+      - ./platform/kinguardian-backend/scripts:/app/scripts
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "python -m alembic upgrade head &&
+             python scripts/seed_development_data.py &&
+             python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  worker:
+    build:
+      context: ./platform
+      dockerfile: ./kinguardian-backend/Dockerfile
+    container_name: drgodly-worker
+    restart: unless-stopped
+    volumes:
+      - ./platform/kinguardian-backend/app:/app/app
+      - ./platform/kinguardian-backend/migrations:/app/migrations
+      - ./platform/kinguardian-backend/scripts:/app/scripts
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+asyncpg://iam_user:iam_password@postgres:5432/kinguardian_db
+
+      REDIS_URL: redis://redis:6379/0
+      NATS_URL: nats://nats:4222
+      IAM_JWKS_URL: ${IAM_JWKS_URL:-http://host.docker.internal:5001/api/auth/jwks}
+      FHIR_API_URL: ${FHIR_API_URL:-http://host.docker.internal:8006/api/v1}
+      FHIR_GQL_URL: ${FHIR_GQL_URL:-http://host.docker.internal:8005/api/v1}
+      FILENEST_URL: ${FILENEST_URL:-http://host.docker.internal:8000}
+      AGENT_SERVICE_URL: ${AGENT_SERVICE_URL:-http://host.docker.internal:8000}
+      OBSERVABILITY_URL: ${OBSERVABILITY_URL:-http://host.docker.internal:4318}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+    healthcheck:
+      disable: true
+    command: ["python", "-m", "app.workers.outbox_worker"]
+
+  # ── Open Wearables Aggregator Service (Isolated Schema Architecture) ────────
+  open-wearables:
+    build:
+      context: ./platform/open-wearables/backend
+      dockerfile: Dockerfile
+    container_name: drgodly-open-wearables
+    restart: unless-stopped
+    ports:
+      - "8007:8000"
+    environment:
+      # STRICT ISOLATION: Open Wearables connects to its own isolated database `open_wearables_db`
+      SECRET_KEY: ${OPEN_WEARABLES_SECRET_KEY:-dev_open_wearables_secret_key_32_bytes}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: open_wearables_db
+      DB_USER: open_wearables_user
+      DB_PASSWORD: open_wearables_password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 1
+      DATABASE_URL: postgresql+asyncpg://open_wearables_user:open_wearables_password@postgres:5432/open_wearables_db
+      REDIS_URL: redis://redis:6379/1
+      ENVIRONMENT: local
+    command: ["bash", "scripts/start/app.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
+
+

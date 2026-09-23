@@ -1,0 +1,274 @@
+[
+  {
+    "user_id": "user-admin-001",
+    "org_id": "0fb41e50-82a4-461e-96c7-bd11359d892d",
+    "schedule": "Schedule/200000",
+    "schedule_display": "Dr. Carter — Cardiology",
+    "status": "free",
+    "start": "2026-06-01T09:00:00Z",
+    "end": "2026-06-01T09:30:00Z",
+    "comment": "Morning slot 1",
+    "appointment_type_system": "http://terminology.hl7.org/CodeSystem/v2-0276",
+    "appointment_type_code": "ROUTINE",
+    "appointment_type_display": "Routine appointment",
+    "specialty": [
+      {
+        "coding_system": "http://snomed.info/sct",
+        "coding_code": "394579002",
+        "coding_display": "Cardiology"
+      }
+    ],
+    "service_category": [
+      {
+        "coding_system": "http://terminology.hl7.org/CodeSystem/service-category",
+        "coding_code": "27",
+        "coding_display": "Specialist Medical"
+      }
+    ],
+    "service_type": [
+      {
+        "coding_system": "http://terminology.hl7.org/CodeSystem/service-type",
+        "coding_code": "394",
+        "coding_display": "Cardiology"
+      }
+    ]
+  },
+  {
+    "user_id": "user-admin-001",
+    "org_id": "0fb41e50-82a4-461e-96c7-bd11359d892d",
+    "schedule": "Schedule/200000",
+    "schedule_display": "Dr. Carter — Cardiology",
+    "status": "free",
+    "start": "2026-06-01T09:30:00Z",
+    "end": "2026-06-01T10:00:00Z",
+    "comment": "Morning slot 2",
+    "appointment_type_system": "http://terminology.hl7.org/CodeSystem/v2-0276",
+    "appointment_type_code": "ROUTINE",
+    "appointment_type_display": "Routine appointment",
+    "specialty": [
+      {
+        "coding_system": "http://snomed.info/sct",
+        "coding_code": "394579002",
+        "coding_display": "Cardiology"
+      }
+    ],
+    "service_category": [
+      {
+        "coding_system": "http://terminology.hl7.org/CodeSystem/service-category",
+        "coding_code": "27",
+        "coding_display": "Specialist Medical"
+      }
+    ],
+    "service_type": [
+      {
+        "coding_system": "http://terminology.hl7.org/CodeSystem/service-type",
+        "coding_code": "394",
+        "coding_display": "Cardiology"
+      }
+    ]
+  },
+  {
+    "user_id": "user-admin-001",
+    "org_id": "0fb41e50-82a4-461e-96c7-bd11359d892d",
+    "schedule": "Schedule/200000",
+    "schedule_display": "Dr. Carter — Cardiology",
+    "status": "free",
+    "start": "2026-06-01T10:00:00Z",
+    "end": "2026-06-01T10:30:00Z",
+    "comment": "Morning slot 3",
+    "appointment_type_system": "http://terminology.hl7.org/CodeSystem/v2-0276",
+    "appointment_type_code": "ROUTINE",
+    "appointment_type_display": "Routine appointment",
+    "specialty": [
+      {
+        "coding_system": "http://snomed.info/sct",
+        "coding_code": "394579002",
+        "coding_display": "Cardiology"
+      }
+    ],
+    "service_category": [
+      {
+        "coding_system": "http://terminology.hl7.org/CodeSystem/service-category",
+        "coding_code": "27",
+        "coding_display": "Specialist Medical"
+      }
+    ],
+    "service_type": [
+      {
+        "coding_system": "http://terminology.hl7.org/CodeSystem/service-type",
+        "coding_code": "394",
+        "coding_display": "Cardiology"
+      }
+    ]
+  },
+  {
+    "user_id": "user-admin-001",
+    "org_id": "0fb41e50-82a4-461e-96c7-bd11359d892d",
+    "schedule": "Schedule/200000",
+    "schedule_display": "Dr. Carter — Cardiology",
+    "status": "free",
+    "start": "2026-06-01T10:30:00Z",
+    "end": "2026-06-01T11:00:00Z",
+    "comment": "Morning slot 4",
+    "appointment_type_system": "http://terminology.hl7.org/CodeSystem/v2-0276",
+    "appointment_type_code": "ROUTINE",
+    "appointment_type_display": "Routine appointment",
+    "specialty": [
+      {
+        "coding_system": "http://snomed.info/sct",
+        "coding_code": "394579002",
+        "coding_display": "Cardiology"
+      }
+    ],
+    "service_category": [
+      {
+        "coding_system": "http://terminology.hl7.org/CodeSystem/service-category",
+        "coding_code": "27",
+        "coding_display": "Specialist Medical"
+      }
+    ],
+    "service_type": [
+      {
+        "coding_system": "http://terminology.hl7.org/CodeSystem/service-type",
+        "coding_code": "394",
+        "coding_display": "Cardiology"
+      }
+    ]
+  },
+  {
+    "user_id": "user-admin-001",
+    "org_id": "0fb41e50-82a4-461e-96c7-bd11359d892d",
+    "schedule": "Schedule/200000",
+    "schedule_display": "Dr. Carter — Cardiology",
+    "status": "free",
+    "start": "2026-06-01T11:00:00Z",
+    "end": "2026-06-01T11:30:00Z",
+    "comment": "Morning slot 5",
+    "appointment_type_system": "http://terminology.hl7.org/CodeSystem/v2-0276",
+    "appointment_type_code": "ROUTINE",
+    "appointment_type_display": "Routine appointment",
+    "specialty": [
+      {
+        "coding_system": "http://snomed.info/sct",
+        "coding_code": "394579002",
+        "coding_display": "Cardiology"
+      }
+    ],
+    "service_category": [
+      {
+        "coding_system": "http://terminology.hl7.org/CodeSystem/service-category",
+        "coding_code": "27",
+        "coding_display": "Specialist Medical"
+      }
+    ],
+    "service_type": [
+      {
+        "coding_system": "http://terminology.hl7.org/CodeSystem/service-type",
+        "coding_code": "394",
+        "coding_display": "Cardiology"
+      }
+    ]
+  },
+  {
+    "user_id": "user-admin-001",
+    "org_id": "0fb41e50-82a4-461e-96c7-bd11359d892d",
+    "schedule": "Schedule/200000",
+    "schedule_display": "Dr. Carter — Cardiology",
+    "status": "free",
+    "start": "2026-06-01T11:30:00Z",
+    "end": "2026-06-01T12:00:00Z",
+    "comment": "Morning slot 6",
+    "appointment_type_system": "http://terminology.hl7.org/CodeSystem/v2-0276",
+    "appointment_type_code": "ROUTINE",
+    "appointment_type_display": "Routine appointment",
+    "specialty": [
+      {
+        "coding_system": "http://snomed.info/sct",
+        "coding_code": "394579002",
+        "coding_display": "Cardiology"
+      }
+    ],
+    "service_category": [
+      {
+        "coding_system": "http://terminology.hl7.org/CodeSystem/service-category",
+        "coding_code": "27",
+        "coding_display": "Specialist Medical"
+      }
+    ],
+    "service_type": [
+      {
+        "coding_system": "http://terminology.hl7.org/CodeSystem/service-type",
+        "coding_code": "394",
+        "coding_display": "Cardiology"
+      }
+    ]
+  },
+  {
+    "user_id": "user-admin-001",
+    "org_id": "0fb41e50-82a4-461e-96c7-bd11359d892d",
+    "schedule": "Schedule/200000",
+    "schedule_display": "Dr. Carter — Cardiology",
+    "status": "free",
+    "start": "2026-06-01T14:00:00Z",
+    "end": "2026-06-01T14:30:00Z",
+    "comment": "Afternoon slot 1",
+    "appointment_type_system": "http://terminology.hl7.org/CodeSystem/v2-0276",
+    "appointment_type_code": "ROUTINE",
+    "appointment_type_display": "Routine appointment",
+    "specialty": [
+      {
+        "coding_system": "http://snomed.info/sct",
+        "coding_code": "394579002",
+        "coding_display": "Cardiology"
+      }
+    ],
+    "service_category": [
+      {
+        "coding_system": "http://terminology.hl7.org/CodeSystem/service-category",
+        "coding_code": "27",
+        "coding_display": "Specialist Medical"
+      }
+    ],
+    "service_type": [
+      {
+        "coding_system": "http://terminology.hl7.org/CodeSystem/service-type",
+        "coding_code": "394",
+        "coding_display": "Cardiology"
+      }
+    ]
+  },
+  {
+    "user_id": "user-admin-001",
+    "org_id": "0fb41e50-82a4-461e-96c7-bd11359d892d",
+    "schedule": "Schedule/200000",
+    "schedule_display": "Dr. Carter — Cardiology",
+    "status": "free",
+    "start": "2026-06-01T14:30:00Z",
+    "end": "2026-06-01T15:00:00Z",
+    "comment": "Afternoon slot 2",
+    "appointment_type_system": "http://terminology.hl7.org/CodeSystem/v2-0276",
+    "appointment_type_code": "ROUTINE",
+    "appointment_type_display": "Routine appointment",
+    "specialty": [
+      {
+        "coding_system": "http://snomed.info/sct",
+        "coding_code": "394579002",
+        "coding_display": "Cardiology"
+      }
+    ],
+    "service_category": [
+      {
+        "coding_system": "http://terminology.hl7.org/CodeSystem/service-category",
+        "coding_code": "27",
+        "coding_display": "Specialist Medical"
+      }
+    ],
+    "service_type": [
+      {
+        "coding_system": "http://terminology.hl7.org/CodeSystem/service-type",
+        "coding_code": "394",
+        "coding_display": "Cardiology"
+      }
+    ]
+  }
+]

@@ -1,0 +1,156 @@
+{
+  "id": "sr-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "sr-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_service_request" },
+        "submitLabel": { "literalString": "Place Order" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "sr-form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Place Service Request" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "sr-form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Search for a procedure, lab test, or imaging code and classify this order. Patient and encounter are resolved from your session." },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "sr-divider-top", "type": "Divider", "properties": {} },
+          {
+            "id": "sr-section-order-details",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Order Details" }, "usageHint": "h4" }
+          },
+          {
+            "id": "code",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Procedure / Lab / Imaging Code" },
+              "placeholder": { "literalString": "Search SNOMED, LOINC…" },
+              "valueType": { "literalString": "CodeableConcept" },
+              "serverSearch": { "minChars": 2, "debounceMs": 200 }
+            }
+          },
+          { "id": "sr-divider-class", "type": "Divider", "properties": {} },
+          {
+            "id": "sr-section-classification",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Classification" }, "usageHint": "h4" }
+          },
+          {
+            "id": "sr-status-intent-priority-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "status",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Status" },
+                    "placeholder": { "literalString": "Select status…" },
+                    "items": "$status_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "intent",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Intent" },
+                    "placeholder": { "literalString": "Select intent…" },
+                    "items": "$intent_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "priority",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Priority (optional)" },
+                    "placeholder": { "literalString": "Select priority…" },
+                    "items": "$priority_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "category",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Category (optional)" },
+              "placeholder": { "literalString": "Select category…" },
+              "items": "$category_concepts.concepts",
+              "valueType": { "literalString": "CodeableConcept" }
+            }
+          },
+          { "id": "sr-divider-requester", "type": "Divider", "properties": {} },
+          {
+            "id": "sr-section-requester",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Requester & Timing" }, "usageHint": "h4" }
+          },
+          {
+            "id": "requester",
+            "type": "DataSelect",
+            "properties": {
+              "label": { "literalString": "Requesting Practitioner (optional)" },
+              "placeholder": { "literalString": "Search practitioners…" },
+              "items": "$booking_practitioners.data",
+              "labelPath": "practitioner_detail.name.text",
+              "descriptionPath": "specialty.0.coding_display",
+              "emits": [
+                { "key": "ref_id", "path": "practitioner_ref_id" }
+              ]
+            }
+          },
+          {
+            "id": "authored_on",
+            "type": "DateTimeInput",
+            "properties": {
+              "label": { "literalString": "Authored On (optional)" },
+              "enableDate": true,
+              "enableTime": true
+            }
+          },
+          { "id": "sr-divider-notes", "type": "Divider", "properties": {} },
+          {
+            "id": "note_text",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Order Notes (optional)" },
+              "placeholder": { "literalString": "Additional clinical notes or instructions for this order…" },
+              "textFieldType": "longText"
+            }
+          },
+          {
+            "id": "sr-session-note",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Patient and encounter resolved from session." },
+              "usageHint": "caption"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

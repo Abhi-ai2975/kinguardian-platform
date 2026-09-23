@@ -1,0 +1,28 @@
+# justfile for notifier-go
+# Run `just --list` to see available recipes.
+
+set dotenv-load := true
+
+# Run the notifier service in development mode
+dev:
+    go run main.go
+
+# Build the notifier binary
+build:
+    go build -o bin/notifier .
+
+# Run all tests
+test:
+    go test ./...
+
+# Run tests with verbose output
+test-v:
+    go test -v ./...
+
+# Lint with go vet
+lint:
+    go vet ./...
+
+# Tidy module dependencies
+tidy:
+    go mod tidy

@@ -1,0 +1,79 @@
+---
+title: "Health Endpoints"
+description: "Liveness and readiness probes for Kubernetes and load-balancer health checks."
+---
+
+# Health Endpoints
+
+The FileNest API exposes two health probe endpoints that follow the Kubernetes convention. No authentication is required.
+
+## Liveness probe
+
+```
+GET /health/live
+GET /health         ← alias, for backwards compatibility
+```
+
+Returns `200 OK` as long as the process is running. No dependency checks are performed — this endpoint is intentionally lightweight so that a pod is only restarted when the process itself is unresponsive.
+
+**Response `200`:**
+
+```json
+{ "status": "ok" }
+```
+
+## Readiness probe
+
+```
+GET /health/ready
+```
+
+Returns `200` only when all downstream dependencies are reachable. Returns `503` with a `degraded` status if any check fails, signalling to the load-balancer to remove the pod from rotation until it recovers.
+
+**Response `200` — all healthy:**
+
+```json
+{
+  "status": "ok",
+  "checks": {
+    "database": "ok",
+    "cache": "ok"
+  }
+}
+```
+
+**Response `503` — dependency unavailable:**
+
+```json
+{
+  "status": "degraded",
+  "checks": {
+    "database": "ok",
+    "cache": "unavailable"
+  }
+}
+```
+
+| Check | What it tests |
+|-------|--------------|
+| `database` | `SELECT 1` against the primary PostgreSQL pool |
+| `cache` | `PING` against the Redis instance |
+
+## Kubernetes configuration example
+
+```yaml
+livenessProbe:
+  httpGet:
+    path: /health/live
+    port: 8000
+  initialDelaySeconds: 10
+  periodSeconds: 30
+
+readinessProbe:
+  httpGet:
+    path: /health/ready
+    port: 8000
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  failureThreshold: 3
+```

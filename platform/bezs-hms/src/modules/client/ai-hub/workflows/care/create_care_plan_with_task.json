@@ -1,0 +1,181 @@
+{
+  "id": "create_care_plan_with_task",
+  "name": "Create Care Plan with Task",
+  "description": "Create a FHIR CarePlan for a patient and attach a follow-up Task in two steps.",
+  "version": "1.0.0",
+  "tags": ["fhir", "care-plan", "task", "create", "care"],
+  "llm_hints": {
+    "intent_examples": [
+      "Create a care plan",
+      "Add a care plan for my patient",
+      "Set up a care plan with a follow-up task",
+      "Create an asthma management plan",
+      "Start a new care plan and assign a task"
+    ],
+    "when_to_use": [
+      "User wants to create a CarePlan resource",
+      "User wants to define a clinical care plan with goals or tasks",
+      "User wants to attach a follow-up task to a care plan"
+    ],
+    "when_not_to_use": [
+      "User wants to book an appointment",
+      "User wants to create an encounter",
+      "User wants to record an observation or diagnosis only"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you create a care plan and attach a follow-up task in 2 steps.",
+  "completion": {
+    "message": "Care plan created and follow-up task assigned successfully.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "create_care_plan_resource",
+      "name": "Create Care Plan",
+      "step_type": "form",
+      "description": "Define the care plan status, intent, title, period, and responsible practitioner.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "care_plan_id": {
+            "type": "integer",
+            "resource": "CarePlan",
+            "field": "id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Fetch CarePlan status value set.",
+          "context_key": "status_concepts",
+          "tool_name": "get_care_plan_status",
+          "url": "$fhir_gql_url/terminology/concepts?resource=CarePlan&field=status",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch CarePlan intent value set.",
+          "context_key": "intent_concepts",
+          "tool_name": "get_care_plan_intent",
+          "url": "$fhir_gql_url/terminology/concepts?resource=CarePlan&field=intent",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Resolve patient from session.",
+          "context_key": "me_patient",
+          "tool_name": "get_my_patient",
+          "url": "$fhir_gql_url/patients/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Load practitioners available for booking.",
+          "context_key": "booking_practitioners",
+          "tool_name": "list_practitioners",
+          "url": "$fhir_gql_url/practitioner-roles/booking",
+          "method": "GET",
+          "timeout_ms": 10000
+        }
+      ],
+      "ui": {
+        "schema": "care_plan_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_care_plan",
+          "tool_name": "create_care_plan",
+          "url": "$fhir_gql_url/care-plans/",
+          "method": "POST",
+          "validation_schema": "care_plan_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    },
+    {
+      "sequence_number": 2,
+      "id": "create_follow_up_task",
+      "name": "Create Follow-up Task",
+      "step_type": "form",
+      "description": "Add a follow-up task linked to the care plan created in step 1.",
+      "context": {
+        "inputs": {
+          "care_plan_id": { "type": "integer", "source": "workflow" }
+        },
+        "outputs": {}
+      },
+      "context_resolvers": [
+        {
+          "description": "Fetch Task status value set.",
+          "context_key": "task_status_concepts",
+          "tool_name": "get_task_status",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Task&field=status",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch Task intent value set.",
+          "context_key": "task_intent_concepts",
+          "tool_name": "get_task_intent",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Task&field=intent",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch Task priority value set.",
+          "context_key": "priority_concepts",
+          "tool_name": "get_task_priority",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Task&field=priority",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Resolve patient from session.",
+          "context_key": "me_patient",
+          "tool_name": "get_my_patient",
+          "url": "$fhir_gql_url/patients/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Load practitioners available for booking.",
+          "context_key": "booking_practitioners",
+          "tool_name": "list_practitioners",
+          "url": "$fhir_gql_url/practitioner-roles/booking",
+          "method": "GET",
+          "timeout_ms": 10000
+        }
+      ],
+      "ui": {
+        "schema": "task_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_task",
+          "tool_name": "create_task",
+          "url": "$fhir_gql_url/tasks/",
+          "method": "POST",
+          "validation_schema": "task_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    }
+  ]
+}

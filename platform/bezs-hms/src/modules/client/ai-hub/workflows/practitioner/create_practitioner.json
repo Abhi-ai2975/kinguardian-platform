@@ -1,0 +1,419 @@
+{
+  "id": "create_practitioner",
+  "name": "Create Practitioner",
+  "description": "Register a new Practitioner in 7 steps: core demographics, names, identifiers, telecom, qualifications, communication languages, and finally a PractitionerRole linking them to an organisation, location, and healthcare service.",
+  "version": "1.0.0",
+  "tags": ["fhir", "practitioner", "create", "crud", "healthcare"],
+  "llm_hints": {
+    "intent_examples": [
+      "Create a practitioner",
+      "Register a new doctor",
+      "Add a new clinician",
+      "Register a healthcare provider",
+      "Add a new nurse to the system"
+    ],
+    "when_to_use": [
+      "User wants to create a new Practitioner resource",
+      "User wants to register a doctor, nurse, or other healthcare provider"
+    ],
+    "when_not_to_use": [
+      "User wants to create a patient",
+      "User wants to book an appointment"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you register a new practitioner in 7 steps — demographics first, then names, identifiers, contact details, qualifications, languages, and finally their role within your organisation.",
+  "completion": {
+    "message": "Practitioner registered and role assigned successfully.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "create_practitioner_resource",
+      "name": "Create Practitioner",
+      "step_type": "form",
+      "description": "Enter the practitioner's core demographic details.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "practitioner_id": {
+            "type": "integer",
+            "resource": "Practitioner",
+            "field": "id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Fetch administrative-gender value set.",
+          "context_key": "gender_concepts",
+          "tool_name": "get_gender_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=gender",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "practitioner_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_practitioner",
+          "tool_name": "create_practitioner",
+          "url": "$fhir_gql_url/practitioners/",
+          "method": "POST",
+          "validation_schema": "practitioner_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    },
+    {
+      "sequence_number": 2,
+      "id": "add_practitioner_names",
+      "name": "Add Names",
+      "step_type": "form",
+      "optional": true,
+      "description": "Add one or more names for this practitioner.",
+      "context": {
+        "inputs": {
+          "practitioner_id": { "type": "integer", "source": "workflow" }
+        },
+        "outputs": {}
+      },
+      "context_resolvers": [
+        {
+          "description": "Confirm practitioner exists.",
+          "tool_name": "get_practitioner_by_id",
+          "url": "$fhir_gql_url/practitioners/$practitioner_id",
+          "method": "GET",
+          "timeout_ms": 10000
+        },
+        {
+          "description": "Fetch name-use value set.",
+          "context_key": "name_use_concepts",
+          "tool_name": "get_name_use_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=name.use",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "practitioner_name_form",
+        "mode": "append",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "add_practitioner_name",
+          "tool_name": "add_practitioner_name",
+          "url": "$fhir_gql_url/practitioners/$practitioner_id/names",
+          "method": "POST",
+          "iterate_key": "names",
+          "validation_schema": "practitioner_name_create_schema",
+          "retryable": true,
+          "timeout_ms": 10000
+        }
+      ]
+    },
+    {
+      "sequence_number": 3,
+      "id": "add_practitioner_identifiers",
+      "name": "Add Identifiers",
+      "step_type": "form",
+      "optional": true,
+      "description": "Add professional identifiers such as NPI, licence number, or DEA number.",
+      "context": {
+        "inputs": {
+          "practitioner_id": { "type": "integer", "source": "workflow" }
+        },
+        "outputs": {}
+      },
+      "context_resolvers": [
+        {
+          "description": "Confirm practitioner exists.",
+          "tool_name": "get_practitioner_by_id",
+          "url": "$fhir_gql_url/practitioners/$practitioner_id",
+          "method": "GET",
+          "timeout_ms": 10000
+        },
+        {
+          "description": "Fetch identifier-use value set.",
+          "context_key": "identifier_use_concepts",
+          "tool_name": "get_identifier_use_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=identifier.use",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch identifier-type value set.",
+          "context_key": "identifier_type_concepts",
+          "tool_name": "get_identifier_type_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=identifier.type",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "practitioner_identifier_form",
+        "mode": "append",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "add_practitioner_identifier",
+          "tool_name": "add_practitioner_identifier",
+          "url": "$fhir_gql_url/practitioners/$practitioner_id/identifiers",
+          "method": "POST",
+          "iterate_key": "identifiers",
+          "validation_schema": "practitioner_identifier_create_schema",
+          "retryable": true,
+          "timeout_ms": 10000
+        }
+      ]
+    },
+    {
+      "sequence_number": 4,
+      "id": "add_practitioner_telecom",
+      "name": "Add Contact Points",
+      "step_type": "form",
+      "optional": true,
+      "description": "Add phone, email, or other contact details for this practitioner.",
+      "context": {
+        "inputs": {
+          "practitioner_id": { "type": "integer", "source": "workflow" }
+        },
+        "outputs": {}
+      },
+      "context_resolvers": [
+        {
+          "description": "Confirm practitioner exists.",
+          "tool_name": "get_practitioner_by_id",
+          "url": "$fhir_gql_url/practitioners/$practitioner_id",
+          "method": "GET",
+          "timeout_ms": 10000
+        },
+        {
+          "description": "Fetch telecom-system value set.",
+          "context_key": "telecom_system_concepts",
+          "tool_name": "get_telecom_system_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=telecom.system",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch telecom-use value set.",
+          "context_key": "telecom_use_concepts",
+          "tool_name": "get_telecom_use_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=telecom.use",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "practitioner_telecom_form",
+        "mode": "append",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "add_practitioner_telecom",
+          "tool_name": "add_practitioner_telecom",
+          "url": "$fhir_gql_url/practitioners/$practitioner_id/telecom",
+          "method": "POST",
+          "iterate_key": "telecom",
+          "validation_schema": "practitioner_telecom_create_schema",
+          "retryable": true,
+          "timeout_ms": 10000
+        }
+      ]
+    },
+    {
+      "sequence_number": 5,
+      "id": "add_practitioner_qualifications",
+      "name": "Add Qualifications",
+      "step_type": "form",
+      "optional": true,
+      "description": "Add medical degrees, licences, and certifications.",
+      "context": {
+        "inputs": {
+          "practitioner_id": { "type": "integer", "source": "workflow" }
+        },
+        "outputs": {}
+      },
+      "context_resolvers": [
+        {
+          "description": "Confirm practitioner exists.",
+          "tool_name": "get_practitioner_by_id",
+          "url": "$fhir_gql_url/practitioners/$practitioner_id",
+          "method": "GET",
+          "timeout_ms": 10000
+        }
+      ],
+      "ui": {
+        "schema": "practitioner_qualification_form",
+        "mode": "append",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "add_practitioner_qualification",
+          "tool_name": "add_practitioner_qualification",
+          "url": "$fhir_gql_url/practitioners/$practitioner_id/qualifications",
+          "method": "POST",
+          "iterate_key": "qualifications",
+          "validation_schema": "practitioner_qualification_create_schema",
+          "retryable": true,
+          "timeout_ms": 10000
+        }
+      ]
+    },
+    {
+      "sequence_number": 6,
+      "id": "add_practitioner_communications",
+      "name": "Add Communication Languages",
+      "step_type": "form",
+      "optional": true,
+      "description": "Record languages this practitioner uses with patients.",
+      "context": {
+        "inputs": {
+          "practitioner_id": { "type": "integer", "source": "workflow" }
+        },
+        "outputs": {}
+      },
+      "context_resolvers": [
+        {
+          "description": "Confirm practitioner exists.",
+          "tool_name": "get_practitioner_by_id",
+          "url": "$fhir_gql_url/practitioners/$practitioner_id",
+          "method": "GET",
+          "timeout_ms": 10000
+        },
+        {
+          "description": "Fetch communication-language value set.",
+          "context_key": "communication_language_concepts",
+          "tool_name": "get_communication_language_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Patient&field=communication.language",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "practitioner_communication_form",
+        "mode": "append",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "add_practitioner_communication",
+          "tool_name": "add_practitioner_communication",
+          "url": "$fhir_gql_url/practitioners/$practitioner_id/communications",
+          "method": "POST",
+          "iterate_key": "communications",
+          "validation_schema": "practitioner_communication_create_schema",
+          "retryable": true,
+          "timeout_ms": 10000
+        }
+      ]
+    },
+    {
+      "sequence_number": 7,
+      "id": "create_practitioner_role",
+      "name": "Assign Role",
+      "step_type": "form",
+      "description": "Link this practitioner to an organisation, location, and healthcare service, and define their role and specialty.",
+      "context": {
+        "inputs": {
+          "practitioner_id": { "type": "integer", "source": "workflow" }
+        },
+        "outputs": {
+          "practitioner_role_id": {
+            "type": "integer",
+            "resource": "PractitionerRole",
+            "field": "id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Load organisations for selection.",
+          "context_key": "my_organizations",
+          "tool_name": "get_my_organizations",
+          "url": "$fhir_gql_url/organizations/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Load locations for selection.",
+          "context_key": "my_locations",
+          "tool_name": "get_my_locations",
+          "url": "$fhir_gql_url/locations/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Load healthcare services for selection.",
+          "context_key": "my_healthcare_services",
+          "tool_name": "get_my_healthcare_services",
+          "url": "$fhir_gql_url/healthcare-services/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch practitioner role-code value set.",
+          "context_key": "role_code_concepts",
+          "tool_name": "get_role_code_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=PractitionerRole&field=code",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch specialty value set.",
+          "context_key": "specialty_concepts",
+          "tool_name": "get_specialty_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=PractitionerRole&field=specialty",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "practitioner_role_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_practitioner_role",
+          "tool_name": "create_practitioner_role",
+          "url": "$fhir_gql_url/practitioner-roles/",
+          "method": "POST",
+          "validation_schema": "practitioner_role_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    }
+  ]
+}

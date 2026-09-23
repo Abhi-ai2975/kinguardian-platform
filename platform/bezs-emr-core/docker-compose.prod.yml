@@ -1,0 +1,115 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FHIR Server — production / shared stack
+#
+# Usage:
+#   1. Copy .env.example to .env and fill in the required values
+#   2. docker compose -f docker-compose.prod.yml up -d
+#
+# The API image is pulled from GitHub Container Registry — no source code needed.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  api:
+    image: ghcr.io/naveenraj-g/fhir-server-v1:latest
+    container_name: fhir-server
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    networks:
+      - fhir-net
+
+  db:
+    image: postgres:15-alpine
+    container_name: fhir-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_DB: ${POSTGRES_DB:-fhir-server}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-fhir-server}",
+        ]
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 5
+    networks:
+      - fhir-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: fhir-redis
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      start_period: 5s
+      retries: 5
+    networks:
+      - fhir-net
+
+  # ── One-time terminology seeder ───────────────────────────────────────────────
+  # Run once after first deploy (or after a db-reset) to load all terminology data.
+  #
+  # Usage (on the VPS):
+  #   docker compose -f docker-compose.prod.yml run --rm fhir-seeder
+  #   -- or --
+  #   just vps-seed
+  #
+  # Requires terminology_data/ files present on the VPS host at ./terminology_data/
+  # All imports are idempotent — safe to re-run.
+
+  fhir-seeder:
+    image: ghcr.io/naveenraj-g/fhir-server-v1:latest
+    pull_policy: always
+    container_name: fhir-seeder
+    env_file: .env
+    volumes:
+      - ./terminology_data:/terminology_data:ro
+    entrypoint: ["/app/seed-all.sh"]
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: "no"
+    profiles:
+      - seed
+    networks:
+      - fhir-net
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  fhir-net:
+    driver: bridge

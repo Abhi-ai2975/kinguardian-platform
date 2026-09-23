@@ -1,0 +1,74 @@
+---
+title: "AWS S3"
+description: "Connect a FileNest project to an AWS S3 bucket."
+---
+
+# AWS S3
+
+AWS S3 is the default managed storage provider and is also available as a BYOB target.
+
+## Required IAM policy
+
+Create an IAM user or role with the following policy on your target bucket:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:DeleteObject",
+        "s3:ListBucket",
+        "s3:GetBucketLocation"
+      ],
+      "Resource": [
+        "arn:aws:s3:::your-bucket-name",
+        "arn:aws:s3:::your-bucket-name/*"
+      ]
+    }
+  ]
+}
+```
+
+## Connecting an S3 bucket
+
+```bash
+curl -X PATCH https://api.filenest.io/v1/projects/{id}/storage \
+  -H "Authorization: Bearer fn_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "s3",
+    "storage_mode": "byob",
+    "bucket_name": "my-company-files",
+    "region": "us-east-1",
+    "access_key_id": "AKIAIOSFODNN7EXAMPLE",
+    "secret_access_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+  }'
+```
+
+## Encryption
+
+S3 encryption is always on. By default FileNest sends `ServerSideEncryption: AES256` (SSE-S3).
+
+To use **AWS KMS** (SSE-KMS):
+
+```json
+{
+  "server_side_encryption": "aws:kms",
+  "kms_key_id": "arn:aws:kms:us-east-1:111122223333:key/..."
+}
+```
+
+<Callout type="note">
+Using SSE-KMS requires `kms:GenerateDataKey` and `kms:Decrypt` permissions on the KMS key in addition to the S3 permissions above.
+</Callout>
+
+## Verify connectivity
+
+```bash
+curl -X POST https://api.filenest.io/v1/projects/{id}/storage/verify \
+  -H "Authorization: Bearer fn_live_..."
+```

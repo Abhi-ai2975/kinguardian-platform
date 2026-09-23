@@ -1,0 +1,118 @@
+{
+  "id": "patient-link-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "patient-link-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "add_patient_link" },
+        "submitLabel": { "literalString": "Save Links" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Add Patient Links" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Link this patient to another Patient or RelatedPerson record (e.g. merged records, related persons)." },
+              "usageHint": "caption"
+            }
+          },
+          {
+            "id": "divider-top",
+            "type": "Divider",
+            "properties": {}
+          },
+          {
+            "id": "links",
+            "type": "RepeatableGroup",
+            "properties": {
+              "addLabel": { "literalString": "Add Link" },
+              "minItems": { "literalNumber": 1 },
+              "defaultCount": { "literalNumber": 1 },
+              "template": [
+                {
+                  "id": "link-type-row",
+                  "type": "Row",
+                  "properties": {
+                    "gap": "medium",
+                    "alignment": "stretch",
+                    "children": [
+                      {
+                        "id": "other_type",
+                        "type": "MultipleChoice",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Linked Resource Type" },
+                          "placeholder": { "literalString": "Select type" },
+                          "items": [
+                            { "label": { "literalString": "Patient" }, "value": "Patient" },
+                            { "label": { "literalString": "Related Person" }, "value": "RelatedPerson" }
+                          ]
+                        }
+                      },
+                      {
+                        "id": "type",
+                        "type": "MultipleChoice",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Link Type" },
+                          "placeholder": { "literalString": "Select link type" },
+                          "items": [
+                            { "label": { "literalString": "Refer" }, "value": "refer" },
+                            { "label": { "literalString": "See Also" }, "value": "seealso" },
+                            { "label": { "literalString": "Replaces" }, "value": "replaces" },
+                            { "label": { "literalString": "Replaced By" }, "value": "replaced-by" }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "link-id-display-row",
+                  "type": "Row",
+                  "properties": {
+                    "gap": "medium",
+                    "alignment": "stretch",
+                    "children": [
+                      {
+                        "id": "other_id",
+                        "type": "TextField",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Linked Resource ID" },
+                          "placeholder": { "literalString": "e.g. 99" },
+                          "textFieldType": "number"
+                        }
+                      },
+                      {
+                        "id": "other_display",
+                        "type": "TextField",
+                        "weight": 2,
+                        "properties": {
+                          "label": { "literalString": "Display Name (optional)" },
+                          "placeholder": { "literalString": "e.g. John Doe (duplicate record)" },
+                          "textFieldType": "shortText"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,46 @@
+---
+title: "Organizations"
+description: "Organizations are the top-level tenant in FileNest — they map to a customer account."
+---
+
+# Organizations
+
+An **organization** is the top-level tenant in FileNest. It maps to a customer account and owns members, teams, roles, and API keys.
+
+## Data model
+
+```
+Organization
+  ├── Members (users with roles)
+  ├── Teams
+  ├── API Keys  (fn_live_... / fn_test_...)
+  └── Projects  ──►  Files
+```
+
+## Where organizations live
+
+Organizations are managed by the **FileNest IAM** (powered by BetterAuth). They are not stored in the FileNest API database — the `organization_id` foreign key in the API database links records back to IAM without a cross-database join.
+
+## Member roles
+
+| Role | Permissions |
+|------|-------------|
+| **Owner** | Full access, can delete the organization |
+| **Admin** | Manage members, projects, API keys |
+| **Member** | Read/write access to projects |
+| **Viewer** | Read-only access |
+
+## API keys
+
+API keys are scoped to an organization and optionally restricted to specific scopes. Key prefixes:
+
+| Prefix | Environment |
+|--------|-------------|
+| `fn_live_...` | Production |
+| `fn_test_...` | Test / sandbox |
+
+See [API Keys](/docs/concepts/api-keys) for details.
+
+## Multi-organization support
+
+A user can belong to multiple organizations. The active organization is tracked in the session (`activeOrganizationId`). Switching organizations from the Console updates the session context.

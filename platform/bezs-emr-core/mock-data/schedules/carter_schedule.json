@@ -1,0 +1,43 @@
+{
+  "user_id": "user-admin-001",
+  "org_id": "0fb41e50-82a4-461e-96c7-bd11359d892d",
+  "active": true,
+  "comment": "Dr. James R. Carter — Cardiology clinic schedule, Mon/Tue/Thu/Fri",
+  "planning_horizon_start": "2026-06-01T00:00:00Z",
+  "planning_horizon_end": "2026-12-31T23:59:59Z",
+  "service_category": [
+    {
+      "coding_system": "http://terminology.hl7.org/CodeSystem/service-category",
+      "coding_code": "27",
+      "coding_display": "Specialist Medical"
+    }
+  ],
+  "service_type": [
+    {
+      "coding_system": "http://terminology.hl7.org/CodeSystem/service-type",
+      "coding_code": "394",
+      "coding_display": "Cardiology"
+    }
+  ],
+  "specialty": [
+    {
+      "coding_system": "http://snomed.info/sct",
+      "coding_code": "394579002",
+      "coding_display": "Cardiology"
+    }
+  ],
+  "actor": [
+    {
+      "reference": "Practitioner/30000",
+      "reference_display": "Dr. James R. Carter"
+    },
+    {
+      "reference": "PractitionerRole/140000",
+      "reference_display": "Dr. Carter — Cardiologist"
+    },
+    {
+      "reference": "Location/230000",
+      "reference_display": "Sunrise Medical Center — Main Clinic"
+    }
+  ]
+}

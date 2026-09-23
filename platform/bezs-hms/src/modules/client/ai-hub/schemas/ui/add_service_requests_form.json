@@ -1,0 +1,192 @@
+{
+  "id": "add-service-requests-root",
+  "type": "Column",
+  "properties": {
+    "gap": "small",
+    "children": [
+      {
+        "id": "asr-back-form",
+        "type": "Form",
+        "properties": {
+          "action": { "name": "back_to_choose" },
+          "submitLabel": { "literalString": "← Change selection" },
+          "gap": "small",
+          "alignment": "start",
+          "children": []
+        }
+      },
+      {
+        "id": "asr-main-card",
+        "type": "Card",
+        "properties": {
+          "child": {
+            "id": "add-service-requests-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_service_requests_batch" },
+        "submitLabel": { "literalString": "Save Service Requests →" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "asr-form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Step 6: Add Service Requests" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "asr-form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": {
+                "literalString": "Add one or more lab orders, imaging requests, or procedure referrals for this encounter. Status and intent are required."
+              },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "asr-divider-existing", "type": "Divider", "properties": {} },
+          {
+            "id": "asr-existing-label",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Existing Service Requests" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "asr-existing-count-row",
+            "type": "Row",
+            "properties": {
+              "gap": "small",
+              "alignment": "center",
+              "children": [
+                {
+                  "id": "asr-existing-num",
+                  "type": "Text",
+                  "properties": { "text": "$existing_service_requests.total", "usageHint": "h3" }
+                },
+                {
+                  "id": "asr-existing-suffix",
+                  "type": "Text",
+                  "properties": {
+                    "text": { "literalString": "service request(s) already recorded for this encounter" },
+                    "usageHint": "caption"
+                  }
+                }
+              ]
+            }
+          },
+          { "id": "asr-divider-new", "type": "Divider", "properties": {} },
+          {
+            "id": "asr-new-label",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "New Service Requests" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "service_requests_group",
+            "type": "RepeatableGroup",
+            "properties": {
+              "label": { "literalString": "Service Requests to Add" },
+              "addLabel": { "literalString": "Add Another Service Request" },
+              "defaultCount": 1,
+              "minItems": 1,
+              "maxItems": 10,
+              "allowDuplicate": false,
+              "template": [
+                {
+                  "id": "code",
+                  "type": "TerminologySelect",
+                  "properties": {
+                    "label": { "literalString": "Procedure / Lab Code" },
+                    "placeholder": { "literalString": "Search code…" },
+                    "valueType": { "literalString": "CodeableConcept" },
+                    "serverSearch": { "minChars": 2, "debounceMs": 200 }
+                  }
+                },
+                {
+                  "id": "asr-order-row",
+                  "type": "Row",
+                  "properties": {
+                    "gap": "medium",
+                    "alignment": "stretch",
+                    "children": [
+                      {
+                        "id": "status",
+                        "type": "TerminologySelect",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Status *" },
+                          "placeholder": { "literalString": "Select status…" },
+                          "items": "$status_concepts.concepts",
+                          "valueType": { "literalString": "code" }
+                        }
+                      },
+                      {
+                        "id": "intent",
+                        "type": "TerminologySelect",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Intent *" },
+                          "placeholder": { "literalString": "Select intent…" },
+                          "items": "$intent_concepts.concepts",
+                          "valueType": { "literalString": "code" }
+                        }
+                      },
+                      {
+                        "id": "priority",
+                        "type": "TerminologySelect",
+                        "weight": 1,
+                        "properties": {
+                          "label": { "literalString": "Priority" },
+                          "placeholder": { "literalString": "Select priority…" },
+                          "items": "$priority_concepts.concepts",
+                          "valueType": { "literalString": "code" }
+                        }
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "category",
+                  "type": "TerminologySelect",
+                  "properties": {
+                    "label": { "literalString": "Category (optional)" },
+                    "placeholder": { "literalString": "Select category…" },
+                    "items": "$category_concepts.concepts",
+                    "valueType": { "literalString": "CodeableConcept" }
+                  }
+                },
+                {
+                  "id": "authored_on",
+                  "type": "DateTimeInput",
+                  "properties": {
+                    "label": { "literalString": "Authored On (optional)" },
+                    "enableDate": true,
+                    "enableTime": false
+                  }
+                },
+                {
+                  "id": "note_text",
+                  "type": "TextField",
+                  "properties": {
+                    "label": { "literalString": "Notes (optional)" },
+                    "placeholder": { "literalString": "Clinical notes or special instructions" },
+                    "textFieldType": "longText"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}
+    ]
+  }
+}

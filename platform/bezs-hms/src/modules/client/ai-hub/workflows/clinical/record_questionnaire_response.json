@@ -1,0 +1,90 @@
+{
+  "id": "record_questionnaire_response",
+  "name": "Record Questionnaire Response",
+  "description": "Record a patient's responses to a FHIR Questionnaire, capturing each question and its answer as structured response items.",
+  "version": "1.0.0",
+  "tags": ["fhir", "clinical", "questionnaire", "response", "create"],
+  "llm_hints": {
+    "intent_examples": [
+      "Record questionnaire responses",
+      "Submit a questionnaire",
+      "Fill out a patient questionnaire",
+      "Record answers to intake form",
+      "Submit PHQ-9 questionnaire responses"
+    ],
+    "when_to_use": [
+      "User wants to record a new FHIR QuestionnaireResponse resource",
+      "User wants to submit answers to a questionnaire for a patient"
+    ],
+    "when_not_to_use": [
+      "User wants to create a new questionnaire definition",
+      "User wants to record a standalone observation"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you record a patient's questionnaire responses — questionnaire reference, status, and individual question-answer pairs.",
+  "completion": {
+    "message": "Questionnaire response recorded successfully.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "record_questionnaire_response_step",
+      "name": "Record Questionnaire Response",
+      "step_type": "form",
+      "description": "Enter the questionnaire reference, status, and response items.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "field": "me_patient.id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Resolve the current patient from session.",
+          "context_key": "me_patient",
+          "tool_name": "get_my_patient",
+          "url": "$fhir_gql_url/patients/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch status value set for QuestionnaireResponse.",
+          "context_key": "status_concepts",
+          "tool_name": "get_questionnaire_response_status",
+          "url": "$fhir_gql_url/terminology/concepts?resource=QuestionnaireResponse&field=status",
+          "method": "GET",
+          "timeout_ms": 8000
+        }
+      ],
+      "ui": {
+        "schema": "questionnaire_response_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_questionnaire_response",
+          "tool_name": "create_questionnaire_response",
+          "url": "$fhir_gql_url/questionnaire-responses/",
+          "method": "POST",
+          "validation_schema": "questionnaire_response_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    }
+  ]
+}

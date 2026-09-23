@@ -1,0 +1,104 @@
+{
+  "id": "create_coverage",
+  "name": "Create Coverage",
+  "description": "Create a health insurance Coverage resource for the current patient, including status, insurer (payor), insurance type, member ID, network, and coverage period.",
+  "version": "1.0.0",
+  "tags": ["fhir", "coverage", "insurance", "create", "crud"],
+  "llm_hints": {
+    "intent_examples": [
+      "Add insurance coverage",
+      "Create a coverage record",
+      "Register health insurance for a patient",
+      "Add a patient's insurance plan",
+      "Record coverage details"
+    ],
+    "when_to_use": [
+      "User wants to create a Coverage resource for a patient",
+      "User wants to register a patient's health insurance",
+      "User wants to add an insurance plan or payor"
+    ],
+    "when_not_to_use": [
+      "User wants to create a patient record",
+      "User wants to book an appointment"
+    ],
+    "required_context": []
+  },
+  "execution": {
+    "mode": "deterministic",
+    "orchestrator": "nextjs",
+    "audit_enabled": true
+  },
+  "introduction": "I'll help you create an insurance coverage record for the current patient — including the insurer, member ID, insurance type, and coverage period.",
+  "completion": {
+    "message": "Coverage record created successfully.",
+    "action": "dismiss"
+  },
+  "workflow_steps": [
+    {
+      "sequence_number": 1,
+      "id": "create_coverage_resource",
+      "name": "Create Coverage",
+      "step_type": "form",
+      "description": "Enter the coverage details including status, insurer, insurance type, member ID, and period.",
+      "context": {
+        "inputs": {},
+        "outputs": {
+          "coverage_id": {
+            "type": "integer",
+            "resource": "Coverage",
+            "field": "id"
+          },
+          "patient_id": {
+            "type": "integer",
+            "resource": "Patient",
+            "field": "me_patient.id"
+          }
+        }
+      },
+      "context_resolvers": [
+        {
+          "description": "Auto-resolve the current patient from the session.",
+          "context_key": "me_patient",
+          "tool_name": "get_my_patient",
+          "url": "$fhir_gql_url/patients/me",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Fetch coverage-status value set.",
+          "context_key": "status_concepts",
+          "tool_name": "get_coverage_status_valueset",
+          "url": "$fhir_gql_url/terminology/concepts?resource=Coverage&field=status",
+          "method": "GET",
+          "timeout_ms": 8000
+        },
+        {
+          "description": "Load organisations available as payors.",
+          "context_key": "my_organizations",
+          "tool_name": "get_my_organizations",
+          "url": "$fhir_gql_url/organizations/me",
+          "method": "GET",
+          "timeout_ms": 10000
+        }
+      ],
+      "ui": {
+        "schema": "coverage_create_form",
+        "mode": "create",
+        "prefill": false,
+        "editable": true
+      },
+      "actions": [
+        {
+          "type": "http",
+          "purpose": "create_coverage",
+          "tool_name": "create_coverage",
+          "url": "$fhir_gql_url/coverages/",
+          "method": "POST",
+          "validation_schema": "coverage_create_schema",
+          "retryable": false,
+          "timeout_ms": 10000
+        }
+      ]
+    }
+  ]
+}

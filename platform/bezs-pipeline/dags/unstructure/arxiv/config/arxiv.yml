@@ -1,0 +1,81 @@
+# Arxiv Pipeline Configuration
+
+arxiv:
+  # Connector Settings (Validated by ArxivConfig)
+  base_url: "https://export.arxiv.org/api/query"
+  timeout: 30  # Matches 'timeout' in ArxivConfig schema
+
+  # Extractor/Search Settings (Validated by ArxivExtractorConfig)
+  search_category: "cs.AI" 
+  max_results: 3
+  rate_limit_delay: 3.0
+  
+  # XML Namespaces for Atom Feed Parsing
+  namespaces:
+    atom: "http://www.w3.org/2005/Atom"
+    opensearch: "http://a9.com/-/spec/opensearch/1.1/"
+    arxiv: "http://arxiv.org/schemas/atom"
+
+  # Downloader Settings (Validated by ArxivDownloaderConfig)
+  download_dir: "/tmp/aiplatform/arxiv/downloads"
+  max_retries: 3
+  retry_backoff: 2
+  timeout_seconds: 30
+
+docling:
+  # PDF Transformation Settings (Validated by DoclingConfig)
+  index_name: "arxiv_papers" 
+  max_pages: 30
+  max_file_size_mb: 50
+  max_concurrency: 4
+  do_ocr: false
+  do_table_structure: false
+
+chunker:
+  # Text Chunking Settings (Validated by ChunkingConfig)
+  index_name: "arxiv_chunks" 
+  chunking:
+    chunk_size: 600
+    overlap_size: 120
+    min_chunk_size: 150
+
+elasticsearch:
+  # General Load Settings
+  load:
+    index_name: "arxiv_chunks" 
+    settings:
+      index:
+        number_of_shards: 1
+        number_of_replicas: 0
+      analysis:
+        analyzer:
+          arxiv_analyzer:
+            type: custom
+            tokenizer: standard
+            filter: ["lowercase", "stop", "snowball"]
+    mappings:
+      dynamic: true
+      properties:
+        title: {type: text, analyzer: arxiv_analyzer}
+        abstract: {type: text, analyzer: arxiv_analyzer}
+        text: {type: text, analyzer: arxiv_analyzer}
+        vector: {type: dense_vector, dims: 384}
+
+embeddings:
+  path: "sentence-transformers/all-MiniLM-L6-v2"
+  content: true
+  backend: "annoy"
+
+# jina:
+#   api_key: "jina_api_token"
+#   base_url: "https://api.jina.ai/v1"
+#   timeout: 60
+#   max_retries: 5
+#   base_backoff: 1.0
+#   model: "jina-embeddings-v3"
+#   dimensions: 1024
+#   tasks:
+#     passage: "retrieval_passages"
+#     query: "retrieval_query"
+#   late_chunking: false
+#   embedding_type: "float"

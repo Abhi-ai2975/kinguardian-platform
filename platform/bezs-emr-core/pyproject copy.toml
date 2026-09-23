@@ -1,0 +1,18 @@
+[project]
+name = "server"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "asyncpg>=0.31.0",
+    "dependency-injector>=4.48.3",
+    "fastapi[standard]>=0.129.0",
+    "fhir-resources>=8.2.0",
+    "orjson>=3.11.7",
+    "pydantic-settings>=2.13.0",
+    "pyjwt>=2.11.0",
+    "python-keycloak>=7.1.1",
+    "redis>=7.2.0",
+    "sqlalchemy>=2.0.46",
+]

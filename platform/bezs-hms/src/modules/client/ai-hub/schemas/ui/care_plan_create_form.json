@@ -1,0 +1,204 @@
+{
+  "id": "care-plan-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "care-plan-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_care_plan" },
+        "submitLabel": { "literalString": "Create Care Plan" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "cp-form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Step 1: Create Care Plan" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "cp-form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Define the care plan status, intent, title, period, and responsible practitioner. A follow-up task will be added in the next step." },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "cp-divider-top", "type": "Divider", "properties": {} },
+          {
+            "id": "cp-section-core",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Plan Details" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "cp-status-intent-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "status",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Status" },
+                    "placeholder": { "literalString": "Select status…" },
+                    "items": "$status_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "intent",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Intent" },
+                    "placeholder": { "literalString": "Select intent…" },
+                    "items": "$intent_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "title",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Plan Title" },
+              "placeholder": { "literalString": "e.g. Asthma Management Plan" },
+              "textFieldType": "shortText"
+            }
+          },
+          {
+            "id": "description",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Description (optional)" },
+              "placeholder": { "literalString": "Describe the goals and scope of this care plan" },
+              "textFieldType": "longText"
+            }
+          },
+          { "id": "cp-divider-category", "type": "Divider", "properties": {} },
+          {
+            "id": "cp-section-category",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Category" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "category",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Care Plan Category (optional)" },
+              "placeholder": { "literalString": "Search category…" },
+              "valueType": { "literalString": "CodeableConcept" },
+              "serverSearch": {
+                "system": "http://snomed.info/sct",
+                "minChars": 2,
+                "debounceMs": 200
+              }
+            }
+          },
+          { "id": "cp-divider-period", "type": "Divider", "properties": {} },
+          {
+            "id": "cp-section-period",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Period" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "cp-period-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "period_start",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Period Start (optional)" },
+                    "enableDate": true,
+                    "enableTime": false
+                  }
+                },
+                {
+                  "id": "period_end",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Period End (optional)" },
+                    "enableDate": true,
+                    "enableTime": false
+                  }
+                }
+              ]
+            }
+          },
+          { "id": "cp-divider-author", "type": "Divider", "properties": {} },
+          {
+            "id": "cp-section-author",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Author" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "author",
+            "type": "DataSelect",
+            "properties": {
+              "label": { "literalString": "Author / Responsible Practitioner (optional)" },
+              "placeholder": { "literalString": "Search practitioner…" },
+              "items": "$booking_practitioners.data",
+              "labelPath": "practitioner_detail.name.text",
+              "emits": [
+                { "key": "ref_id", "path": "practitioner_ref_id" },
+                { "key": "display", "path": "practitioner_detail.name.text" }
+              ]
+            }
+          },
+          { "id": "cp-divider-notes", "type": "Divider", "properties": {} },
+          {
+            "id": "cp-section-notes",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Notes" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "note_text",
+            "type": "TextField",
+            "properties": {
+              "label": { "literalString": "Notes (optional)" },
+              "placeholder": { "literalString": "Additional clinical notes for this care plan" },
+              "textFieldType": "longText"
+            }
+          },
+          {
+            "id": "cp-info-note",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Patient and encounter resolved from session. Addresses condition_id from prior diagnosis step." },
+              "usageHint": "caption"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

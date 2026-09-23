@@ -1,0 +1,37 @@
+---
+title: "Usage"
+description: "Monitor storage and file usage across all projects in your organization."
+---
+
+# Usage
+
+The **Usage** page (`/org/usage`) shows storage and file-count metrics for the active organization, broken down by project.
+
+## Headline meters
+
+Four stat cards at the top summarize the org's current usage:
+
+| Card | What it shows |
+|------|--------------|
+| **Total storage** | Sum of all file sizes across every project |
+| **Total files** | Count of all non-deleted files in the org |
+| **Uploads this month** | Files uploaded in the last 30 days |
+| **Active projects** | Number of non-deleted projects |
+
+## Per-project breakdown
+
+A sortable table shows each project's individual contribution:
+
+| Column | Description |
+|--------|-------------|
+| **Project** | Project name |
+| **Files** | File count for that project |
+| **Storage used** | Formatted byte count + a progress bar showing the project's share of total org storage |
+
+The progress bar percentage is calculated as `project_storage_bytes / total_org_storage_bytes × 100`. Projects with zero files are included so newly created projects are always visible.
+
+Click any column header to sort — the table defaults to descending storage usage so the largest consumers appear first.
+
+## Data freshness
+
+Usage data is fetched fresh on every page load from `GET /v1/usage`. There is no polling — refresh the page to see the latest state.

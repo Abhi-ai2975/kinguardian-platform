@@ -1,0 +1,85 @@
+---
+title: "API Keys"
+description: "Create and manage project-scoped API keys in the FileNest Console."
+---
+
+# API Keys
+
+The **API Keys** page (`/projects/{projectId}/api-keys`) manages project-scoped API keys. Every key is bound to a single project and carries an explicit set of scopes.
+
+## Key types
+
+| Prefix | Environment | Use case |
+|--------|-------------|----------|
+| `fn_live_...` | Production | Live traffic |
+| `fn_test_...` | Test / staging | Development and CI |
+
+## Creating a key
+
+1. Click **Create key**
+2. Enter a display name (e.g. `backend-prod`, `ci-runner`)
+3. Select the key type (`live` or `test`)
+4. Select the scopes the key needs
+
+<Callout type="warning" title="Save your key">
+The full API key is shown exactly once on creation. Copy it immediately to a secret manager or environment variable — it cannot be retrieved again.
+</Callout>
+
+## Available scopes
+
+Scopes are grouped by resource in the creation form. Only check the scopes the key actually needs.
+
+**Files**
+
+| Scope | Grants access to |
+|-------|-----------------|
+| `files:upload` | Upload files (single and multipart) |
+| `files:download` | Generate presigned download URLs |
+| `files:read` | List and inspect files and version history |
+| `files:delete` | Delete files |
+| `files:metadata` | Update file tags, metadata, and filename |
+
+**Folders**
+
+| Scope | Grants access to |
+|-------|-----------------|
+| `folders:read` | List folders, resolve paths, list files in folder |
+| `folders:write` | Create folders, ensure paths, move files, delete folders |
+
+**Upload Tokens**
+
+| Scope | Grants access to |
+|-------|-----------------|
+| `upload_tokens:create` | Issue short-lived browser upload tokens |
+
+**Webhooks**
+
+| Scope | Grants access to |
+|-------|-----------------|
+| `webhooks:read` | List webhook endpoints and delivery history |
+| `webhooks:write` | Create, update, and delete webhook endpoints |
+
+**Projects**
+
+| Scope | Grants access to |
+|-------|-----------------|
+| `projects:read` | Read project configuration, usage, and dashboard |
+| `projects:update` | Update project settings and storage configuration |
+
+**Audit & Compliance**
+
+| Scope | Grants access to |
+|-------|-----------------|
+| `audit:read` | Read audit log entries |
+| `compliance:manage` | Configure WORM, legal hold, and retention policies |
+
+## Revoking a key
+
+Click **Revoke** in the row actions menu. Revocation is immediate — the key stops working within seconds. Revoked keys are shown with a `revoked` badge and cannot be re-activated; create a new key if needed.
+
+## Best practices
+
+- Follow the principle of least privilege — only grant the scopes the consumer actually needs
+- Use `fn_test_...` keys in development and CI to avoid hitting production data
+- Rotate keys regularly — revoke the old key and create a new one
+- Never commit API keys to source control; use environment variables or a secret manager

@@ -1,0 +1,52 @@
+---
+title: Organisations
+description: How multi-tenancy works in Watcher — organisations, members, teams, and data isolation.
+---
+
+# Organisations
+
+Watcher is multi-tenant. Every piece of data — events, API keys, members — belongs to exactly one **organisation**. This page explains how organisations work and how to manage them.
+
+## What is an organisation?
+
+An organisation is the top-level container for all your data. When you sign up, you create one. If you work for multiple companies, you can belong to multiple organisations and switch between them in the console header.
+
+All events ingested with an API key are automatically scoped to the organisation that owns that key. ClickHouse queries always filter by `organization_id`, so one organisation can never see another's data.
+
+## Members and roles
+
+Every member has exactly one role:
+
+| Role | What they can do |
+|---|---|
+| **Owner** | Full access: manage billing, delete the org, transfer ownership |
+| **Admin** | Manage members and API keys; cannot touch billing |
+| **Member** | Read-only access to events and settings |
+
+Invite members at **Settings → Members**. An invite email is sent; the invitee clicks the link to join.
+
+## Teams
+
+Teams are sub-groups within an organisation. They are useful for large orgs where different groups own different applications:
+
+- Create teams at **Settings → Teams**
+- Add members to a team
+- Future: restrict API keys and apps to specific teams
+
+## Switching organisations
+
+Click the organisation name in the top header to open the org switcher. Selecting an organisation sets it as the **active organisation** — all subsequent queries and API calls use that org's data.
+
+## Creating a new organisation
+
+Click **New organisation** in the org switcher, or go to `/onboarding/create-org`. Each organisation gets its own ClickHouse partition, API keys, and billing subscription.
+
+## Deleting an organisation
+
+Deleting an organisation permanently removes all events, API keys, and settings for that org. This action cannot be undone.
+
+Go to **Settings → Organisation → Danger Zone** and click **Delete organisation**. You must type the org name to confirm.
+
+<Callout type="danger" title="Permanent action">
+Deleting an organisation is permanent. All ClickHouse data, API keys, and member associations are removed. There is no recovery path.
+</Callout>

@@ -1,0 +1,121 @@
+---
+title: "Files"
+description: "Browse, upload, download, rename, and manage files in a FileNest project."
+---
+
+# Files
+
+The **Files** page (`/projects/{projectId}/files`) is the file explorer for a project. It lists all non-deleted files with sorting, filtering, folder navigation, and row actions.
+
+## File table
+
+| Column | Description |
+|--------|-------------|
+| **Filename** | Original upload name with MIME type |
+| **Size** | Human-readable file size |
+| **Status** | Current lifecycle status |
+| **Uploaded** | Upload timestamp |
+
+The table supports:
+
+- **Column sorting** — click any column header to sort ascending / descending
+- **Filter** — filter by status or filename text
+- **Export** — download the visible rows as CSV
+- **Row selection** — select multiple files for bulk actions (delete)
+
+## File status lifecycle
+
+```
+uploading → processing → ready
+                      ↘ failed
+                      ↘ quarantined
+```
+
+| Status | Meaning |
+|--------|---------|
+| `uploading` | File is being received by the API |
+| `processing` | Virus scan and pipeline stages running |
+| `ready` | Processing complete — file is downloadable |
+| `failed` | Processing pipeline failed |
+| `quarantined` | Virus scan detected a threat — download blocked |
+| `deleted` | Soft-deleted (not shown in table) |
+
+## Uploading files
+
+Click **Upload** (top right of the table toolbar) to open the upload modal.
+
+### Drop zone
+
+Drag files onto the drop zone or click **Browse** to open the OS file picker. Multiple files are supported — each file gets its own progress bar.
+
+### Upload mode
+
+| Mode | How it works |
+|------|-------------|
+| **Presigned URL** (default) | The browser PUTs bytes directly to the storage provider using a short-lived presigned URL. Faster and shows granular per-file progress. |
+| **Server-side** | Bytes route through the console server. Useful when testing validation and processing pipeline triggers. |
+
+### Upload options
+
+Before starting the upload you can configure:
+
+| Option | Description |
+|--------|-------------|
+| **Folder** | Place files in an existing folder (or leave empty for the project root). The folder picker shows the full hierarchy in a tree popover. |
+| **Tags** | Add one or more tags — type a tag and press **Enter** or comma. Tags are applied to every file in the batch. |
+| **Metadata** | Key-value pairs attached to every file in the batch. Click **Add field** to add a row. |
+
+Click **Upload** to start. The modal shows a progress bar per file and closes automatically once all files complete. The file table refreshes immediately.
+
+## Folder sidebar
+
+A **Folders** sidebar appears to the left of the file table at all times, even when a project has no folders yet.
+
+### Navigating folders
+
+Click any folder to filter the file table to files inside that folder only. The selected folder is stored in the URL (`?folder_id=xxx`) — the link is shareable and survives page refresh.
+
+**All files** (top of the sidebar, shown as a list icon) clears the folder filter and shows every file in the project regardless of folder.
+
+Folders with subfolders show a chevron — click it to expand or collapse the subtree.
+
+### Creating folders
+
+- **Root folder** — click the **+** button in the Folders header to create a new folder at the project root.
+- **Subfolder** — hover any existing folder row and click the **`⋯`** menu → **New subfolder**.
+
+A dialog prompts for the folder name. The parent context is shown in the dialog description.
+
+### Deleting folders
+
+Hover the folder row → **`⋯`** menu → **Delete**. A confirmation dialog warns that the folder must be empty before deletion. Non-empty folders cannot be deleted.
+
+## Row actions
+
+Right-click a row or click the **`⋯`** menu to access:
+
+| Action | Description |
+|--------|-------------|
+| **View details** | Opens the metadata / tags side panel |
+| **Download** | Opens a presigned download URL in a new tab |
+| **Rename** | Opens a dialog pre-filled with the current filename — save to apply |
+| **Move to folder** | Opens a dialog with a folder tree picker — select a destination and click **Move** |
+| **Delete** | Soft-deletes the file after confirmation |
+
+## File details panel
+
+Click **View details** to open a side panel with the file's full metadata.
+
+### Tags
+
+The **Tags** section shows the current tag set as chips. Remove a tag by clicking the `×` on its chip. Add a tag by typing in the input field and pressing **Enter**. Tag changes are applied immediately — no save button needed.
+
+### Metadata
+
+The **Metadata** section shows raw key-value pairs as formatted JSON. Click **Edit** to switch to a JSON textarea, modify the values, and click **Save**. The textarea validates JSON before submitting — malformed input shows an inline error.
+
+If the project has `enforce_schema = true`, the API validates the metadata against the active schema and returns field-level errors on mismatch.
+
+## Empty state
+
+A project with no files shows an empty state with an **Upload** button. Use the FileNest SDK, API, or the console upload modal to add files.

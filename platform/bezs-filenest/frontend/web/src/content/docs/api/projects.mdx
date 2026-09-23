@@ -1,0 +1,92 @@
+---
+title: "Projects API"
+description: "Create, list, update, and delete FileNest projects."
+---
+
+# Projects API
+
+## Create a project
+
+```
+POST /v1/projects
+```
+
+**Required scope:** `projects:update`
+
+```bash
+curl -X POST https://api.filenest.io/v1/projects \
+  -H "Authorization: Bearer fn_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Production",
+    "slug": "production",
+    "storage_mode": "managed",
+    "storage_provider": "s3",
+    "description": "Production file storage"
+  }'
+```
+
+**Response `201`:**
+
+```json
+{
+  "id": "proj_01j...",
+  "name": "Production",
+  "slug": "production",
+  "organization_id": "org_01j...",
+  "storage_mode": "managed",
+  "storage_provider": "s3",
+  "description": "Production file storage",
+  "created_at": "2026-06-20T10:00:00Z"
+}
+```
+
+## List projects
+
+```
+GET /v1/projects
+```
+
+**Required scope:** `projects:read`
+
+Returns all non-deleted projects in the caller's organization.
+
+## Get a project
+
+```
+GET /v1/projects/{project_id}
+```
+
+**Required scope:** `projects:read`
+
+## Update a project
+
+```
+PATCH /v1/projects/{project_id}
+```
+
+**Required scope:** `projects:update`
+
+```json
+{
+  "name": "Production v2",
+  "description": "Updated description"
+}
+```
+
+## Delete a project
+
+```
+DELETE /v1/projects/{project_id}
+```
+
+**Required scope:** `projects:update`
+
+Soft-deletes the project — sets `deleted_at`. Files are not immediately removed from storage.
+
+## Error codes
+
+| Status | Code | Meaning |
+|--------|------|---------|
+| `404` | `project_not_found` | Project does not exist or belongs to a different org |
+| `409` | `slug_taken` | A project with this slug already exists in the org |

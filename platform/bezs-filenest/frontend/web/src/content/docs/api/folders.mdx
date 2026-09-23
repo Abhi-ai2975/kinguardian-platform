@@ -1,0 +1,220 @@
+---
+title: "Folders API"
+description: "Create and manage folder hierarchies to organise files in a project."
+---
+
+# Folders API
+
+Folders let you organise files into a tree structure within a project. They use a **materialized path** model — the full path from root (e.g. `/invoices/2026/q1`) is stored on creation and never recalculated, making hierarchy queries fast.
+
+## Create a folder
+
+```
+POST /v1/projects/{project_id}/folders
+```
+
+**Required scope:** `folders:write`
+
+```json
+{
+  "name": "invoices",
+  "parent_folder_id": null
+}
+```
+
+`name` must not contain `/`. To create a nested folder, supply the parent's `id` in `parent_folder_id`.
+
+**Response `201`:**
+
+```json
+{
+  "id": "fld_01j...",
+  "organization_id": "org_01j...",
+  "project_id": "prj_01j...",
+  "parent_folder_id": null,
+  "name": "invoices",
+  "path": "/invoices",
+  "created_at": "2026-06-21T10:00:00Z"
+}
+```
+
+## Ensure a path (idempotent)
+
+```
+POST /v1/projects/{project_id}/folders/ensure-path
+```
+
+**Required scope:** `folders:write`
+
+Idempotently creates every missing segment of a path and returns the leaf folder. If the full path already exists, the existing folder is returned unchanged. This is the recommended way to create per-user or per-tenant folder hierarchies.
+
+```json
+{
+  "path": "users/alice/uploads"
+}
+```
+
+**Response `200`:** returns the leaf folder record.
+
+```json
+{
+  "id": "fld_03j...",
+  "name": "uploads",
+  "path": "/users/alice/uploads",
+  "created_at": "2026-06-21T10:05:00Z"
+}
+```
+
+<Callout type="tip" title="Use this instead of create">
+`ensure-path` is idempotent and safe to call on every request. Use it when you need to guarantee a folder exists before creating an upload token — no need to check first.
+</Callout>
+
+## List folders
+
+```
+GET /v1/projects/{project_id}/folders
+```
+
+**Required scope:** `folders:read`
+
+**Query parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `name` | string | Optional exact name filter |
+
+Returns all non-deleted folders in the project ordered by `path` (breadth-first). Use the `path` field to reconstruct the hierarchy client-side — no recursive queries needed.
+
+**Response `200`:**
+
+```json
+{
+  "items": [
+    {
+      "id": "fld_01j...",
+      "parent_folder_id": null,
+      "name": "invoices",
+      "path": "/invoices",
+      "created_at": "2026-06-21T10:00:00Z"
+    },
+    {
+      "id": "fld_02j...",
+      "parent_folder_id": "fld_01j...",
+      "name": "2026",
+      "path": "/invoices/2026",
+      "created_at": "2026-06-21T10:01:00Z"
+    }
+  ],
+  "total": 2
+}
+```
+
+## Get a folder by path
+
+```
+GET /v1/projects/{project_id}/folders/by-path?path={path}
+```
+
+**Required scope:** `folders:read`
+
+Resolves a slash-separated path string to the matching folder record. Returns `404` if the path does not exist.
+
+**Query parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `path` | string | Slash-separated path, e.g. `users/alice/uploads` |
+
+**Response `200`:** returns the folder record.
+
+**Response `404`:** path does not exist — use `ensure-path` to create it.
+
+## Get a folder by ID
+
+```
+GET /v1/projects/{project_id}/folders/{folder_id}
+```
+
+**Required scope:** `folders:read`
+
+**Response `200`:** returns the folder record.
+
+## List files in a folder
+
+```
+GET /v1/projects/{project_id}/folders/{folder_id}/files
+```
+
+**Required scope:** `folders:read`
+
+Returns files that are **directly** inside the specified folder. Accepts the same query parameters as [List files](/docs/api/files#list-files) (`limit`, `offset`, `cursor`, `q`, `tags`, `status`, `category`, etc.).
+
+## Move a file to a folder
+
+```
+POST /v1/projects/{project_id}/files/{file_id}/move
+```
+
+**Required scope:** `folders:write`
+
+```json
+{
+  "folder_id": "fld_01j..."
+}
+```
+
+Set `folder_id` to `null` to move the file back to the project root.
+
+**Response `200`:** returns the updated file object.
+
+## Delete a folder
+
+```
+DELETE /v1/projects/{project_id}/folders/{folder_id}
+```
+
+**Required scope:** `folders:write`
+
+Soft-deletes the folder by setting `deleted_at`. The delete is rejected with `409 Conflict` if the folder contains any files or subfolders — move or delete them first.
+
+**Response `204`:** no content on success.
+
+**Response `409`:**
+
+```json
+{
+  "error": {
+    "code": "CONFLICT",
+    "message": "Folder is not empty"
+  }
+}
+```
+
+---
+
+## Common pattern — per-user storage
+
+The recommended pattern for SaaS apps where each end-user has their own isolated folder:
+
+```typescript
+// Server-side: called when the user logs in or before issuing an upload token
+const folder = await fn.folders.ensurePath(`users/${session.userId}/uploads`);
+
+const token = await fn.uploadTokens.create({
+  folderId: folder.id,
+  ownerUserId: session.userId,
+  expiresIn: 3600,
+});
+```
+
+Every file uploaded with this token is automatically placed in the user's folder and stamped with their `owner_user_id`.
+
+---
+
+## Error codes
+
+| Status | Code | Meaning |
+|--------|------|---------|
+| `404` | `NOT_FOUND` | Folder does not exist or is deleted |
+| `409` | `CONFLICT` | Folder has files or subfolders |
+| `422` | `VALIDATION_ERROR` | `name` contains a `/` character or path segments are invalid |

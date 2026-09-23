@@ -1,0 +1,21 @@
+version: "3.9"
+
+# Local development database only.
+# For the production stack (app + postgres), see docker-compose.prod.yml.
+
+services:
+  iam-postgres-dev:
+    image: postgres:15-alpine
+    container_name: iam-postgres-dev
+    environment:
+      POSTGRES_USER: iam_user
+      POSTGRES_PASSWORD: iam_password
+      POSTGRES_DB: iam_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - iam_pg_dev_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  iam_pg_dev_data:

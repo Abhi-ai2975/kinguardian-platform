@@ -1,0 +1,256 @@
+{
+  "id": "claim-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "claim-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_claim" },
+        "submitLabel": { "literalString": "Submit Claim" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "claim-form-title",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Step 1: Submit Insurance Claim" },
+              "usageHint": "h2"
+            }
+          },
+          {
+            "id": "claim-form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Submit a FHIR Claim for services rendered. Patient resolved from session. Condition and encounter IDs linked from sessionContext." },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "claim-divider-top", "type": "Divider", "properties": {} },
+          {
+            "id": "claim-section-core",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Claim Details" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "claim-status-use-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "status",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Status" },
+                    "placeholder": { "literalString": "Select status…" },
+                    "items": "$status_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                },
+                {
+                  "id": "use",
+                  "type": "TerminologySelect",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Use" },
+                    "placeholder": { "literalString": "Select use…" },
+                    "items": "$use_concepts.concepts",
+                    "valueType": { "literalString": "code" }
+                  }
+                }
+              ]
+            }
+          },
+          { "id": "claim-divider-provider", "type": "Divider", "properties": {} },
+          {
+            "id": "claim-section-provider",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Provider" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "provider",
+            "type": "DataSelect",
+            "properties": {
+              "label": { "literalString": "Billing Provider (optional)" },
+              "placeholder": { "literalString": "Search organisation…" },
+              "items": "$my_organizations.data",
+              "labelPath": "name",
+              "emits": [
+                { "key": "ref_id", "path": "id" },
+                { "key": "display", "path": "name" }
+              ]
+            }
+          },
+          { "id": "claim-divider-service", "type": "Divider", "properties": {} },
+          {
+            "id": "claim-section-service",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Service" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "service_code",
+            "type": "TerminologySelect",
+            "properties": {
+              "label": { "literalString": "Service Code (CPT / SNOMED / LOINC)" },
+              "placeholder": { "literalString": "Search service code…" },
+              "valueType": { "literalString": "CodeableConcept" },
+              "serverSearch": {
+                "minChars": 2,
+                "debounceMs": 200
+              }
+            }
+          },
+          {
+            "id": "claim-service-price-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "unit_price_value",
+                  "type": "TextField",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "Unit Price (optional)" },
+                    "placeholder": { "literalString": "e.g. 150.00" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "unit_price_currency",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Currency (optional)" },
+                    "placeholder": { "literalString": "USD" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "quantity_value",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Quantity (optional)" },
+                    "placeholder": { "literalString": "1" },
+                    "textFieldType": "shortText"
+                  }
+                }
+              ]
+            }
+          },
+          { "id": "claim-divider-period", "type": "Divider", "properties": {} },
+          {
+            "id": "claim-section-period",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Period & Timing" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "claim-period-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "billable_period_start",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Billable Period Start (optional)" },
+                    "enableDate": true,
+                    "enableTime": false
+                  }
+                },
+                {
+                  "id": "billable_period_end",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Billable Period End (optional)" },
+                    "enableDate": true,
+                    "enableTime": false
+                  }
+                },
+                {
+                  "id": "created",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Created (optional)" },
+                    "enableDate": true,
+                    "enableTime": true
+                  }
+                }
+              ]
+            }
+          },
+          { "id": "claim-divider-links", "type": "Divider", "properties": {} },
+          {
+            "id": "claim-section-links",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Links" },
+              "usageHint": "h4"
+            }
+          },
+          {
+            "id": "claim-links-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "coverage_id",
+                  "type": "TextField",
+                  "weight": 2,
+                  "properties": {
+                    "label": { "literalString": "Coverage ID (optional)" },
+                    "placeholder": { "literalString": "Enter coverage ID from Create Coverage" },
+                    "textFieldType": "shortText"
+                  }
+                },
+                {
+                  "id": "priority_code",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Priority (optional)" },
+                    "placeholder": { "literalString": "normal" },
+                    "textFieldType": "shortText"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "claim-info-note",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Patient resolved from session. Condition and encounter IDs linked from sessionContext." },
+              "usageHint": "caption"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

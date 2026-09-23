@@ -1,0 +1,235 @@
+{
+  "id": "vitals-create-root",
+  "type": "Card",
+  "properties": {
+    "child": {
+      "id": "vitals-create-form",
+      "type": "Form",
+      "properties": {
+        "action": { "name": "create_vitals" },
+        "submitLabel": { "literalString": "Record Vitals" },
+        "gap": "medium",
+        "alignment": "stretch",
+        "children": [
+          {
+            "id": "vitals-form-title",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Record Vital Signs" }, "usageHint": "h2" }
+          },
+          {
+            "id": "vitals-form-subtitle",
+            "type": "Text",
+            "properties": {
+              "text": { "literalString": "Enter the patient's vital sign measurements. All fields are optional — record as many as available. Patient resolved from session." },
+              "usageHint": "caption"
+            }
+          },
+          { "id": "vitals-divider-top", "type": "Divider", "properties": {} },
+          {
+            "id": "vitals-section-core",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Core Vitals" }, "usageHint": "h4" }
+          },
+          {
+            "id": "vitals-core-row-1",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "heart_rate",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Heart Rate (bpm)" },
+                    "placeholder": { "literalString": "e.g. 72" },
+                    "textFieldType": "number"
+                  }
+                },
+                {
+                  "id": "blood_pressure_systolic",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Systolic BP (mmHg)" },
+                    "placeholder": { "literalString": "e.g. 120" },
+                    "textFieldType": "number"
+                  }
+                },
+                {
+                  "id": "blood_pressure_diastolic",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Diastolic BP (mmHg)" },
+                    "placeholder": { "literalString": "e.g. 80" },
+                    "textFieldType": "number"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "vitals-core-row-2",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "weight_kg",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Weight (kg)" },
+                    "placeholder": { "literalString": "e.g. 70.5" },
+                    "textFieldType": "number"
+                  }
+                },
+                {
+                  "id": "height_cm",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Height (cm)" },
+                    "placeholder": { "literalString": "e.g. 175" },
+                    "textFieldType": "number"
+                  }
+                },
+                {
+                  "id": "oxygen_saturation_percentage",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "O₂ Sat (%)" },
+                    "placeholder": { "literalString": "e.g. 98" },
+                    "textFieldType": "number"
+                  }
+                }
+              ]
+            }
+          },
+          { "id": "vitals-divider-1", "type": "Divider", "properties": {} },
+          {
+            "id": "vitals-section-additional",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Additional Measurements" }, "usageHint": "h4" }
+          },
+          {
+            "id": "vitals-additional-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "respiratory_rate",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Respiratory Rate (breaths/min)" },
+                    "placeholder": { "literalString": "e.g. 16" },
+                    "textFieldType": "number"
+                  }
+                },
+                {
+                  "id": "body_temperature_celsius",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Body Temperature (°C)" },
+                    "placeholder": { "literalString": "e.g. 37.0" },
+                    "textFieldType": "number"
+                  }
+                },
+                {
+                  "id": "blood_glucose_mmol_l",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Blood Glucose (mmol/L)" },
+                    "placeholder": { "literalString": "e.g. 5.4" },
+                    "textFieldType": "number"
+                  }
+                }
+              ]
+            }
+          },
+          { "id": "vitals-divider-2", "type": "Divider", "properties": {} },
+          {
+            "id": "vitals-section-activity",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Activity" }, "usageHint": "h4" }
+          },
+          {
+            "id": "vitals-activity-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "steps",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Steps" },
+                    "placeholder": { "literalString": "e.g. 8500" },
+                    "textFieldType": "number"
+                  }
+                },
+                {
+                  "id": "sleep_minutes",
+                  "type": "TextField",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Sleep (minutes)" },
+                    "placeholder": { "literalString": "e.g. 480" },
+                    "textFieldType": "number"
+                  }
+                }
+              ]
+            }
+          },
+          { "id": "vitals-divider-3", "type": "Divider", "properties": {} },
+          {
+            "id": "vitals-section-timestamp",
+            "type": "Text",
+            "properties": { "text": { "literalString": "Timestamp" }, "usageHint": "h4" }
+          },
+          {
+            "id": "vitals-timestamp-row",
+            "type": "Row",
+            "properties": {
+              "gap": "medium",
+              "alignment": "stretch",
+              "children": [
+                {
+                  "id": "recorded_at",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Recorded At" },
+                    "enableDate": true,
+                    "enableTime": true
+                  }
+                },
+                {
+                  "id": "date",
+                  "type": "DateTimeInput",
+                  "weight": 1,
+                  "properties": {
+                    "label": { "literalString": "Observation Date" },
+                    "enableDate": true,
+                    "enableTime": false
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}
