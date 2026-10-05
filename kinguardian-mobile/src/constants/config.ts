@@ -1,8 +1,5 @@
 export const getResolvedApiUrl = (): string => {
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL.replace(/\/+$/, '');
-  }
-
+  // In a browser environment (Web testing), always route directly to the local backend
   if (typeof window !== 'undefined' && window.location) {
     const hostname = window.location.hostname;
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
@@ -12,6 +9,11 @@ export const getResolvedApiUrl = (): string => {
       return `http://${hostname}:8000`;
     }
   }
+
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL.replace(/\/+$/, '');
+  }
+
   return 'http://localhost:8000';
 };
 
