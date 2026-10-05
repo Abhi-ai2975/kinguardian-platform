@@ -147,7 +147,7 @@ export default function DoctorSummaryRoute() {
 
   return (
     <DeviceFrame>
-      <View className="flex-1 relative bg-[#fbfaf7]">
+      <View testID="parent-summary-screen" className="flex-1 relative bg-[#fbfaf7]">
         {/* Header */}
         <View className="px-6 py-5 border-b border-[#e2dfd9] bg-[#fbfaf7] flex-row items-center gap-3">
           <TouchableOpacity
@@ -184,6 +184,7 @@ export default function DoctorSummaryRoute() {
                 }`}
               >
                 <Text
+                  testID="parent-summary-telemetry-status"
                   className={`text-[9px] font-bold ${
                     isOutage ? 'text-amber-800' : 'text-emerald-700'
                   }`}
@@ -200,6 +201,7 @@ export default function DoctorSummaryRoute() {
                   : 'Wearable data actively synchronizing from paired fitness hardware.'}
               </Text>
               <TouchableOpacity
+                testID="parent-summary-outage-toggle"
                 onPress={handleToggleOutageSimulation}
                 disabled={togglingOutage}
                 className={`px-3 py-1.5 rounded-xl border active:scale-95 ${
@@ -230,8 +232,8 @@ export default function DoctorSummaryRoute() {
               <Text className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
                 Patient & Provider
               </Text>
-              <Text className="text-xl font-black text-slate-900">{personName} ({personRelation})</Text>
-              <Text className="text-xs text-slate-500 font-bold">
+              <Text testID="parent-summary-name" className="text-xl font-black text-slate-900">{personName} ({personRelation})</Text>
+              <Text testID="parent-summary-demographics" className="text-xs text-slate-500 font-bold">
                 {personAge} Years · {personLocation} · Apollo Hospital (Fee: ₹800)
               </Text>
             </View>
@@ -276,7 +278,7 @@ export default function DoctorSummaryRoute() {
 
               {/* Outage Degradation Card Banner */}
               {isOutage && (
-                <View className="bg-amber-50 border border-amber-200/90 rounded-2xl p-3.5 space-y-1.5">
+                <View testID="wearables-unavailable-state" className="bg-amber-50 border border-amber-200/90 rounded-2xl p-3.5 space-y-1.5">
                   <View className="flex-row items-center gap-2">
                     <AlertTriangle size={15} color="#b45309" />
                     <Text className="text-xs font-black text-amber-950 uppercase tracking-wider">
@@ -289,7 +291,7 @@ export default function DoctorSummaryRoute() {
                 </View>
               )}
 
-              <View className="space-y-1.5">
+              <View testID="wearables-summary-metrics" className="space-y-1.5">
                 <Text className="text-xs text-slate-800 font-bold">
                   🩺 Blood Pressure: <Text className="font-black text-[#ba1a1a]">{currentBP}</Text>
                 </Text>
@@ -335,6 +337,7 @@ export default function DoctorSummaryRoute() {
                   Important trends
                 </Text>
                 <TouchableOpacity
+                  testID="insights-trend-open"
                   onPress={fetchTrends}
                   className="bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full flex-row items-center gap-1 active:scale-95"
                 >
@@ -401,7 +404,7 @@ export default function DoctorSummaryRoute() {
                   </Text>
                 </View>
               </View>
-              <View className="bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1 flex-row items-center gap-1">
+              <View testID="parent-summary-status" className="bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1 flex-row items-center gap-1">
                 <CheckCircle2 size={11} color="#059669" />
                 <Text className="text-[10px] font-black text-emerald-700">100% Usable</Text>
               </View>
@@ -517,6 +520,7 @@ export default function DoctorSummaryRoute() {
           {/* Action CTAs */}
           <View className="space-y-3">
             <TouchableOpacity
+              testID="parent-summary-share"
               onPress={handleShareWithDoctor}
               disabled={sharing}
               className="w-full bg-[#2a14b4] py-4.5 rounded-2xl flex-row items-center justify-center gap-2 active:scale-98 shadow-md"
@@ -532,6 +536,7 @@ export default function DoctorSummaryRoute() {
             </TouchableOpacity>
 
             <TouchableOpacity
+              testID="parent-summary-copy"
               onPress={() => context.showToast('Summary copied to mobile clipboard.')}
               className="w-full bg-white border border-[#dee9fc] py-4.5 rounded-2xl flex-row items-center justify-center gap-2 active:scale-98"
             >
@@ -588,7 +593,7 @@ export default function DoctorSummaryRoute() {
                       <Text className="text-[9px] font-black text-emerald-800 uppercase tracking-wider">
                         30-Day Baseline
                       </Text>
-                      <Text className="text-xl font-black text-emerald-950 mt-1">
+                      <Text testID="insights-baseline" className="text-xl font-black text-emerald-950 mt-1">
                         {trendData.baseline_30d.toLocaleString()}
                       </Text>
                       <Text className="text-[10px] font-bold text-emerald-700">steps / day</Text>
@@ -598,7 +603,7 @@ export default function DoctorSummaryRoute() {
                       <Text className="text-[9px] font-black text-amber-800 uppercase tracking-wider">
                         Current 5-Day Avg
                       </Text>
-                      <Text className="text-xl font-black text-amber-950 mt-1">
+                      <Text testID="insights-current-value" className="text-xl font-black text-amber-950 mt-1">
                         {trendData.current_value.toLocaleString()}
                       </Text>
                       <Text className="text-[10px] font-bold text-amber-700">steps / day</Text>
@@ -611,7 +616,7 @@ export default function DoctorSummaryRoute() {
                       <Text className="text-[10px] font-black text-rose-800 uppercase tracking-wider">
                         Calculated Trend Variance
                       </Text>
-                      <Text className="text-sm font-black text-rose-950">
+                      <Text testID="insights-trend" className="text-sm font-black text-rose-950">
                         {trendData.trend_variance} drop from baseline
                       </Text>
                     </View>

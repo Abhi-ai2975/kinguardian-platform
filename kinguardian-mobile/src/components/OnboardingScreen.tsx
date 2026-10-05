@@ -11,14 +11,16 @@ import {
   Users,
   Send
 } from 'lucide-react-native';
+import { realDataService } from '../services/api-client/RealDataService';
 
 interface OnboardingScreenProps {
-  onComplete: (config: { userLoc: string; parentLoc: string }) => void;
+  initialStep?: number;
+  onComplete: (config: { userLoc: string; parentLoc: string; familyId?: string }) => void;
 }
 
-export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
+export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ initialStep = 1, onComplete }) => {
   const context = useContext(AppContext);
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(initialStep);
   const [userLoc, setUserLoc] = useState('UK');
   const [parentLoc, setParentLoc] = useState('India');
   const [careTarget, setCareTarget] = useState<'Mom' | 'Dad' | 'Both'>('Both');
@@ -31,14 +33,15 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
 
   // Invite parent channel
   const [inviteMethod, setInviteMethod] = useState<'WhatsApp' | 'SMS' | 'Email'>('WhatsApp');
+  const [, setIsSubmitting] = useState(false);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step === 5 && parentName.trim()) {
       context?.addParent({
         name: parentName.trim(),
         relationship: careTarget === 'Mom' ? 'Mother' : careTarget === 'Dad' ? 'Father' : 'Parent',
         city: parentCity.trim() || 'Chennai',
-        age: parseInt(parentAge, 10) || 65,
+        age: parseInt(parentAge, 10) || 68,
         phone: parentPhone.trim()
       });
     }
@@ -46,7 +49,42 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
     if (step < 7) {
       setStep(step + 1);
     } else {
-      onComplete({ userLoc, parentLoc });
+      setIsSubmitting(true);
+      try {
+        const cleanParentName = parentName.trim() || 'Dad';
+        const rel = careTarget === 'Mom' ? 'Mother' : (careTarget === 'Dad' ? 'Father' : 'Parent');
+        const familyName = `${cleanParentName} Care Circle`;
+        const res = await realDataService.completeCoordinatorOnboarding({
+          location: userLoc,
+          timezone: userLoc === 'UK' ? 'Europe/London' : (userLoc === 'UAE' ? 'Asia/Dubai' : 'Asia/Kolkata'),
+          family_name: familyName,
+          parent: {
+            name: cleanParentName,
+            relationship: rel,
+            city: parentCity.trim() || 'Chennai',
+            age: parseInt(parentAge, 10) || 68,
+            phone: parentPhone.trim(),
+            invite_method: inviteMethod
+          }
+        });
+
+        if (context) {
+          if (context.setFamilyName) context.setFamilyName(familyName);
+          context.setCurrentScreen('health_dashboard');
+          context.showToast('Onboarding complete! Family context created.');
+        }
+
+        onComplete({ userLoc, parentLoc, familyId: res?.family_id });
+      } catch (e) {
+        console.warn('Onboarding completion error:', e);
+        if (context) {
+          context.setCurrentScreen('health_dashboard');
+          context.showToast('Onboarding complete!');
+        }
+        onComplete({ userLoc, parentLoc });
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -57,13 +95,14 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
   };
 
   return (
-    <ScrollView className="flex-1 bg-[#f2f2f7] px-4 py-8">
+    <ScrollView testID="onboarding-screen" className="flex-1 bg-[#f2f2f7] px-4 py-8">
       <View className="items-center justify-center py-4 space-y-5">
         {/* Step Indicator Dots */}
-        <View className="flex-row justify-center gap-1.5 mb-2">
+        <View testID="onboarding-step-dots" className="flex-row justify-center gap-1.5 mb-2">
           {[1, 2, 3, 4, 5, 6, 7].map((s) => (
             <View
               key={s}
+              testID={`onboarding-dot-${s}`}
               className={`w-3.5 h-1 rounded-full ${s === step ? 'bg-[#007aff]' : 'bg-neutral-300'}`}
             />
           ))}
@@ -73,7 +112,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
         <View className="w-full bg-white rounded-2xl p-5 shadow-sm border border-neutral-100">
           {/* STEP 1: Welcome */}
           {step === 1 && (
-            <View className="space-y-4 items-center w-full py-4">
+            <View testID="onboarding-step-welcome" className="space-y-4 items-center w-full py-4">
               <View className="w-14 h-14 rounded-full bg-[#eff6ff] items-center justify-center shadow-xs">
                 <Heart size={28} color="#007aff" fill="#007aff" />
               </View>
@@ -92,7 +131,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
 
           {/* STEP 2: Where do you live? */}
           {step === 2 && (
-            <View className="space-y-4 w-full py-2">
+            <View testID="onboarding-step-user-location" className="space-y-4 w-full py-2">
               <View className="items-center">
                 <Compass size={40} color="#007aff" />
               </View>
@@ -107,6 +146,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                 {['UK', 'UAE', 'USA', 'Singapore', 'Canada'].map((country) => (
                   <TouchableOpacity
                     key={country}
+                    testID={`onboarding-userloc-${country}`}
                     onPress={() => setUserLoc(country)}
                     className={`p-3.5 rounded-xl border flex-row items-center justify-between ${
                       userLoc === country
@@ -134,7 +174,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
 
           {/* STEP 3: Where do your parents live? */}
           {step === 3 && (
-            <View className="space-y-4 w-full py-2">
+            <View testID="onboarding-step-parent-location" className="space-y-4 w-full py-2">
               <View className="items-center">
                 <MapPin size={40} color="#007aff" />
               </View>
@@ -146,6 +186,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
               </Text>
 
               <TouchableOpacity
+                testID="onboarding-parentloc-india"
                 onPress={() => setParentLoc('India')}
                 className="p-4 rounded-xl border border-[#007aff] bg-[#007aff]/5 flex-row items-center justify-between mt-2"
               >
@@ -168,7 +209,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
 
           {/* STEP 4: Who do you care for? */}
           {step === 4 && (
-            <View className="space-y-4 w-full py-2">
+            <View testID="onboarding-step-care-target" className="space-y-4 w-full py-2">
               <View className="items-center">
                 <Users size={40} color="#007aff" />
               </View>
@@ -183,6 +224,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                 {(['Mom', 'Dad', 'Both'] as const).map((target) => (
                   <TouchableOpacity
                     key={target}
+                    testID={`onboarding-caretarget-${target}`}
                     onPress={() => setCareTarget(target)}
                     className={`flex-1 p-4 rounded-xl border items-center ${
                       careTarget === target
@@ -203,7 +245,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
 
           {/* STEP 5: Add parent */}
           {step === 5 && (
-            <View className="space-y-3 w-full py-2">
+            <View testID="onboarding-step-parent-details" className="space-y-3 w-full py-2">
               <View className="items-center">
                 <Smartphone size={40} color="#007aff" />
               </View>
@@ -217,9 +259,10 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                     Full Name
                   </Text>
                   <TextInput
+                    testID="onboarding-parent-name"
                     value={parentName}
                     onChangeText={setParentName}
-                    placeholder="e.g. Ramesh Kumar"
+                    placeholder="Parent's name"
                     placeholderTextColor="#8e8e93"
                     className="bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-xs text-neutral-800 focus:border-[#007aff]"
                   />
@@ -230,6 +273,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                     Age
                   </Text>
                   <TextInput
+                    testID="onboarding-parent-age"
                     value={parentAge}
                     onChangeText={setParentAge}
                     placeholder="e.g. 68"
@@ -244,6 +288,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                     City (India)
                   </Text>
                   <TextInput
+                    testID="onboarding-parent-city"
                     value={parentCity}
                     onChangeText={setParentCity}
                     placeholder="e.g. Chennai"
@@ -257,6 +302,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                     Phone Number
                   </Text>
                   <TextInput
+                    testID="onboarding-parent-phone"
                     value={parentPhone}
                     onChangeText={setParentPhone}
                     placeholder="+91 XXXXX XXXXX"
@@ -271,7 +317,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
 
           {/* STEP 6: Invite parent */}
           {step === 6 && (
-            <View className="space-y-4 w-full py-2">
+            <View testID="onboarding-step-invite" className="space-y-4 w-full py-2">
               <View className="items-center">
                 <Send size={40} color="#007aff" />
               </View>
@@ -279,13 +325,14 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
                 Invite Parent
               </Text>
               <Text className="text-xs text-neutral-400 text-center leading-normal px-2">
-                Send Ramesh a reassuring invitation message to link their wearable health sensors.
+                Send {parentName.trim() || 'your parent'} a reassuring invitation message to link their wearable health sensors.
               </Text>
 
               <View className="space-y-2 mt-2">
                 {(['WhatsApp', 'SMS', 'Email'] as const).map((method) => (
                   <TouchableOpacity
                     key={method}
+                    testID={`onboarding-invite-${method}`}
                     onPress={() => setInviteMethod(method)}
                     className={`p-3.5 rounded-xl border flex-row items-center justify-between ${
                       inviteMethod === method
@@ -307,7 +354,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
 
           {/* STEP 7: Complete */}
           {step === 7 && (
-            <View className="space-y-4 items-center w-full py-4">
+            <View testID="onboarding-step-complete" className="space-y-4 items-center w-full py-4">
               <View className="w-14 h-14 rounded-full bg-[#eefdf4] items-center justify-center shadow-xs">
                 <ShieldCheck size={28} color="#34c759" />
               </View>
@@ -325,9 +372,10 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
           )}
 
           {/* Navigation Actions */}
-          <View className="w-full flex-row gap-3 mt-6">
+          <View testID="onboarding-nav" className="w-full flex-row gap-3 mt-6">
             {step > 1 && (
               <TouchableOpacity
+                testID="onboarding-back"
                 onPress={handleBack}
                 className="flex-1 py-3 bg-neutral-100 rounded-xl items-center justify-center"
               >
@@ -335,6 +383,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
               </TouchableOpacity>
             )}
             <TouchableOpacity
+              testID={step === 7 ? 'onboarding-connect-parents' : 'onboarding-next'}
               onPress={handleNext}
               className={`py-3 rounded-xl items-center justify-center active:scale-95 bg-[#007aff] ${
                 step > 1 ? 'flex-1' : 'w-full'

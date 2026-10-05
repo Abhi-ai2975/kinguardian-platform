@@ -28,7 +28,10 @@ export default function GuardianMomentRoute() {
 
   const personId = id || context.currentPersonId || 'dad';
   const person = context.people.find((p) => p.id === personId) || context.people[0];
-  const parentName = person ? person.name : 'Dad';
+  const parentName = person?.name || 'Parent';
+  const caregiverName = context.familyMembers.find(
+    (member) => member.role === 'caregiver' || member.relation?.toLowerCase().includes('caregiver')
+  )?.name || 'Caregiver';
 
   // Live state from backend
   const [moment, setMoment] = useState<GuardianMomentDetail | null>(null);
@@ -130,7 +133,7 @@ export default function GuardianMomentRoute() {
                   Telemetry Shift Detected
                 </Text>
               </View>
-              <View className="bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200">
+              <View testID="guardian-detail-timeframe" className="bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200">
                 <Text className="text-[9px] font-black text-purple-700 uppercase">
                   Timeframe: {moment?.timeframe || 'Past 5 days'}
                 </Text>
@@ -144,7 +147,7 @@ export default function GuardianMomentRoute() {
 
           {/* Dismissed Status Banner */}
           {isDismissed && (
-            <View className="bg-emerald-50 border border-emerald-300 rounded-3xl p-4.5 space-y-2">
+            <View testID="insights-dedup-note" className="bg-emerald-50 border border-emerald-300 rounded-3xl p-4.5 space-y-2">
               <View className="flex-row items-center gap-2">
                 <CheckCircle2 size={16} color="#059669" />
                 <Text className="text-xs font-black text-emerald-800 uppercase tracking-wide">
@@ -212,7 +215,10 @@ export default function GuardianMomentRoute() {
               Observation
             </Text>
             <View className="bg-white border border-[#e2dfd9] rounded-3xl p-5 shadow-sm space-y-2">
-              <Text className="text-xs text-slate-700 leading-relaxed font-semibold">
+              <Text
+                testID="guardian-detail-observation"
+                className="text-xs text-slate-700 leading-relaxed font-semibold"
+              >
                 {moment?.observation ||
                   `${parentName}'s midday step activity decreased by 35% over the last 5 days during a regional heatwave in Chennai (39°C). Adherence checklist remains stable.`}
               </Text>
@@ -230,7 +236,7 @@ export default function GuardianMomentRoute() {
             <Text className="text-sm font-black text-slate-800 uppercase tracking-wider">
               Data Sources Considered
             </Text>
-            <View className="bg-white border border-[#e2dfd9] rounded-3xl p-5 shadow-sm space-y-3">
+            <View testID="guardian-detail-sources" className="bg-white border border-[#e2dfd9] rounded-3xl p-5 shadow-sm space-y-3">
               {(moment?.sources || [
                 'Smart Watch (17 readings)',
                 'Chennai Weather Telemetry (38-42°C)',
@@ -238,6 +244,7 @@ export default function GuardianMomentRoute() {
               ]).map((src, idx) => (
                 <View
                   key={idx}
+                  testID={`guardian-detail-source-${idx}`}
                   className="flex-row items-center justify-between border-b border-slate-50 pb-2 last:border-0 last:pb-0"
                 >
                   <View className="flex-row items-center gap-2">
@@ -251,7 +258,7 @@ export default function GuardianMomentRoute() {
           </View>
 
           {/* Wearable Connection Notice */}
-          <View className="bg-white border border-yellow-200 rounded-3xl p-5 shadow-sm space-y-3">
+          <View testID="wearables-data-availability-warning" className="bg-white border border-yellow-200 rounded-3xl p-5 shadow-sm space-y-3">
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center gap-2">
                 <WifiOff size={15} color="#ca8a04" />
@@ -259,22 +266,23 @@ export default function GuardianMomentRoute() {
                   Hardware Sync Notice
                 </Text>
               </View>
-              <View className="bg-yellow-100 px-2 py-0.5 rounded-full">
+              <View testID="wearables-connection-status" className="bg-yellow-100 px-2 py-0.5 rounded-full">
                 <Text className="text-[8px] font-black text-yellow-800 uppercase">
                   {wearableStatus?.sync_status || 'stale_sync'}
                 </Text>
               </View>
             </View>
 
-            <Text className="text-xs text-slate-700 font-semibold leading-relaxed">
+            <Text testID="wearables-stale-indicator" className="text-xs text-slate-700 font-semibold leading-relaxed">
               {wearableStatus?.warning_banner || `${parentName}'s watch has not synced in over 24 hours. Baselines may be outdated.`}
             </Text>
 
             <View className="bg-yellow-50/70 p-3 rounded-2xl flex-row items-center justify-between border border-yellow-100">
-              <Text className="text-[10px] text-slate-500 font-semibold">
+              <Text testID="wearables-last-sync" className="text-[10px] text-slate-500 font-semibold">
                 Last Synced: <Text className="font-bold text-slate-800">{wearableStatus?.last_sync_at || 'Yesterday, 2:30 PM'}</Text>
               </Text>
               <TouchableOpacity
+                testID="wearables-troubleshoot-toggle"
                 onPress={() => setShowTroubleshoot(!showTroubleshoot)}
                 className="bg-yellow-600 px-3 py-1 rounded-full"
               >
@@ -305,13 +313,14 @@ export default function GuardianMomentRoute() {
           </View>
 
           {/* Section: Suggested Next Steps */}
-          <View className="space-y-3 mb-6">
+          <View testID="guardian-detail-next-steps" className="space-y-3 mb-6">
             <Text className="text-sm font-black text-slate-800 uppercase tracking-wider">
               Suggested Next Steps
             </Text>
 
             {/* Check in */}
             <TouchableOpacity
+              testID="guardian-detail-next-step-checkin"
               onPress={() => {
                 context.setCheckInOpen(true);
                 router.replace('/(coordinator)');
@@ -334,6 +343,7 @@ export default function GuardianMomentRoute() {
 
             {/* Contact caregiver */}
             <TouchableOpacity
+              testID="guardian-detail-next-step-caregiver"
               onPress={() => router.push('/(coordinator)/family' as any)}
               className="bg-white border border-[#e2dfd9] rounded-3xl p-4.5 flex-row items-center justify-between shadow-xs active:scale-99"
             >
@@ -342,7 +352,7 @@ export default function GuardianMomentRoute() {
                   <MessageSquare size={14} color="#059669" />
                 </View>
                 <View className="space-y-0.5 flex-1 pr-2">
-                  <Text className="text-xs font-black text-slate-800">Contact caregiver Priya</Text>
+                  <Text className="text-xs font-black text-slate-800">Contact caregiver {caregiverName}</Text>
                   <Text className="text-[10px] text-slate-500 font-semibold">
                     Confirm AC is running and shift walks to after sunset
                   </Text>
@@ -353,7 +363,8 @@ export default function GuardianMomentRoute() {
 
             {/* Review baseline insights */}
             <TouchableOpacity
-              onPress={() => router.push(`/parent/${personId}/insights` as any)}
+              testID="guardian-detail-next-step-baselines"
+              onPress={() => router.push(`/(coordinator)/parent/${personId}/insights` as any)}
               className="bg-white border border-[#e2dfd9] rounded-3xl p-4.5 flex-row items-center justify-between shadow-xs active:scale-99"
             >
               <View className="flex-row items-center gap-3">
@@ -375,6 +386,7 @@ export default function GuardianMomentRoute() {
           <View className="space-y-2 mb-12">
             {!isDismissed ? (
               <TouchableOpacity
+                testID="guardian-detail-dismiss"
                 onPress={handleDismiss}
                 className="w-full bg-slate-200 py-3.5 rounded-2xl items-center justify-center active:scale-98"
               >
@@ -384,6 +396,7 @@ export default function GuardianMomentRoute() {
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
+                testID="guardian-detail-recheck"
                 onPress={async () => {
                   // Re-evaluate to verify suppression
                   await insightService.evaluate();

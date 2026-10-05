@@ -1,0 +1,4 @@
+# KinGuardian Platform - Root Requirements
+# Installs backend dependencies from root directory
+
+-r kinguardian-backend/requirements.txt

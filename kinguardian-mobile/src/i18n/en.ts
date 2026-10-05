@@ -11,10 +11,10 @@ export const en = {
     talkToKinGuardian: 'Talk to KinGuardian',
     sendUpdate: 'Send update',
     checkInAgain: 'Check-in again',
-    thanksDad: '“Thanks, Dad. Anjali has been updated.”'
+    thanksDad: '“Thanks. Your coordinator has been updated.”'
   },
   coordinatorHome: {
-    greeting: 'Good morning, Anjali',
+    greeting: 'Good morning',
     attentionLabel: "Today's attention",
     noAttentionNeeded: '“Nothing needs your attention right now.”',
     reassuranceText:

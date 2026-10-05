@@ -12,13 +12,13 @@
       "response_body": {
         "family": {
           "id": "e4b1a8d0-9923-4e8a-b851-f7614d9b3a01",
-          "name": "Sharma Family Circle",
-          "coordinator_name": "Anjali Sharma"
+          "name": "Family Circle",
+          "coordinator_name": "Coordinator"
         },
         "parents": [
           {
             "subject_id": "c1a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b5c",
-            "display_name": "Ramesh Sharma",
+            "display_name": "Parent",
             "city": "Bengaluru",
             "timezone": "Asia/Kolkata",
             "health_status": "stable",
@@ -30,7 +30,7 @@
           {
             "id": "99a8b7c6-d5e4-4f3a-2b1c-0d9e8f7a6b5c",
             "title": "Blood Pressure Stabilization Milestone",
-            "summary": "Ramesh's systolic blood pressure averaged 122 mmHg over the past 7 days, reflecting a 12% improvement.",
+            "summary": "The parent's systolic blood pressure averaged 122 mmHg over the past 7 days, reflecting a 12% improvement.",
             "severity": "positive",
             "actionability": "send_celebration_note",
             "created_at": "2026-08-27T08:00:00Z"

@@ -33,6 +33,14 @@ export default function FamilyCoordinationRoute() {
   const [liveMembers, setLiveMembers] = useState<any[]>([]);
   const [familyName, setFamilyName] = useState('Family Circle');
 
+  // FAM-007: Caregiver assignment panel state
+  const [caregiverPanelOpen, setCaregiverPanelOpen] = useState(false);
+  const [caregiverName, setCaregiverName] = useState('');
+  const [caregiverEmail, setCaregiverEmail] = useState('');
+  const [caregiverSubjectId, setCaregiverSubjectId] = useState<string>('');
+  const [caregiverLimitedPerms, setCaregiverLimitedPerms] = useState(true);
+  const [caregiverSubmitting, setCaregiverSubmitting] = useState(false);
+
   const loadFamilyData = useCallback(async () => {
     try {
       const token = await authService.getAccessToken();
@@ -95,24 +103,57 @@ export default function FamilyCoordinationRoute() {
     }
   };
 
+  const handleAssignCaregiver = async () => {
+    if (!caregiverEmail.trim()) {
+      Alert.alert('Missing Email', 'Please provide the caregiver email address.');
+      return;
+    }
+    setCaregiverSubmitting(true);
+    try {
+      await context.inviteMember({
+        email: caregiverEmail.trim(),
+        name: caregiverName.trim() || caregiverEmail.split('@')[0],
+        role: 'caregiver',
+        relationship: caregiverLimitedPerms ? 'Caregiver (Limited)' : 'Caregiver'
+      });
+      context.showToast(
+        `${caregiverName || caregiverEmail} assigned as caregiver${
+          caregiverLimitedPerms ? ' with limited permissions' : ''
+        }.`
+      );
+      setCaregiverPanelOpen(false);
+      setCaregiverName('');
+      setCaregiverEmail('');
+      await loadFamilyData();
+    } catch (err: any) {
+      Alert.alert('Assignment Error', err.message || 'Failed to assign caregiver.');
+    } finally {
+      setCaregiverSubmitting(false);
+    }
+  };
+
+  const dynCoordinator = context.coordinatorName || context.currentUser?.name || 'Coordinator';
+  const dynCaregiver = (context.familyMembers?.find((m: any) => m.role === 'caregiver' || m.relationship?.toLowerCase().includes('caregiver')) as any)?.display_name || context.familyMembers?.find((m: any) => m.role === 'caregiver' || m.relationship?.toLowerCase().includes('caregiver'))?.name || 'Caregiver';
+  const dynParent = context.people?.find((p: any) => p.role === 'parent' || p.relationship?.toLowerCase().includes('parent') || p.relationship?.toLowerCase().includes('father') || p.relationship?.toLowerCase().includes('mother'))?.name || context.people[0]?.name || 'Parent';
+
   const fallbackAssignments = [
     {
       task: "Doctor appointment",
-      assignee: context.people[1]?.name || 'Family Member',
+      assignee: dynCaregiver,
       icon: Calendar,
       color: '#ff3b30',
       bgColor: '#fff5f5'
     },
     {
       task: 'Medication coordination',
-      assignee: context.coordinatorName || 'Coordinator',
+      assignee: dynCoordinator,
       icon: Pill,
       color: '#007aff',
       bgColor: '#eff6ff'
     },
     {
       task: 'Health summary review',
-      assignee: context.people[0]?.name || 'Parent',
+      assignee: dynParent,
       icon: Clipboard,
       color: '#ff9500',
       bgColor: '#fff9e6'
@@ -154,6 +195,7 @@ export default function FamilyCoordinationRoute() {
           </View>
 
           <TouchableOpacity
+            testID="family-invite-button"
             onPress={() => setInviteModalOpen(true)}
             activeOpacity={0.8}
             className="flex-row items-center gap-1.5 bg-[#007aff] px-3.5 py-2 rounded-xl shadow-xs"
@@ -183,9 +225,17 @@ export default function FamilyCoordinationRoute() {
                 liveMembers.map((member) => {
                   const isParent = member.role === 'parent';
                   const isCoordinator = member.role === 'coordinator';
+                  const cleanDisplayName = (member.display_name || member.name || member.email?.split('@')[0] || 'Member')
+                    .replace(/\s*\(coordinator\)/i, '')
+                    .replace(/Sync\s*\d+/i, '')
+                    .trim();
 
                   return (
-                    <View key={member.id} className="p-4 flex-row items-center justify-between">
+                    <View
+                      key={member.id}
+                      testID={`family-member-row-${member.id}`}
+                      className="p-4 flex-row items-center justify-between"
+                    >
                       <View className="flex-row items-center gap-3">
                         <View
                           className={`w-10 h-10 rounded-full items-center justify-center ${
@@ -195,11 +245,17 @@ export default function FamilyCoordinationRoute() {
                           <Users size={18} color={isParent ? '#34c759' : '#007aff'} />
                         </View>
                         <View>
-                          <Text className="text-xs font-bold text-neutral-800">
-                            {member.display_name}
+                          <Text
+                            testID={`family-member-name-${member.id}`}
+                            className="text-xs font-bold text-neutral-800"
+                          >
+                            {cleanDisplayName} {member.relationship ? `(${member.relationship})` : ''}
                           </Text>
-                          <Text className="text-[10px] text-neutral-400 font-medium">
-                            {member.email || (isCoordinator ? 'Care Coordinator' : 'Care Circle Member')}
+                          <Text
+                            testID={`family-member-location-${member.id}`}
+                            className="text-[10px] text-neutral-400 font-medium"
+                          >
+                            {member.city && member.country ? `${member.city}, ${member.country} • ` : ''}{member.email || (isCoordinator ? 'Care Coordinator' : 'Care Circle Member')}
                           </Text>
                           {isParent && (
                             <View className="flex-row items-center gap-1 mt-1">
@@ -214,6 +270,7 @@ export default function FamilyCoordinationRoute() {
 
                       <View className="flex-row items-center gap-2">
                         <View
+                          testID={`family-member-role-${member.id}`}
                           className={`px-2.5 py-0.5 rounded-full ${
                             isParent ? 'bg-emerald-50 border border-emerald-100' : 'bg-blue-50'
                           }`}
@@ -226,7 +283,10 @@ export default function FamilyCoordinationRoute() {
                             {member.role}
                           </Text>
                         </View>
-                        <View className="w-2 h-2 rounded-full bg-[#34c759]" />
+                        <View
+                          testID={`family-member-status-${member.id}`}
+                          className="w-2 h-2 rounded-full bg-[#34c759]"
+                        />
                       </View>
                     </View>
                   );
@@ -273,6 +333,33 @@ export default function FamilyCoordinationRoute() {
                 </View>
               )}
             </View>
+          </View>
+
+          {/* Caregiver Assignment Panel (FAM-007) */}
+          <View
+            testID="family-caregiver-panel"
+            className="bg-white border border-neutral-100 rounded-2xl p-4 space-y-3 shadow-sm"
+          >
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-2">
+                <ShieldCheck size={16} color="#af52de" />
+                <Text className="text-xs font-bold text-neutral-900">
+                  Caregiver Assignment
+                </Text>
+              </View>
+              <TouchableOpacity
+                testID="family-caregiver-assign-open"
+                onPress={() => setCaregiverPanelOpen(true)}
+                className="bg-[#af52de] px-3 py-1.5 rounded-lg"
+              >
+                <Text className="text-white text-[10px] font-bold">Assign Caregiver</Text>
+              </TouchableOpacity>
+            </View>
+            <Text className="text-[11px] text-neutral-500 leading-relaxed">
+              Grant a caregiver limited, task-scoped access to a specific parent. Permissions are
+              recorded in <Text className="font-mono font-bold">care_grants</Text> and{' '}
+              <Text className="font-mono font-bold">consents</Text>.
+            </Text>
           </View>
 
           {/* Responsibility matrix Inset Grouped */}
@@ -347,6 +434,7 @@ export default function FamilyCoordinationRoute() {
                     Full Name
                   </Text>
                   <TextInput
+                    testID="family-invite-name-input"
                     value={inviteName}
                     onChangeText={setInviteName}
                     placeholder="e.g. Family Member Name"
@@ -360,6 +448,7 @@ export default function FamilyCoordinationRoute() {
                     Email Address
                   </Text>
                   <TextInput
+                    testID="family-invite-email-input"
                     value={inviteEmail}
                     onChangeText={setInviteEmail}
                     placeholder="e.g. ramesh@example.com"
@@ -378,6 +467,7 @@ export default function FamilyCoordinationRoute() {
                     {(['parent', 'caregiver', 'coordinator'] as const).map((r) => (
                       <TouchableOpacity
                         key={r}
+                        testID={`family-invite-role-${r}`}
                         onPress={() => setInviteRole(r)}
                         className={`flex-1 py-2.5 rounded-xl items-center border ${
                           inviteRole === r
@@ -415,6 +505,7 @@ export default function FamilyCoordinationRoute() {
                 )}
 
                 <TouchableOpacity
+                  testID="family-invite-submit"
                   disabled={loading}
                   onPress={handleSendInvite}
                   className="w-full bg-[#007aff] py-3.5 rounded-xl flex-row items-center justify-center gap-2 mt-2 active:scale-95 shadow-sm"
@@ -428,6 +519,138 @@ export default function FamilyCoordinationRoute() {
                         Send Parent Invitation & Grant Scopes
                       </Text>
                     </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Caregiver Assignment Modal (FAM-007) */}
+        <Modal
+          visible={caregiverPanelOpen}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setCaregiverPanelOpen(false)}
+        >
+          <View className="flex-1 bg-black/50 justify-end">
+            <View className="bg-white rounded-t-[28px] p-6 pb-10 space-y-4 shadow-xl">
+              <View className="flex-row items-center justify-between pb-2 border-b border-neutral-100">
+                <View className="flex-row items-center gap-2">
+                  <ShieldCheck size={20} color="#af52de" />
+                  <Text className="text-base font-bold text-neutral-900">Assign Caregiver</Text>
+                </View>
+                <TouchableOpacity
+                  testID="family-caregiver-close"
+                  onPress={() => setCaregiverPanelOpen(false)}
+                  className="w-8 h-8 rounded-full bg-neutral-100 items-center justify-center"
+                >
+                  <X size={16} color="#64748b" />
+                </TouchableOpacity>
+              </View>
+
+              <View className="space-y-3">
+                <View className="space-y-1">
+                  <Text className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">
+                    Caregiver Name
+                  </Text>
+                  <TextInput
+                    testID="family-caregiver-name-input"
+                    value={caregiverName}
+                    onChangeText={setCaregiverName}
+                    placeholder="e.g. Priya"
+                    placeholderTextColor="#8e8e93"
+                    className="bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-xs text-neutral-800"
+                  />
+                </View>
+
+                <View className="space-y-1">
+                  <Text className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">
+                    Caregiver Email
+                  </Text>
+                  <TextInput
+                    testID="family-caregiver-email-input"
+                    value={caregiverEmail}
+                    onChangeText={setCaregiverEmail}
+                    placeholder="e.g. priya@example.com"
+                    placeholderTextColor="#8e8e93"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    className="bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-xs text-neutral-800"
+                  />
+                </View>
+
+                <View className="space-y-1">
+                  <Text className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">
+                    Care Subject
+                  </Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {(context.people || []).map((p: any) => {
+                      const active = caregiverSubjectId === p.id;
+                      return (
+                        <TouchableOpacity
+                          key={p.id}
+                          testID={`family-caregiver-subject-${p.id}`}
+                          onPress={() => setCaregiverSubjectId(p.id)}
+                          className={`px-3 py-2 rounded-xl border ${
+                            active
+                              ? 'bg-emerald-50 border-emerald-400'
+                              : 'bg-neutral-50 border-neutral-200'
+                          }`}
+                        >
+                          <Text
+                            className={`text-xs font-bold ${
+                              active ? 'text-emerald-700' : 'text-neutral-700'
+                            }`}
+                          >
+                            {p.name}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  testID="family-caregiver-limited-toggle"
+                  onPress={() => setCaregiverLimitedPerms((v) => !v)}
+                  className="flex-row items-center justify-between bg-neutral-50 border border-neutral-200 rounded-xl p-3"
+                >
+                  <View className="flex-1 pr-3">
+                    <Text className="text-xs font-bold text-neutral-800">
+                      Limited Permissions (task-scoped)
+                    </Text>
+                    <Text className="text-[10px] text-neutral-500 mt-0.5">
+                      {caregiverLimitedPerms
+                        ? 'Caregiver sees only assigned tasks & check-ins.'
+                        : 'Caregiver gets broader care-circle visibility.'}
+                    </Text>
+                  </View>
+                  <View
+                    className={`w-10 h-6 rounded-full p-0.5 ${
+                      caregiverLimitedPerms ? 'bg-emerald-500' : 'bg-neutral-300'
+                    }`}
+                  >
+                    <View
+                      className={`w-5 h-5 rounded-full bg-white ${
+                        caregiverLimitedPerms ? 'ml-4' : 'ml-0'
+                      }`}
+                    />
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  testID="family-caregiver-submit"
+                  disabled={caregiverSubmitting}
+                  onPress={handleAssignCaregiver}
+                  className="w-full bg-[#af52de] py-3.5 rounded-xl flex-row items-center justify-center gap-2 mt-2"
+                >
+                  {caregiverSubmitting ? (
+                    <ActivityIndicator size="small" color="#ffffff" />
+                  ) : (
+                    <Text className="text-white font-bold text-xs">
+                      Assign Caregiver &amp; Record Grant
+                    </Text>
                   )}
                 </TouchableOpacity>
               </View>

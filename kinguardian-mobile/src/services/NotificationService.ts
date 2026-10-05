@@ -31,14 +31,16 @@ export class ApiNotificationService implements NotificationService {
           id: n.id,
           title: n.payload?.title || n.event_type || 'Care Notification',
           message: n.payload?.message || n.payload?.body || 'New update available.',
-          type: (n.event_type === 'alert' || n.event_type === 'reminder' || n.event_type === 'sync') ? n.event_type : 'info',
+          type: (n.event_type === 'alert' || n.event_type === 'reminder' || n.event_type === 'sync')
+            ? n.event_type
+            : (n.event_type === 'medication_reminder' ? 'reminder' : (n.event_type === 'checkin_submitted' ? 'alert' : 'info')),
           time: n.created_at ? new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recent',
           read: Boolean(n.read_at),
           actionScreen: n.payload?.actionScreen,
           actionText: n.payload?.actionText,
           actionData: n.payload?.actionData,
           category: n.payload?.category,
-          recipient: n.payload?.recipient
+          recipient: n.payload?.recipient || (n.event_type === 'medication_reminder' ? 'parent' : 'coordinator')
         }));
 
         const combined = [...liveNotifs, ...this.notifications.filter((old) => !liveNotifs.some((l) => l.id === old.id))];

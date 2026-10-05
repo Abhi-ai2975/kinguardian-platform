@@ -10,7 +10,7 @@ export const PARENTS_ILLUSTRATION =
 export const INITIAL_PEOPLE: Person[] = [
   {
     id: 'dad',
-    name: 'Ramesh',
+    name: 'Aniruddha',
     relation: 'Father',
     relationship: 'Father',
     avatarUrl: DAD_AVATAR,
@@ -26,7 +26,7 @@ export const INITIAL_PEOPLE: Person[] = [
   },
   {
     id: 'mom',
-    name: 'Lakshmi',
+    name: 'Vandana',
     relation: 'Mother',
     relationship: 'Mother',
     avatarUrl:
@@ -43,10 +43,10 @@ export const INITIAL_PEOPLE: Person[] = [
     lastCheckIn: 'Yesterday 6:30 PM'
   },
   {
-    id: 'anjali',
-    name: 'Anjali',
-    relation: 'Daughter (You)',
-    relationship: 'Daughter',
+    id: 'ram',
+    name: 'Coordinator',
+    relation: 'Coordinator',
+    relationship: 'Coordinator',
     avatarUrl: USER_AVATAR,
     avatar: USER_AVATAR,
     age: 36,
@@ -60,7 +60,7 @@ export const INITIAL_PEOPLE: Person[] = [
   },
   {
     id: 'rahul',
-    name: 'Rahul',
+    name: 'Family Member',
     relation: 'Brother',
     relationship: 'Brother',
     avatarUrl:
@@ -78,7 +78,7 @@ export const INITIAL_PEOPLE: Person[] = [
   },
   {
     id: 'priya',
-    name: 'Priya',
+    name: 'Caregiver',
     relation: 'Family Caregiver',
     relationship: 'Family caregiver',
     avatarUrl:
@@ -158,7 +158,7 @@ export const INITIAL_OBSERVATIONS: Record<string, HealthObservation> = {
       title: 'Why am I seeing this insight?',
       subtitle: 'Understanding the rationale behind your recent elevated blood pressure alert.',
       clinicalReasoning:
-        "KinGuardian AI detected a consistent 12% increase in evening systolic readings over the last 10 days, compared to Ramesh's baseline. This pattern often correlates with evening stress levels or heat exhaustion in Chennai, prompting a proactive review.",
+        "KinGuardian AI detected a consistent 12% increase in evening systolic readings over the last 10 days compared to the parent's baseline. This pattern often correlates with evening stress levels or heat exhaustion, prompting a proactive review.",
       highlightMetric: '12% increase',
       confidenceText: 'HIGH CONFIDENCE • DIRECT WEARABLE INGESTION',
       confidenceLevel: 'high',
@@ -206,7 +206,7 @@ export const INITIAL_OBSERVATIONS: Record<string, HealthObservation> = {
           systolic: 137,
           diastolic: 87,
           source: 'Manual Entry',
-          note: 'Logged by Suresh'
+          note: 'Logged by caregiver'
         },
         { date: 'Aug 11', time: '8:20 PM', systolic: 135, diastolic: 85, source: 'Omron Monitor' },
         { date: 'Aug 10', time: '8:40 PM', systolic: 138, diastolic: 88, source: 'Omron Monitor' }
@@ -227,7 +227,7 @@ export const INITIAL_OBSERVATIONS: Record<string, HealthObservation> = {
         id: 'factor-m1',
         icon: 'restaurant',
         title: 'Consistent low-glycemic meals',
-        description: "Dinner carb intake managed closely with Suresh's assistance."
+        description: "Dinner carb intake managed closely with the caregiver's assistance."
       },
       {
         id: 'factor-m2',
@@ -240,7 +240,7 @@ export const INITIAL_OBSERVATIONS: Record<string, HealthObservation> = {
         id: 'factor-m3',
         icon: 'medication',
         title: '100% Metformin adherence',
-        description: 'Taken promptly with dinner, verified by Suresh.'
+        description: 'Taken promptly with dinner, verified by the caregiver.'
       }
     ],
     dataConsidered: [
@@ -299,7 +299,7 @@ export const INITIAL_HEALTH_RECORDS: HealthRecordItem[] = [
     id: 'rec-1',
     category: 'people',
     personId: 'dad',
-    title: 'Dad (Ramesh Kumar)',
+    title: 'Parent',
     subtitle: 'Primary Profile • Age 68 • Connected via Apple Health & Omron',
     status: 'Monitored',
     tag: 'Active',
@@ -311,7 +311,7 @@ export const INITIAL_HEALTH_RECORDS: HealthRecordItem[] = [
     id: 'rec-2',
     category: 'people',
     personId: 'mom',
-    title: 'Mom (Lakshmi Kumar)',
+    title: 'Parent',
     subtitle: 'Primary Profile • Age 64 • Connected via Dexcom G7',
     status: 'Monitored',
     tag: 'Active',
@@ -323,7 +323,7 @@ export const INITIAL_HEALTH_RECORDS: HealthRecordItem[] = [
     id: 'rec-3',
     category: 'people',
     personId: 'all',
-    title: 'Anjali Smith (Daughter & Care Proxy)',
+    title: 'Family Coordinator',
     subtitle: 'Healthcare Power of Attorney • Remote Care Coordinator in London',
     tag: 'Proxy',
     icon: 'shield_person',
@@ -511,7 +511,7 @@ export const INITIAL_HEALTH_RECORDS: HealthRecordItem[] = [
 
 export const INITIAL_RECENT_SEARCHES = [
   "Dad's Blood Pressure",
-  "Anjali's updates",
+  'Coordinator updates',
   'Amlodipine refill date',
   'Cardiology appointment'
 ];
@@ -521,7 +521,7 @@ export const INITIAL_NOTIFICATIONS = [
   {
     id: 'notif-c-1',
     title: 'Adherence Alert: Evening Medication',
-    message: "Dad (Ramesh) hasn't marked his Atorvastatin as taken yet.",
+    message: "The parent hasn't marked their Atorvastatin as taken yet.",
     type: 'reminder' as const,
     category: 'medication' as const,
     recipient: 'coordinator' as const,
@@ -533,7 +533,7 @@ export const INITIAL_NOTIFICATIONS = [
   {
     id: 'notif-c-2',
     title: 'Vitals Update: BP Spiking Alert',
-    message: "Ramesh's systolic blood pressure rose by 12% to 142/90 mmHg.",
+    message: "The parent's systolic blood pressure rose by 12% to 142/90 mmHg.",
     type: 'alert' as const,
     category: 'health_change' as const,
     recipient: 'coordinator' as const,
@@ -558,7 +558,7 @@ export const INITIAL_NOTIFICATIONS = [
   {
     id: 'notif-c-4',
     title: 'Parent Checked In',
-    message: "Dad (Ramesh) submitted daily check-in: Feeling 'Good' at 9:15 AM.",
+    message: "The parent submitted a daily check-in: Feeling 'Good' at 9:15 AM.",
     type: 'sync' as const,
     category: 'parent_check-in' as const,
     recipient: 'coordinator' as const,
@@ -580,7 +580,7 @@ export const INITIAL_NOTIFICATIONS = [
   {
     id: 'notif-c-6',
     title: 'Care Task Assigned',
-    message: 'Verify morning walking path in Chennai is assigned to Priya.',
+    message: 'Verify the morning walking path in Chennai is assigned to the caregiver.',
     type: 'sync' as const,
     category: 'care_task' as const,
     recipient: 'coordinator' as const,
@@ -590,7 +590,7 @@ export const INITIAL_NOTIFICATIONS = [
   {
     id: 'notif-c-7',
     title: 'New Sibling Chat Update',
-    message: "Rahul: 'I will check Dad's pharmacy bills in Dubai.'",
+    message: "Family member: 'I will check the parent's pharmacy bills.'",
     type: 'info' as const,
     category: 'family_message' as const,
     recipient: 'coordinator' as const,
@@ -601,7 +601,7 @@ export const INITIAL_NOTIFICATIONS = [
   {
     id: 'notif-c-8',
     title: 'AI Insight: Steps Drift Correlation',
-    message: 'Ramesh steps decreased by 35% over past 5 days due to hot weather.',
+    message: "The parent's steps decreased by 35% over the past 5 days due to hot weather.",
     type: 'alert' as const,
     category: 'ai_insight' as const,
     recipient: 'coordinator' as const,
@@ -634,8 +634,8 @@ export const INITIAL_NOTIFICATIONS = [
   },
   {
     id: 'notif-p-3',
-    title: 'Message from Anjali ❤️',
-    message: "Anjali: 'Dad, did you take your blood pressure medicine today?'",
+    title: 'Message from Coordinator ❤️',
+    message: "Coordinator: 'Did you take your blood pressure medicine today?'",
     type: 'info' as const,
     category: 'message_from_family' as const,
     recipient: 'parent' as const,
@@ -645,7 +645,7 @@ export const INITIAL_NOTIFICATIONS = [
   {
     id: 'notif-p-4',
     title: 'Daily Check-in Request 🛡️',
-    message: 'Let Anjali know how you are feeling today. Tap to check-in.',
+    message: 'Let your coordinator know how you are feeling today. Tap to check-in.',
     type: 'reminder' as const,
     category: 'kinguardian_request' as const,
     recipient: 'parent' as const,
@@ -686,7 +686,7 @@ export const INITIAL_DOCUMENTS = [
   },
   {
     id: 'doc-1',
-    name: 'Ramesh_Discharge_Summary_2022.pdf',
+    name: 'Parent_Discharge_Summary_2022.pdf',
     category: 'Discharge Summary',
     date: 'Nov 12, 2022',
     status: 'parsed' as const,
@@ -707,12 +707,12 @@ export const INITIAL_DOCUMENTS = [
   },
   {
     id: 'doc-2',
-    name: 'Lakshmi_Apollo_Metabolic_Aug3.pdf',
+    name: 'Parent_Apollo_Metabolic_Aug3.pdf',
     category: 'Lab Report',
     date: 'Aug 3, 2026',
     status: 'parsed' as const,
     summary:
-      'Fasting lipid panel and comprehensive metabolic review for Lakshmi. Results show stable glycemic management and normal electrolyte balance.',
+      'Fasting lipid panel and comprehensive metabolic review for the parent. Results show stable glycemic management and normal electrolyte balance.',
     findings: [
       'Fasting blood glucose: 98 mg/dL (optimal control).',
       'HbA1c level: 6.4% (well within target range for type 2 diabetes).',
@@ -735,7 +735,7 @@ export const INITIAL_SYNC_LOGS = [
     device: 'Dexcom G7 CGM',
     status: 'synced' as const,
     value: 'Glucose 98 mg/dL',
-    user: 'Lakshmi (Mom)'
+    user: 'Parent'
   },
   {
     id: 'slog-2',
@@ -743,7 +743,7 @@ export const INITIAL_SYNC_LOGS = [
     device: 'Apple Watch',
     status: 'synced' as const,
     value: '3,120 steps / 82 bpm',
-    user: 'Ramesh (Dad)'
+    user: 'Parent'
   },
   {
     id: 'slog-3',
@@ -751,7 +751,7 @@ export const INITIAL_SYNC_LOGS = [
     device: 'Omron BP Monitor',
     status: 'synced' as const,
     value: '138/88 mmHg',
-    user: 'Ramesh (Dad)'
+    user: 'Parent'
   },
   {
     id: 'slog-4',
@@ -759,14 +759,14 @@ export const INITIAL_SYNC_LOGS = [
     device: 'Manual Log',
     status: 'synced' as const,
     value: 'Amlodipine marked taken',
-    user: 'Suresh (Caregiver)'
+    user: 'Caregiver'
   }
 ];
 
 export const CARE_NETWORK_TEAM = [
   {
     id: 'c-1',
-    name: 'Anjali Smith',
+    name: 'Family Member',
     role: 'Primary Proxy (Daughter)',
     location: 'London, UK (BST)',
     avatar: USER_AVATAR,
@@ -775,7 +775,7 @@ export const CARE_NETWORK_TEAM = [
   },
   {
     id: 'c-2',
-    name: 'Suresh Kumar',
+    name: 'Caregiver',
     role: 'Local Nurse & Caregiver',
     location: 'Chennai, India (IST)',
     avatar:

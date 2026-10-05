@@ -10,6 +10,7 @@ interface NotificationCenterProps {
   onMarkRead: (id: string) => void;
   onNavigateScreen: (screen: ScreenView, data?: any) => void;
   onClearAll: () => void;
+  parentName?: string;
 }
 
 export const NotificationCenter: React.FC<NotificationCenterProps> = ({
@@ -18,7 +19,8 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   notifications,
   onMarkRead,
   onNavigateScreen,
-  onClearAll
+  onClearAll,
+  parentName = 'Dad'
 }) => {
   const [expandedGroup, setExpandedGroup] = useState<boolean>(false);
 
@@ -35,12 +37,16 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     }
   };
 
-  // Grouping logic for Dad/Ramesh notifications to avoid overload
+  // Grouping logic for Dad/Father notifications to avoid overload
   const dadNotifs = notifications.filter(
     (n) =>
       n.message.toLowerCase().includes('dad') ||
+      n.message.toLowerCase().includes('father') ||
+      n.message.toLowerCase().includes('aniruddha') ||
       n.message.toLowerCase().includes('ramesh') ||
       n.title.toLowerCase().includes('dad') ||
+      n.title.toLowerCase().includes('father') ||
+      n.title.toLowerCase().includes('aniruddha') ||
       n.title.toLowerCase().includes('ramesh')
   );
 
@@ -48,8 +54,12 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     (n) =>
       !(
         n.message.toLowerCase().includes('dad') ||
+        n.message.toLowerCase().includes('father') ||
+        n.message.toLowerCase().includes('aniruddha') ||
         n.message.toLowerCase().includes('ramesh') ||
         n.title.toLowerCase().includes('dad') ||
+        n.title.toLowerCase().includes('father') ||
+        n.title.toLowerCase().includes('aniruddha') ||
         n.title.toLowerCase().includes('ramesh')
       )
   );
@@ -63,7 +73,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   return (
     <Modal visible={isOpen} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View className="flex-1 bg-black/50 justify-end">
-        <View className="bg-white rounded-t-[32px] max-h-[80%] p-6 space-y-4 shadow-2xl">
+        <View testID="notification-center" className="bg-white rounded-t-[32px] max-h-[80%] p-6 space-y-4 shadow-2xl">
           {/* Header */}
           <View className="flex-row justify-between items-center pb-2 border-b border-slate-100">
             <View className="flex-row items-center gap-2">
@@ -72,11 +82,11 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
             </View>
             <View className="flex-row items-center gap-4">
               {notifications.length > 0 && (
-                <TouchableOpacity onPress={onClearAll}>
+                <TouchableOpacity testID="notification-clear-all" onPress={onClearAll}>
                   <Text className="text-xs font-bold text-slate-400">Clear All</Text>
                 </TouchableOpacity>
               )}
-              <TouchableOpacity onPress={onClose} className="p-1.5 bg-slate-100 rounded-full">
+              <TouchableOpacity testID="notification-close" onPress={onClose} className="p-1.5 bg-slate-100 rounded-full">
                 <X size={16} color="#464554" />
               </TouchableOpacity>
             </View>
@@ -85,7 +95,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
           {/* List */}
           <ScrollView className="space-y-3">
             {notifications.length === 0 ? (
-              <View className="py-12 items-center justify-center space-y-2">
+              <View testID="notification-empty" className="py-12 items-center justify-center space-y-2">
                 <Bell size={32} color="#dee9fc" />
                 <Text className="text-xs font-bold text-slate-400">No notifications yet</Text>
               </View>
@@ -93,8 +103,9 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
               <View className="space-y-3">
                 {/* Render Grouped Dad Notifications */}
                 {shouldGroup && (
-                  <View className="border border-amber-250 bg-amber-50/20 rounded-[24px] p-1 space-y-2 overflow-hidden">
+                  <View testID="notification-group-dad" className="border border-amber-250 bg-amber-50/20 rounded-[24px] p-1 space-y-2 overflow-hidden">
                     <TouchableOpacity
+                      testID="notification-group-dad-toggle"
                       onPress={() => {
                         setExpandedGroup(!expandedGroup);
                         handleMarkAllDadRead();
@@ -106,8 +117,8 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                       </View>
                       <View className="flex-1 space-y-1">
                         <View className="flex-row justify-between items-center">
-                          <Text className="text-xs font-black text-slate-900">
-                            {dadNotifs.length} updates about Dad
+                          <Text testID="notification-group-dad-count" className="text-xs font-black text-slate-900">
+                            {dadNotifs.length} updates about {parentName}
                           </Text>
                           <Text className="text-[9px] font-bold text-slate-400">
                             {dadNotifs[0]?.time || 'Just now'}
@@ -135,6 +146,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                         {dadNotifs.map((n) => (
                           <TouchableOpacity
                             key={n.id}
+                            testID={`notification-item-${n.id}`}
                             onPress={() => {
                               onMarkRead(n.id);
                               if (n.actionScreen) {
@@ -191,6 +203,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                   dadNotifs.map((n) => (
                     <TouchableOpacity
                       key={n.id}
+                      testID={`notification-item-${n.id}`}
                       onPress={() => {
                         onMarkRead(n.id);
                         if (n.actionScreen) {
@@ -238,6 +251,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                 {otherNotifs.map((n) => (
                   <TouchableOpacity
                     key={n.id}
+                    testID={`notification-item-${n.id}`}
                     onPress={() => {
                       onMarkRead(n.id);
                       if (n.actionScreen) {

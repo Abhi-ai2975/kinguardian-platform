@@ -19,7 +19,11 @@ class AIAdapter(Protocol):
 @dataclass
 class MockNotificationAdapter:
     deliveries: list[dict] = field(default_factory=list)
+    simulate_outage: bool = False
+
     async def deliver(self, recipient_id: str, event_type: str, payload: dict) -> None:
+        if self.simulate_outage or (isinstance(payload, dict) and (payload.get("simulate_push_unavailable") or payload.get("simulate_push_outage"))):
+            raise RuntimeError("Push provider unavailable (APNs/FCM 503 Service Unavailable)")
         self.deliveries.append({"recipient_id": recipient_id, "event_type": event_type, "payload": payload})
 
 

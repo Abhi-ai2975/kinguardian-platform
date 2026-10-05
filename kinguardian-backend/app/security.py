@@ -10,9 +10,19 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.db import get_session
-from app.models import Profile
+from app.models import Profile, AuditLog, OutboxEvent
 
 bearer = HTTPBearer(auto_error=False)
+
+REVOKED_TOKENS: set[str] = set()
+
+
+def revoke_token(token: str) -> None:
+    REVOKED_TOKENS.add(token.strip())
+
+
+def is_token_revoked(token: str) -> bool:
+    return token.strip() in REVOKED_TOKENS
 
 
 def hash_password(password: str) -> str:
@@ -73,6 +83,8 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     """Issue a cryptographically signed access JWT token."""
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=settings.access_token_expire_minutes))
+    to_encode.setdefault("jti", str(uuid.uuid4()))
+    to_encode.setdefault("session_id", str(uuid.uuid4()))
     to_encode.update({"exp": expire, "iat": datetime.now(timezone.utc), "type": "access"})
     return jwt.encode(to_encode, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
 
@@ -81,6 +93,8 @@ def create_refresh_token(data: dict, expires_delta: timedelta | None = None) -> 
     """Issue a cryptographically signed refresh JWT token."""
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(days=settings.refresh_token_expire_days))
+    to_encode.setdefault("jti", str(uuid.uuid4()))
+    to_encode.setdefault("session_id", str(uuid.uuid4()))
     to_encode.update({"exp": expire, "iat": datetime.now(timezone.utc), "type": "refresh"})
     return jwt.encode(to_encode, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
 
@@ -163,6 +177,32 @@ async def current_profile(
 
     if credentials:
         raw_token = credentials.credentials
+        if is_token_revoked(raw_token):
+            err_msg = "Token has been revoked"
+            try:
+                key = f"auth.token_rejected.v1:revoked:{uuid.uuid4()}"
+                session.add(AuditLog(
+                    actor_id=None,
+                    family_id=None,
+                    action="auth.token_rejected.v1",
+                    resource_type="token",
+                    resource_id="bearer_token",
+                    metadata_json={"reason": err_msg, "path": request.url.path, "method": request.method},
+                    error=err_msg
+                ))
+                session.add(OutboxEvent(
+                    aggregate_type="token",
+                    aggregate_id="bearer_token",
+                    event_type="auth.token_rejected.v1",
+                    family_id=None,
+                    payload={"reason": err_msg, "path": request.url.path},
+                    idempotency_key=key
+                ))
+                await session.commit()
+            except Exception:
+                pass
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=err_msg)
+
         # First attempt local token decoding
         try:
             claims = decode_token(raw_token, expected_type="access")
@@ -198,8 +238,54 @@ async def current_profile(
                     if isinstance(claims.get("permissions"), list):
                         token_permissions = claims.get("permissions", [])
                 except Exception as exc:
-                    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid bearer token") from exc
+                    err_msg = "Invalid bearer token"
+                    try:
+                        key = f"auth.token_rejected.v1:invalid:{uuid.uuid4()}"
+                        session.add(AuditLog(
+                            actor_id=None,
+                            family_id=None,
+                            action="auth.token_rejected.v1",
+                            resource_type="token",
+                            resource_id="bearer_token",
+                            metadata_json={"reason": err_msg, "path": request.url.path, "method": request.method},
+                            error=err_msg
+                        ))
+                        session.add(OutboxEvent(
+                            aggregate_type="token",
+                            aggregate_id="bearer_token",
+                            event_type="auth.token_rejected.v1",
+                            family_id=None,
+                            payload={"reason": err_msg, "path": request.url.path},
+                            idempotency_key=key
+                        ))
+                        await session.commit()
+                    except Exception:
+                        pass
+                    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=err_msg) from exc
             else:
+                err_detail = getattr(local_err, "detail", "Token validation failed")
+                try:
+                    key = f"auth.token_rejected.v1:rejected:{uuid.uuid4()}"
+                    session.add(AuditLog(
+                        actor_id=None,
+                        family_id=None,
+                        action="auth.token_rejected.v1",
+                        resource_type="token",
+                        resource_id="bearer_token",
+                        metadata_json={"reason": str(err_detail), "path": request.url.path, "method": request.method},
+                        error=str(err_detail)
+                    ))
+                    session.add(OutboxEvent(
+                        aggregate_type="token",
+                        aggregate_id="bearer_token",
+                        event_type="auth.token_rejected.v1",
+                        family_id=None,
+                        payload={"reason": str(err_detail), "path": request.url.path},
+                        idempotency_key=key
+                    ))
+                    await session.commit()
+                except Exception:
+                    pass
                 raise local_err
     elif settings.environment == "development" and (subject := request.headers.get("x-actor-subject")):
         email = request.headers.get("x-actor-email")
@@ -230,16 +316,14 @@ async def current_profile(
         session.add(profile)
         await session.flush()
     else:
-        # Sync profile details if updated in identity token
+        # Stale token claim protection: Authoritative database state is preserved.
+        # Do not allow stale claims from multi-device tokens to overwrite updated profile fields in DB.
         has_changes = False
-        if email and profile.email != email:
+        if not profile.email and email:
             profile.email = email
             has_changes = True
-        if name and profile.display_name != name:
+        if not profile.display_name and name:
             profile.display_name = name
-            has_changes = True
-        if claim_role and claim_role in {"coordinator", "parent", "caregiver", "observer"} and profile.role != claim_role:
-            profile.role = claim_role
             has_changes = True
         if has_changes:
             await session.flush()
@@ -266,7 +350,7 @@ def require_roles(*allowed_roles: str):
 
 
 async def require_membership(session: AsyncSession, family_id: uuid.UUID | str, actor_id: uuid.UUID, roles: set[str] | None = None):
-    from app.models import Membership
+    from app.models import Membership, AuditLog
     import uuid as uuid_module
     
     # Convert string UUIDs to UUID objects if needed
@@ -282,6 +366,20 @@ async def require_membership(session: AsyncSession, family_id: uuid.UUID | str, 
     )
     membership = result.scalar_one_or_none()
     if not membership or (roles and membership.role not in roles):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Family authorization denied")
+        err_msg = "Family authorization denied"
+        try:
+            session.add(AuditLog(
+                actor_id=actor_id,
+                family_id=family_id,
+                action="auth.cross_family_denied.v1",
+                resource_type="family",
+                resource_id=str(family_id),
+                metadata_json={"reason": err_msg, "actor_id": str(actor_id), "target_family_id": str(family_id)},
+                error=err_msg
+            ))
+            await session.commit()
+        except Exception:
+            pass
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=err_msg)
     return membership
 

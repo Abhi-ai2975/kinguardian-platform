@@ -8,7 +8,7 @@ from app.security import require_membership
 
 COORDINATOR = {"coordinator"}
 CARE_WRITE = {"coordinator", "caregiver", "parent"}
-HEALTH_SCOPES = {"health.summary", "care.tasks", "checkins", "medications", "documents", "messages"}
+HEALTH_SCOPES = {"health.summary", "care.tasks", "checkins", "medications", "documents", "messages", "vitals", "appointments"}
 
 
 async def subject_for_family(session: AsyncSession, family_id: uuid.UUID, subject_id: uuid.UUID) -> CareSubject:
@@ -33,7 +33,15 @@ async def authorize_subject(session: AsyncSession, family_id: uuid.UUID, subject
         return subject
     grant = (await session.execute(select(CareGrant).where(CareGrant.subject_id == subject_id, CareGrant.profile_id == actor_id, CareGrant.status == "active"))).scalar_one_or_none()
     now = datetime.now(UTC)
-    if not grant or scope not in set(grant.scopes) or (grant.expires_at and grant.expires_at <= now):
+    if grant and grant.expires_at and grant.expires_at <= now:
+        grant.status = "inactive"
+        consent = (await session.execute(select(Consent).where(Consent.subject_id == subject_id, Consent.granted_to_profile_id == actor_id, Consent.status == "active"))).scalar_one_or_none()
+        if consent:
+            consent.status = "inactive"
+            consent.revoked_at = now
+        await session.commit()
+        raise HTTPException(status_code=403, detail="Subject consent has expired")
+    if not grant or scope not in set(grant.scopes):
         raise HTTPException(status_code=403, detail="Subject consent or delegated scope required")
     return subject
 
@@ -48,7 +56,20 @@ async def notify_coordinators(session: AsyncSession, family_id: uuid.UUID, event
     coordinators = (await session.execute(select(Membership).where(Membership.family_id == family_id, Membership.role == "coordinator", Membership.status == "active"))).scalars().all()
     for member in coordinators:
         session.add(Notification(family_id=family_id, recipient_id=member.profile_id, event_type=event_type, payload=payload))
-        await adapter.deliver(str(member.profile_id), event_type, payload)
+        if adapter:
+            try:
+                await adapter.deliver(str(member.profile_id), event_type, payload)
+            except Exception as e:
+                # Push provider outage graceful degradation (TEST MSG-006)
+                session.add(OutboxEvent(
+                    aggregate_type="notification",
+                    aggregate_id=str(member.profile_id),
+                    event_type=f"{event_type}.delivery_retry",
+                    family_id=family_id,
+                    payload={"error": str(e), "original_payload": payload},
+                    status="retry_pending",
+                    idempotency_key=f"retry:{event_type}:{member.profile_id}:{uuid.uuid4()}"
+                ))
 
 
 async def create_family(session: AsyncSession, actor_id: uuid.UUID, name: str, timezone: str) -> Family:
@@ -97,7 +118,7 @@ async def revoke_access_grant(session: AsyncSession, family_id: uuid.UUID, subje
     grant.status = "inactive"
     consent = (await session.execute(select(Consent).where(Consent.subject_id == subject_id, Consent.granted_to_profile_id == grant.profile_id, Consent.status == "active"))).scalar_one_or_none()
     if consent:
-        consent.status = "inactive"
+        consent.status = "revoked"
         consent.revoked_at = datetime.now(UTC)
     await record(session, actor_id=actor_id, family_id=family_id, action="care.access_revoked.v1", resource_type="care_grant", resource_id=grant.id, payload={"subject_id": str(subject_id), "profile_id": str(grant.profile_id)})
     return grant

@@ -18,6 +18,8 @@ export const SyncDashboard: React.FC<SyncDashboardProps> = ({
 }) => {
   const context = useContext(AppContext);
   const coordName = context?.coordinatorName || context?.currentUser?.name || 'Coordinator';
+  const fatherPerson = context?.people?.find(p => p.id === 'dad' || p.relationship?.toLowerCase().includes('father') || p.relation?.toLowerCase().includes('father')) || context?.familyMembers?.find(m => m.id === 'dad' || m.relationship?.toLowerCase().includes('father') || m.relation?.toLowerCase().includes('father')) || context?.people?.[0];
+  const fatherName = fatherPerson?.name ? (fatherPerson.name.charAt(0).toUpperCase() + fatherPerson.name.slice(1)) : 'Parent';
   const [londonTime, setLondonTime] = useState('');
   const [chennaiTime, setChennaiTime] = useState('');
 
@@ -97,7 +99,7 @@ export const SyncDashboard: React.FC<SyncDashboardProps> = ({
               <Text className="text-base font-bold text-neutral-800 mt-0.5">
                 {chennaiTime || '--:-- --'}
               </Text>
-              <Text className="text-[9px] text-neutral-400 mt-0.5 font-semibold">Ramesh (Dad)</Text>
+              <Text className="text-[9px] text-neutral-400 mt-0.5 font-semibold">{fatherName} ({fatherPerson?.relation || 'Parent'})</Text>
             </View>
           </View>
         </View>

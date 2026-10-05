@@ -28,6 +28,9 @@ export interface OpenWearablesNativeBridge {
   checkHealthStoreAvailability(): Promise<boolean>;
 }
 
+import { healthConnectService } from './HealthConnectService';
+import { realDataService } from '../api-client/RealDataService';
+
 export class OpenWearablesNativeAdapter implements HealthDataConnection {
   readonly provider: HealthProviderType;
   private status: ConnectionStatus = 'disconnected';
@@ -46,11 +49,32 @@ export class OpenWearablesNativeAdapter implements HealthDataConnection {
 
     // Default or injected native SDK bridge
     this.bridge = customBridge || {
-      initialize: async () => true,
-      requestPermissions: async () => true,
+      initialize: async () => {
+        if (Platform.OS === 'android') {
+          return await healthConnectService.initializeAndAuthorize();
+        }
+        return true;
+      },
+      requestPermissions: async () => {
+        if (Platform.OS === 'android') {
+          return await healthConnectService.initializeAndAuthorize();
+        }
+        return true;
+      },
       disconnectProvider: async () => true,
-      fetchLatestTelemetry: async () => [],
-      checkHealthStoreAvailability: async () => true
+      fetchLatestTelemetry: async () => {
+        if (Platform.OS === 'android') {
+          const realData = await healthConnectService.fetchRealTelemetry();
+          if (realData) return [realData];
+        }
+        return [];
+      },
+      checkHealthStoreAvailability: async () => {
+        if (Platform.OS === 'android') {
+          return await healthConnectService.isAvailable();
+        }
+        return true;
+      }
     };
   }
 
@@ -132,6 +156,17 @@ export class OpenWearablesNativeAdapter implements HealthDataConnection {
       const records = await this.bridge.fetchLatestTelemetry({ limit: 100 });
       this.lastSyncedAt = new Date();
       this.status = 'up_to_date';
+
+      if (records && records.length > 0) {
+        const latest = records[0];
+        if (typeof latest.steps === 'number') {
+          realDataService.syncHealthConnectTelemetry(undefined, {
+            steps: latest.steps,
+            heart_rate: latest.heartRate || 0,
+            sleep_minutes: latest.sleepMinutes || 0
+          }).catch(() => {});
+        }
+      }
 
       return {
         recordsProcessed: records.length,

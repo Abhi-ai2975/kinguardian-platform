@@ -13,6 +13,8 @@ import {
   SyncLog,
   ChatMessage,
   DemoUser,
+  DemoRole,
+  FamilyMember,
   Medication,
   Appointment,
   HealthEvent,
@@ -29,6 +31,7 @@ import {
   INITIAL_DOCUMENTS,
   INITIAL_SYNC_LOGS
 } from '../data/mockData';
+import { realDataService } from '../services/api-client/RealDataService';
 import {
   ApiFamilyService,
   ApiMedicationService,
@@ -50,8 +53,8 @@ const notificationService = new ApiNotificationService(undefined, familyService)
 
 export const DEMO_USERS: DemoUser[] = [
   {
-    id: 'anjali',
-    name: 'Anjali',
+    id: 'ram',
+    name: 'Coordinator',
     age: 36,
     location: 'London, UK',
     role: 'coordinator',
@@ -60,8 +63,8 @@ export const DEMO_USERS: DemoUser[] = [
       'https://lh3.googleusercontent.com/aida-public/AB6AXuBjb58pDYmLPOvRb2C93qIwVmN3Z3qZ__ljM1T9ZSdVoVI9ovH8x3UkvVX2km1jcc-lJDB8XKVXGhKX0bZL8qDi2s9jgC8eOKs1TubpaykQObp6xTg11e7t9fDFBiO9G_knt_Iu91RQ6oYuQGrd_EwUBKvQprl0XXO1mrgZ2LripRVXQ9ztlZOQr21ScUbgnP5iva9lVWOYFTQ4E6180FpDmnFn1lhIDcG8awhKsT88RjoTEgkPxtmV'
   },
   {
-    id: 'ramesh',
-    name: 'Ramesh',
+    id: 'aniruddha',
+    name: 'Aniruddha',
     age: 68,
     location: 'Chennai, India',
     role: 'parent',
@@ -70,8 +73,8 @@ export const DEMO_USERS: DemoUser[] = [
       'https://lh3.googleusercontent.com/aida-public/AB6AXuALvS8om7n8gN1nN9dwPrBv-8lUIiusfbDJ_24xukhktin6SS4Fum03pBDjOv6QZq7FG1zrXkOAvuYXPyd3bNWRiExOfo8jITls7X2v_F_ae2gOUZWhU50WGJItnoRtI9opmF1QBZU6bzSEV02qftPpb92imjH5svG7X7JsNrBwsRS4KyeFQ20zUd6kbGNULu6DnWuaKXcPSFfVBT19aNcq-tWb94VlGR9d-nSgRSdV7ns615jW5_9B'
   },
   {
-    id: 'lakshmi',
-    name: 'Lakshmi',
+    id: 'vandana',
+    name: 'Vandana',
     age: 64,
     location: 'Chennai, India',
     role: 'parent',
@@ -126,7 +129,7 @@ const DEFAULT_CARE_TASKS: CareTask[] = [
     status: 'completed',
     dueAt: 'Today, 2:00 PM',
     priority: 'high',
-    assignedTo: 'Suresh Kumar'
+    assignedTo: 'Caregiver'
   },
   {
     id: 'task-2',
@@ -135,7 +138,7 @@ const DEFAULT_CARE_TASKS: CareTask[] = [
     status: 'pending',
     dueAt: 'Today, 5:30 PM',
     priority: 'medium',
-    assignedTo: 'Suresh Kumar'
+    assignedTo: 'Caregiver'
   }
 ];
 
@@ -145,7 +148,7 @@ const DEFAULT_AI_INSIGHTS: AIInsight[] = [
     personId: 'dad',
     title: 'Midday Step Decreased by 35%',
     summary:
-      'Ramesh daily physical activity decreased today. High correlation with local heat levels (39°C).',
+      "Daily physical activity decreased today. High correlation with local heat levels (39°C).",
     type: 'observation',
     severity: 'attention',
     timeframe: 'Today',
@@ -162,7 +165,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const setCurrentUser = (user: DemoUser) => {
     setCurrentUserState(user);
     if (user.role === 'coordinator' && user.name) {
-      const clean = user.name.replace(/\s*\(coordinator\)/i, '').trim().split(' ')[0] || user.name.trim();
+      const clean = user.name.replace(/\s*\(coordinator\)/i, '').trim() || user.name.trim();
       setCoordinatorName(clean);
     }
   };
@@ -233,7 +236,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!user) return;
 
     setCurrentUser(user);
-    setAppMode(user.role);
+    if (user.role === 'coordinator' || user.role === 'parent') {
+      setAppMode(user.role);
+    }
 
     if (user.role === 'coordinator') {
       setCurrentScreen('health_dashboard');
@@ -255,6 +260,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Data States
   const [people, setPeople] = useState<Person[]>(INITIAL_PEOPLE);
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(INITIAL_PEOPLE);
+  const caregiverName =
+    familyMembers.find(
+      (member) => member.role === 'caregiver' || member.relationship?.toLowerCase().includes('caregiver')
+    )?.name || (currentUser.role === 'caregiver' ? currentUser.name : 'Caregiver');
   const [currentPersonId, setCurrentPersonId] = useState<string>('dad');
   const [observations, setObservations] =
     useState<Record<string, HealthObservation>>(INITIAL_OBSERVATIONS);
@@ -298,28 +308,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     {
       id: '1',
       sender: 'user',
-      senderName: 'Anjali (You)',
+      senderName: 'Coordinator (You)',
       senderAvatar:
         'https://lh3.googleusercontent.com/aida-public/AB6AXuBjb58pDYmLPOvRb2C93qIwVmN3Z3qZ__ljM1T9ZSdVoVI9ovH8x3UkvVX2km1jcc-lJDB8XKVXGhKX0bZL8qDi2s9jgC8eOKs1TubpaykQObp6xTg11e7t9fDFBiO9G_knt_Iu91RQ6oYuQGrd_EwUBKvQprl0XXO1mrgZ2LripRVXQ9ztlZOQr21ScUbgnP5iva9lVWOYFTQ4E6180FpDmnFn1lhIDcG8awhKsT88RjoTEgkPxtmV',
-      text: "Hey everyone, KinGuardian noticed Dad's steps are down 35% over the past 5 days in Chennai and evening BP spiked to 138/88 mmHg. Suresh, has Dad been taking his afternoon walks on the veranda?",
+      text: "KinGuardian noticed the parent's steps are down 35% over the past 5 days and evening BP spiked to 138/88 mmHg. Has the caregiver checked on the afternoon walks?",
       timestamp: '3:15 PM IST (9:45 AM BST)'
     },
     {
       id: '2',
       sender: 'family',
-      senderName: 'Suresh Kumar (Caregiver)',
+      senderName: 'Caregiver',
       senderAvatar:
-        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=256',
-      text: 'Hello Anjali! Yes, Chennai weather is very hot (39°C) this week. I advised Ramesh sir to stay indoors in the AC and do light walking inside instead. I will check his hydration and log a manual BP reading this evening.',
+        'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=256',
+      text: 'The local weather is very hot this week. I advised the parent to stay indoors and do light walking inside instead. I will check hydration and log a manual BP reading this evening.',
       timestamp: '3:22 PM IST (9:52 AM BST)'
     },
     {
       id: '3',
       sender: 'family',
-      senderName: 'Dad (Ramesh)',
+      senderName: 'Parent',
       senderAvatar:
         'https://lh3.googleusercontent.com/aida-public/AB6AXuALvS8om7n8gN1nN9dwPrBv-8lUIiusfbDJ_24xukhktin6SS4Fum03pBDjOv6QZq7FG1zrXkOAvuYXPyd3bNWRiExOfo8jITls7X2v_F_ae2gOUZWhU50WGJItnoRtI9opmF1QBZU6bzSEV02qftPpb92imjH5svG7X7JsNrBwsRS4KyeFQ20zUd6kbGNULu6DnWuaKXcPSFfVBT19aNcq-tWb94VlGR9d-nSgRSdV7ns615jW5_9B',
-      text: 'I am feeling quite fine, Anjali! Staying indoors and drinking buttermilk Suresh made. Just took my morning Amlodipine.',
+      text: 'I am feeling quite fine! Staying indoors and drinking enough water. Just took my morning medication.',
       timestamp: '3:30 PM IST (10:00 AM BST)'
     }
   ]);
@@ -367,7 +377,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (storedPeople) setPeople(JSON.parse(storedPeople));
 
         const storedMeds = await AsyncStorage.getItem('kinguardian_medications');
-        if (storedMeds) setMedications(JSON.parse(storedMeds));
+        if (storedMeds) {
+          const parsedMeds = JSON.parse(storedMeds);
+          setMedications(Array.isArray(parsedMeds) ? parsedMeds.filter((m: any) => !m.id?.startsWith('med-rx-')) : []);
+        }
 
         const storedNotifs = await AsyncStorage.getItem('kinguardian_notifications');
         if (storedNotifs) setNotifications(JSON.parse(storedNotifs));
@@ -400,22 +413,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const session = await authService.getStoredSession();
       if (session && session.user) {
         const u = session.user;
-        const role = u.role === 'parent' ? 'parent' : 'coordinator';
+        const role = u.role === 'parent' ? 'parent' : (u.role === 'caregiver' ? 'caregiver' : 'coordinator');
         const cleanName =
-          u.displayName?.replace(/\s*\((coordinator|parent)\)/i, '').trim() ||
-          (u.email ? u.email.split('@')[0] : (role === 'parent' ? 'Parent' : 'Coordinator'));
+          u.displayName?.replace(/\s*\((coordinator|parent|caregiver)\)/i, '').replace(/Sync\s*\d+/i, '').trim() ||
+          (u.email ? u.email.split('@')[0] : (role === 'parent' ? 'Parent' : (role === 'caregiver' ? 'Caregiver' : 'Coordinator')));
 
         setCurrentUser({
           id: u.id,
           name: cleanName,
-          age: role === 'parent' ? 68 : 36,
+          age: role === 'parent' ? 68 : (role === 'caregiver' ? 28 : 36),
           location: u.timezone ? `${u.timezone}` : (role === 'parent' ? 'Asia/Kolkata' : 'Europe/London'),
           role,
-          relation: role === 'parent' ? 'Parent' : 'Coordinator',
+          relation: role === 'parent' ? 'Parent' : (role === 'caregiver' ? 'Caregiver' : 'Coordinator'),
           avatarUrl: role === 'parent' ? (INITIAL_PEOPLE[0].avatarUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2') : (INITIAL_PEOPLE[2].avatarUrl || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330'),
           email: u.email
         });
-        setAppMode(role);
+        setAppMode(role === 'parent' ? 'parent' : 'coordinator');
       }
 
       // Reset family cache so new user's family is fetched afresh
@@ -424,19 +437,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Fetch family members first so subjects & mappings are populated
       const liveMembers = await familyService.getFamilyMembers();
       if (liveMembers && liveMembers.length > 0) {
-        setPeople(liveMembers);
+        const parents = liveMembers.filter(
+          (m) =>
+            m.role === 'parent' ||
+            m.relationship?.toLowerCase().includes('father') ||
+            m.relationship?.toLowerCase().includes('mother') ||
+            m.relationship?.toLowerCase().includes('parent') ||
+            m.relation?.toLowerCase().includes('father') ||
+            m.relation?.toLowerCase().includes('mother') ||
+            m.relation?.toLowerCase().includes('parent')
+        );
+        const resolvedParents = parents.length > 0 ? parents : liveMembers;
+        setPeople(resolvedParents);
+        setFamilyMembers(liveMembers);
+
+        const fatherPerson = resolvedParents.find(
+          (p) =>
+            p.relationship?.toLowerCase().includes('father') ||
+            p.relation?.toLowerCase().includes('father')
+        );
+        if (fatherPerson) {
+          setCurrentPersonId(fatherPerson.id);
+        }
       }
 
-      // Fetch circle members to discover coordinator dynamically
+      // Fetch circle members to discover coordinator & caregivers dynamically
+      let circleMembersList: any[] = [];
       try {
         const circleMembers = await familyService.listFamilyCircleMembers();
-        const coord = circleMembers?.find((m: any) => m.role === 'coordinator');
+        circleMembersList = Array.isArray(circleMembers) ? circleMembers : [];
+        const coord = circleMembersList?.find((m: any) => m.role === 'coordinator');
         if (coord && (coord.display_name || coord.name || coord.email)) {
           const rawName = coord.display_name || coord.name || coord.email.split('@')[0];
-          const cleanName = rawName.replace(/\s*\(coordinator\)/i, '').trim().split(' ')[0] || rawName.trim();
+          const cleanName = rawName.replace(/\s*\(coordinator\)/i, '').replace(/Sync\s*\d+/i, '').trim() || rawName.trim();
           setCoordinatorName(cleanName);
         } else if (session?.user?.role === 'coordinator') {
-          const cleanName = session.user.displayName?.replace(/\s*\(coordinator\)/i, '').trim().split(' ')[0] || (session.user.email ? session.user.email.split('@')[0] : 'Coordinator');
+          const cleanName = session.user.displayName?.replace(/\s*\(coordinator\)/i, '').replace(/Sync\s*\d+/i, '').trim() || (session.user.email ? session.user.email.split('@')[0] : 'Coordinator');
           setCoordinatorName(cleanName);
         } else {
           setCoordinatorName('Coordinator');
@@ -449,15 +485,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const dynamicDemoUsers: DemoUser[] = [];
       if (session?.user) {
         const u = session.user;
-        const role = u.role === 'parent' ? 'parent' : 'coordinator';
-        const cleanName = u.displayName?.replace(/\s*\((coordinator|parent)\)/i, '').trim() || (u.email ? u.email.split('@')[0] : (role === 'parent' ? 'Parent' : 'Coordinator'));
+        const role = u.role === 'parent' ? 'parent' : (u.role === 'caregiver' ? 'caregiver' : 'coordinator');
+        const cleanName = u.displayName?.replace(/\s*\((coordinator|parent|caregiver)\)/i, '').replace(/Sync\s*\d+/i, '').trim() || (u.email ? u.email.split('@')[0] : (role === 'parent' ? 'Parent' : (role === 'caregiver' ? 'Caregiver' : 'Coordinator')));
         dynamicDemoUsers.push({
           id: u.id,
           name: cleanName,
-          age: role === 'parent' ? 68 : 36,
+          age: role === 'parent' ? 68 : (role === 'caregiver' ? 28 : 36),
           location: u.timezone || (role === 'parent' ? 'Chennai, India' : 'London, UK'),
           role,
-          relation: role === 'parent' ? 'Parent' : 'Coordinator',
+          relation: role === 'parent' ? 'Parent' : (role === 'caregiver' ? 'Caregiver' : 'Coordinator'),
           avatarUrl: role === 'parent' ? (INITIAL_PEOPLE[0].avatarUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2') : (INITIAL_PEOPLE[2].avatarUrl || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330'),
           email: u.email
         });
@@ -466,15 +502,71 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (liveMembers && liveMembers.length > 0) {
         liveMembers.forEach((lm) => {
           if (!dynamicDemoUsers.some((du) => du.id === lm.id || du.name.toLowerCase() === lm.name.toLowerCase())) {
-            const isParent = lm.relation?.toLowerCase().includes('father') || lm.relation?.toLowerCase().includes('mother') || lm.relation?.toLowerCase().includes('parent');
+            const isCaregiver = lm.role === 'caregiver' || lm.relation?.toLowerCase().includes('caregiver') || lm.relationship?.toLowerCase().includes('caregiver');
+            const isParent = !isCaregiver && (lm.relation?.toLowerCase().includes('father') || lm.relation?.toLowerCase().includes('mother') || lm.relation?.toLowerCase().includes('parent') || lm.role === 'parent' || lm.relationship?.toLowerCase().includes('parent'));
             dynamicDemoUsers.push({
               id: lm.id,
               name: lm.name,
-              age: lm.age || 65,
+              age: lm.age || (isCaregiver ? 28 : 65),
               location: lm.location || `${lm.city || 'Chennai'}, ${lm.country || 'India'}`,
-              role: isParent ? 'parent' : 'coordinator',
-              relation: lm.relation || 'Parent',
-              avatarUrl: lm.avatarUrl || INITIAL_PEOPLE[0].avatarUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2'
+              role: isCaregiver ? 'caregiver' : (isParent ? 'parent' : 'coordinator'),
+              relation: isCaregiver ? 'Caregiver' : (lm.relation || (isParent ? 'Parent' : 'Coordinator')),
+              avatarUrl: isCaregiver
+                ? 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=256'
+                : (lm.avatarUrl || INITIAL_PEOPLE[0].avatarUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2')
+            });
+          }
+        });
+      }
+
+      // Also ensure caregivers from circleMembers are present in dynamicDemoUsers and people
+      if (circleMembersList.length > 0) {
+        circleMembersList.forEach((cm: any) => {
+          const mRole = (cm.role || '').toLowerCase();
+          const rawName = cm.display_name || cm.name || (cm.email ? cm.email.split('@')[0] : 'Member');
+          const cleanName = rawName.replace(/\s*\((coordinator|parent|caregiver)\)/i, '').replace(/Sync\s*\d+/i, '').trim();
+          const isCaregiver = mRole === 'caregiver' || cm.relationship?.toLowerCase().includes('caregiver');
+
+          if (isCaregiver) {
+            const caregiverId = cm.profile_id || cm.id;
+            if (!dynamicDemoUsers.some((du) => du.id === caregiverId || du.name.toLowerCase() === cleanName.toLowerCase())) {
+              dynamicDemoUsers.push({
+                id: caregiverId,
+                name: cleanName,
+                age: 28,
+                location: `${cm.city || 'Chennai'}, ${cm.country || 'India'}`,
+                role: 'caregiver',
+                relation: 'Caregiver',
+                avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=256',
+                email: cm.email
+              });
+            }
+
+            // Also ensure caregiver is in people/familyMembers
+            setPeople((prev) => {
+              if (prev.some((p) => p.name.toLowerCase() === cleanName.toLowerCase() || p.id === caregiverId)) {
+                return prev;
+              }
+              return [
+                ...prev,
+                {
+                  id: caregiverId,
+                  backendSubjectId: caregiverId,
+                  name: cleanName,
+                  relationship: 'Caregiver',
+                  relation: 'Caregiver',
+                  role: 'caregiver',
+                  age: 28,
+                  city: cm.city || 'Chennai',
+                  country: cm.country || 'India',
+                  timezone: cm.timezone || 'Asia/Kolkata',
+                  location: `${cm.city || 'Chennai'}, ${cm.country || 'India'}`,
+                  avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=256',
+                  wellbeingStatus: 'doing-well' as const,
+                  currentStatus: 'Caregiver • Active in Care Circle',
+                  lastCheckIn: 'Just now'
+                }
+              ];
             });
           }
         });
@@ -603,12 +695,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         systolic: vital.systolic,
         diastolic: vital.diastolic,
-        source: 'Manual Log (Anjali)',
+        source: `Manual Log (${coordinatorName})`,
         note: vital.note
       };
       setBpHistory((prev) => [newLog, ...prev]);
       setRecords((prev) => [loggedEvent, ...prev]);
-      showToast(`Logged BP ${vital.systolic}/${vital.diastolic} on behalf of Dad.`);
+      const parentName = people.find((person) => person.id === 'dad')?.name || 'Parent';
+      showToast(`Logged BP ${vital.systolic}/${vital.diastolic} on behalf of ${parentName}.`);
     });
   };
 
@@ -623,29 +716,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         date: 'Today',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         glucose: val,
-        source: 'Manual Log (Anjali)',
+        source: `Manual Log (${coordinatorName})`,
         note
       };
       setGlucoseHistory((prev) => [newLog, ...prev]);
       setRecords((prev) => [loggedEvent, ...prev]);
-      showToast(`Logged fasting sugar ${val} mg/dL on behalf of Mom.`);
+      const parentName = people.find((person) => person.id === 'mom')?.name || 'Parent';
+      showToast(`Logged fasting sugar ${val} mg/dL on behalf of ${parentName}.`);
     });
   };
 
   const handleConfirmMedication = async (id: string, name: string, taken: boolean) => {
+    // 1. Immediate optimistic state update so parent UI updates instantaneously
+    setMedications((prev) =>
+      prev.map((m) =>
+        m.id === id || m.name.toLowerCase().includes(name.toLowerCase()) || (id === 'rec-5' && m.id === 'rec-5')
+          ? { ...m, status: taken ? 'taken' : 'upcoming' }
+          : m
+      )
+    );
+
+    setRecords((prev) =>
+      prev.map((rec) => {
+        if (rec.id === id || rec.id === 'rec-5' || rec.title?.toLowerCase().includes(name.toLowerCase())) {
+          return {
+            ...rec,
+            status: taken ? '✓ Taken • Confirmed at 8:05 PM' : 'Active • Scheduled 8:00 PM IST'
+          };
+        }
+        return rec;
+      })
+    );
+
+    // Mark parent medication reminder notifications as read
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n.recipient === 'parent' && n.category === 'medication_reminder'
+          ? { ...n, read: true }
+          : n
+      )
+    );
+
     await runWithSyncLoader(async () => {
-      await medicationService.markTaken(id, taken ? 'taken' : 'upcoming');
-      setRecords((prev) =>
-        prev.map((rec) => {
-          if (rec.id === id) {
-            return {
-              ...rec,
-              status: taken ? '✓ Confirmed at 8:05 PM' : 'Active • Scheduled 8:00 PM IST'
-            };
-          }
-          return rec;
-        })
-      );
+      try {
+        await medicationService.markTaken(id, taken ? 'taken' : 'upcoming');
+      } catch (err) {
+        console.warn('ApiMedicationService error syncing adherence:', err);
+      }
 
       const activeUserName = currentUser?.name || 'Care Subject';
       const activeUserRole = currentUser?.relation || 'Parent';
@@ -747,7 +864,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         checkinNotif = {
           id: `sim-notif-check-${Date.now()}`,
           title: `Check-in Sync: ${activeUserName}`,
-          message: 'Dad checked in: Feeling Good 😊. All active sync metrics normal.',
+          message: `${activeUserName} checked in: Feeling Good 😊. All active sync metrics normal.`,
           type: 'info',
           time: 'Just now',
           read: false
@@ -823,40 +940,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       };
       setRecords((prev) => [docRecord, ...prev]);
 
-      // If this is a prescription, also add to active medications & care tasks
+      // If this is a prescription, create a review task for coordinator (NOT an active daily medicine until reviewed)
       if (isPrescription) {
-        const cleanName = newDoc.name
-          ? newDoc.name.replace(/\.[^/.]+$/, '').replace(/_/g, ' ')
-          : 'Prescription';
-
-        const newMed: Medication = {
-          id: `med-rx-${Date.now()}`,
-          personId: 'dad',
-          name: cleanName,
-          dose: `Under Review by ${coordinatorName}`,
-          frequency: 'Pending Coordinator Review',
-          scheduledTime: 'Pending Review',
-          status: 'upcoming',
-          adherencePercent: 100,
-          prescriber: `${coordinatorName} (Care Coordinator)`
-        };
-        setMedications((prev) => [newMed, ...prev]);
-
-        const rxRecord: HealthRecordItem = {
-          id: `rec-rx-${Date.now()}`,
-          category: 'medications',
-          personId: 'dad',
-          title: cleanName,
-          subtitle: `Prescription uploaded • Under review by ${coordinatorName}`,
-          date: 'Just now',
-          status: 'Pending',
-          tag: 'Prescription Ingest',
-          icon: 'medication',
-          iconBgColor: 'bg-[#ffeedb]',
-          iconColor: 'text-[#8b4513]'
-        };
-        setRecords((prev) => [rxRecord, ...prev]);
-
         const rxTask: CareTask = {
           id: `task-rx-${Date.now()}`,
           personId: 'dad',
@@ -991,6 +1076,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         });
       }
 
+      // Also persist to appointments table with dual timezone handling (TEST UX-001)
+      await realDataService.createAppointment({
+        subject_id: subjectId || 'dad',
+        doctor_name: appt.doctor,
+        specialty: appt.specialty,
+        date: appt.date,
+        time: appt.time,
+        location: 'Apollo Hospital, Chennai'
+      });
+
       const createdTask = await taskService.createTask({
         id: `task-appt-${Date.now()}`,
         personId: currentPersonId,
@@ -1025,7 +1120,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           subtitle: note,
           date: 'Just now',
           status: 'Shared',
-          tag: currentPersonId === 'dad' ? 'Dad' : 'Mom',
+          tag: people.find((person) => person.id === currentPersonId)?.name || 'Parent',
           icon: 'add_comment',
           iconBgColor: 'bg-[#e6eeff]',
           iconColor: 'text-[#2a14b4]'
@@ -1076,7 +1171,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const medNotif: AppNotification = {
         id: `sync-notif-med-${Date.now()}`,
         title: 'Medication Adherence Sync',
-        message: "Dad's medication was confirmed.",
+        message: `${people.find((person) => person.id === 'dad')?.name || 'Parent'}'s medication was confirmed.`,
         type: 'sync',
         time: '8:05 PM',
         read: false
@@ -1140,7 +1235,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         device: 'Care Team portal',
         status: 'synced',
         value: `Task completed: ${task?.title || 'Care Task'}`,
-        user: 'Suresh Kumar'
+        user: caregiverName
       };
       setSyncLogs((prev) => [newLog, ...prev]);
       showToast('Task marked as completed in database.');
@@ -1157,7 +1252,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         device: 'Coordinator portal',
         status: 'synced',
         value: `Assigned new task: ${task.title} to ${task.assignedTo}`,
-        user: 'Anjali'
+        user: coordinatorName
       };
       setSyncLogs((prev) => [newLog, ...prev]);
       showToast(`Assigned task: ${task.title}`);
@@ -1229,7 +1324,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         id: `sim-notif-${Date.now()}`,
         title: 'CGM Sensor Stream Ingestion',
         message:
-          'Martha (Mom) fasting glucose is 108 mg/dL. All metabolic trend markers are optimal.',
+          `${people.find((person) => person.id === 'mom')?.name || 'Parent'}'s fasting glucose is 108 mg/dL. All metabolic trend markers are optimal.`,
         type: 'sync',
         time: 'Just now',
         read: false,
@@ -1240,8 +1335,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } else {
       newNotif = {
         id: `sim-notif-${Date.now()}`,
-        title: 'Caregiver Update: Suresh',
-        message: 'Suresh completed Dad’s morning walking path. Vitals logged normal.',
+        title: `Caregiver Update: ${caregiverName}`,
+        message: `${caregiverName} completed the parent's morning walking path. Vitals logged normal.`,
         type: 'info',
         time: 'Just now',
         read: false,
@@ -1282,15 +1377,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const handleMarkRead = async (id: string) => {
-    const persisted = await notificationService.markRead(id);
-    if (persisted) {
-      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    try {
+      await notificationService.markRead(id);
+    } catch (err) {
+      console.warn('Error marking notification read in DB:', err);
     }
   };
 
   const handleClearAllNotifications = async () => {
-    await notificationService.clearAll();
     setNotifications([]);
+    try {
+      await notificationService.clearAll();
+    } catch (err) {
+      console.warn('Error clearing notifications in DB:', err);
+    }
   };
 
   const handleResetLoop = () => {
@@ -1380,7 +1481,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const msgSuresh = {
         id: `loop-msg-sur-${Date.now()}`,
         sender: 'family' as const,
-        senderName: 'Suresh Kumar (Caregiver)',
+        senderName: `${caregiverName} (Caregiver)`,
         senderAvatar:
           'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=256',
         text: `Hello ${coordinatorName}, I am with ${primaryName} now. Provided hydration and cooling. Checking vitals now.`,
@@ -1395,8 +1496,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         time: 'Just now',
         device: 'Manual check',
         status: 'synced',
-        value: 'Suresh verified BP 124/80 (Normal)',
-        user: 'Suresh (Caregiver)'
+        value: `${caregiverName} verified BP 124/80 (Normal)`,
+        user: caregiverName
       };
       setSyncLogs((prev) => [logItem, ...prev]);
       setObservations(INITIAL_OBSERVATIONS);
@@ -1450,14 +1551,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         return p;
       });
-      // Flag Dad Atorvastatin as missed
+      // Flag parent Atorvastatin as missed
+      const missedParentName = people.find((p) => p.id === 'dad')?.name || 'Parent';
       newMeds = newMeds.map((m) => (m.id === 'rec-5' ? { ...m, status: 'missed' } : m));
       // Add notification alert
       newNotifs.unshift({
         id: `scen-notif-missed-${Date.now()}`,
         title: 'Adherence Alert: Evening Atorvastatin',
         message:
-          'I noticed Dad missed his evening Atorvastatin dose. The data shows this is different from Dad’s usual pattern. You may want to discuss this with his doctor.',
+          `I noticed ${missedParentName} missed his evening Atorvastatin dose. The data shows this is different from ${missedParentName}’s usual pattern. You may want to discuss this with his doctor.`,
         type: 'alert',
         time: 'Just now',
         read: false,
@@ -1472,7 +1574,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         status: 'pending',
         dueAt: 'Today · Urgent',
         priority: 'high',
-        assignedTo: 'Priya'
+        assignedTo: caregiverName
       });
       showToast('Scenario: Medication Missed activated.');
     } else if (scenario === 'guardian-moment') {
@@ -1659,7 +1761,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       category: 'kinguardian_request'
     };
     setNotifications((prev) => [checkinNotif, ...prev]);
-    showToast('Check-in request sent to Dad.');
+    showToast(`Check-in request sent to ${people.find((p) => p.id === 'dad')?.name || 'Parent'}.`);
   };
 
   return (
@@ -1668,8 +1770,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // --- USER SPECIFIED SHARED STATE SYSTEM ---
         currentUser,
         setCurrentUser,
-        currentRole: appMode,
-        familyMembers: people,
+        currentRole: (currentUser.role as DemoRole) || appMode,
+        familyMembers,
+        setFamilyMembers,
         selectedParent: people.find((p) => p.id === currentPersonId) || people[0],
         medications,
         appointments,

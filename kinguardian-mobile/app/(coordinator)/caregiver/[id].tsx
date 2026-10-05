@@ -13,16 +13,16 @@ export default function CaregiverProfileRoute() {
 
   if (!context) return null;
 
-  const memberId = typeof id === 'string' ? id : 'priya';
-  const member = context.familyMembers.find((m) => m.id === memberId) || {
-    id: 'priya',
-    name: 'Priya',
-    relationship: 'Family Caregiver',
-    avatarUrl:
-      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=256',
-    city: 'Bengaluru',
-    country: 'India'
-  };
+  const memberId = typeof id === 'string' ? id : '';
+  const member = context.familyMembers.find(
+    (m) => (m.id === memberId || m.backendSubjectId === memberId) && m.role === 'caregiver'
+  ) || (context.currentUser.role === 'caregiver' ? context.currentUser : undefined);
+  const memberName = member?.name || 'Caregiver';
+  const parentName = context.people[0]?.name || 'Parent';
+  const memberLocation =
+    member && 'city' in member
+      ? [member.city, 'country' in member ? member.country : undefined].filter(Boolean).join(', ')
+      : '';
 
   const responsibilities = [
     'Doctor visits coordination & transport accompaniment',
@@ -54,18 +54,18 @@ export default function CaregiverProfileRoute() {
           {/* Caregiver Identity Card */}
           <View className="bg-white border border-[#e2dfd9] rounded-[32px] p-6 shadow-sm items-center space-y-4">
             <Image
-              source={{ uri: member.avatarUrl }}
+            source={{ uri: member?.avatarUrl || '' }}
               className="w-24 h-24 rounded-full border-4 border-[#dee9fc] shadow-xs"
             />
             <View className="items-center space-y-1">
-              <Text className="text-2xl font-black text-slate-900">{member.name}</Text>
+              <Text className="text-2xl font-black text-slate-900">{memberName}</Text>
               <View className="bg-[#eff4ff] px-3.5 py-0.5 rounded-full">
                 <Text className="text-[10px] font-black text-[#2a14b4] uppercase">
-                  {member.relationship}
+                    {member?.relation || 'Caregiver'}
                 </Text>
               </View>
               <Text className="text-xs text-slate-400 font-bold mt-0.5">
-                📍 {member.city}, {member.country || 'India'}
+                {memberLocation ? `📍 ${memberLocation}` : 'Location not provided'}
               </Text>
             </View>
           </View>
@@ -93,7 +93,7 @@ export default function CaregiverProfileRoute() {
           <View className="space-y-3 pt-2">
             <View className="flex-row gap-3">
               <TouchableOpacity
-                onPress={() => context.showToast(`Dialing Priya (+91 98765 43210)...`)}
+                onPress={() => context.showToast(`No phone number is available for ${memberName}.`)}
                 className="flex-1 bg-[#2a14b4] py-4 rounded-2xl flex-row items-center justify-center gap-2 active:scale-98 shadow-md"
               >
                 <Phone size={16} color="#ffffff" />
@@ -102,7 +102,7 @@ export default function CaregiverProfileRoute() {
 
               <TouchableOpacity
                 onPress={() => {
-                  context.setAskAIQuery(`Ask Priya about Dad's medicines`);
+                  context.setAskAIQuery(`Ask ${memberName} about ${parentName}'s medicines`);
                   context.setAskAIOpen(true);
                   router.push('/(coordinator)/ask');
                 }}

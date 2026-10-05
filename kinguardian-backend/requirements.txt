@@ -1,0 +1,21 @@
+# KinGuardian Backend Dependencies
+# Python >= 3.10, 3.11, 3.12, 3.13 compatible
+
+fastapi[standard]>=0.115.0
+uvicorn[standard]>=0.30.0
+sqlalchemy[asyncio]>=2.0.30
+greenlet>=3.0.0
+aiosqlite>=0.20.0
+asyncpg>=0.30.0
+pydantic>=2.8.0
+pydantic-settings>=2.7.0
+pyjwt[crypto]>=2.10.0
+cryptography>=42.0.0
+httpx>=0.28.0
+alembic>=1.14.0
+tzdata>=2025.1
+python-multipart>=0.0.9
+
+# Testing & Development dependencies
+pytest>=8.3.0
+pytest-asyncio>=0.24.0

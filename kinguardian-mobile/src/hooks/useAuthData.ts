@@ -15,19 +15,18 @@ export const useAuthData = () => {
         
         // Update context with real user data if available
         if (user && context?.setCurrentUser) {
+          const role = user.role === 'parent' ? 'parent' : user.role === 'caregiver' ? 'caregiver' : 'coordinator';
           context.setCurrentUser({
             id: user.id,
             name: user.displayName,
             age: 30, // Default age since not stored in auth
             location: user.timezone || 'Asia/Kolkata',
-            role: user.role === 'parent' ? 'parent' : 'coordinator',
-            relation: user.role === 'coordinator' ? 'Coordinator' : 
-                      user.role === 'parent' ? 'Parent' : 
-                      user.role === 'caregiver' ? 'Caregiver' : 'Observer',
+            role,
+            relation: role === 'coordinator' ? 'Coordinator' : role === 'caregiver' ? 'Caregiver' : 'Parent',
             avatarUrl: ''
           });
           if (context.setAppMode) {
-            context.setAppMode(user.role === 'parent' ? 'parent' : 'coordinator');
+            context.setAppMode(role === 'parent' ? 'parent' : 'coordinator');
           }
         }
       } catch (error) {

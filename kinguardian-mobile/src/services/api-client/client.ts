@@ -93,7 +93,7 @@ export class DrGodlyApiClient {
     if (process.env.EXPO_PUBLIC_ENVIRONMENT === 'development' && !token) {
       headers['X-Actor-Subject'] = process.env.EXPO_PUBLIC_ACTOR_SUBJECT || 'iam_anjali_london_001';
       headers['X-Actor-Email'] = process.env.EXPO_PUBLIC_ACTOR_EMAIL || 'anjali.coordinator@example.com';
-      headers['X-Actor-Name'] = process.env.EXPO_PUBLIC_ACTOR_NAME || 'Anjali';
+      headers['X-Actor-Name'] = process.env.EXPO_PUBLIC_ACTOR_NAME || 'Authenticated User';
       headers['X-Actor-Timezone'] = process.env.EXPO_PUBLIC_ACTOR_TIMEZONE || 'Europe/London';
     }
 
@@ -168,6 +168,8 @@ export class DrGodlyApiClient {
       this.request<any>('GET', `/api/v1/families/${familyId}/home`),
     listMembers: (familyId: UUID) =>
       this.request<FamilyMembership[]>('GET', `/api/v1/families/${familyId}/members`),
+    getById: (familyId: UUID) =>
+      this.request<any>('GET', `/api/v1/families/${familyId}`),
     addMember: (familyId: UUID, data: { profile_id?: UUID; email?: string; name?: string; role: string }) =>
       this.request<any>('POST', `/api/v1/families/${familyId}/members`, { body: data }),
     getAudit: (familyId: UUID) =>
@@ -181,6 +183,8 @@ export class DrGodlyApiClient {
       this.request<any>('GET', `/api/v1/subjects/${subjectId}/emergency-summary`),
     listGrants: (familyId: UUID, subjectId: UUID) =>
       this.request<any[]>('GET', `/api/v1/families/${familyId}/subjects/${subjectId}/access-grants`),
+    listConsents: (familyId: UUID, subjectId: UUID) =>
+      this.request<any[]>('GET', `/api/v1/families/${familyId}/subjects/${subjectId}/consents`),
     list: (familyId: UUID) =>
       this.request<CareSubjectResponse[]>('GET', `/api/v1/families/${familyId}/subjects`),
     create: (familyId: UUID, data: any, idempotencyKey?: string) =>
@@ -195,6 +199,10 @@ export class DrGodlyApiClient {
       this.request<any>('POST', '/api/v1/medications/confirm', {
         body: req,
         idempotencyKey
+      }),
+    remind: (medicationId: string, req?: any) =>
+      this.request<any>('POST', `/api/v1/medications/${encodeURIComponent(medicationId)}/remind`, {
+        body: req || { medication_id: medicationId }
       }),
     listAdherence: (familyId: UUID, subjectId?: UUID) => {
       const validSub = this.isUUID(subjectId) ? subjectId : undefined;

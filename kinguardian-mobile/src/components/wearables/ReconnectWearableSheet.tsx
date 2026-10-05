@@ -21,14 +21,14 @@ export const ReconnectWearableSheet: React.FC<ReconnectWearableSheetProps> = ({
   provider,
   deviceName = 'Garmin Watch',
   isCoordinatorView = false,
-  careSubjectName = 'Dad',
+  careSubjectName = 'Parent',
   hoursSinceLastSync = 12
 }) => {
   const [isReconnecting, setIsReconnecting] = useState(false);
 
   // Role-aware perspective headline directly matching KinGuardian spec:
   // Parent: "Your health device needs to reconnect."
-  // Coordinator: "Dad's Garmin hasn't synced for 12 hours."
+  // Coordinator message uses the selected care subject's name.
   const headline = isCoordinatorView
     ? `${careSubjectName}'s ${deviceName.replace('Watch', '')} hasn't synced for ${hoursSinceLastSync} hours.`
     : 'Your health device needs to reconnect.';

@@ -5,18 +5,17 @@ import { HealthObservation } from '../types';
 
 interface TransparencyInsightScreenProps {
   observation: HealthObservation;
+  personName: string;
   onBack: () => void;
   onAskFollowUp: (query: string) => void;
 }
 
 export const TransparencyInsightScreen: React.FC<TransparencyInsightScreenProps> = ({
   observation,
+  personName,
   onBack,
   onAskFollowUp
 }) => {
-  const isDad =
-    observation.id === 'dad' || observation.title?.toLowerCase().includes('dad') || true;
-
   return (
     <ScrollView className="flex-1 bg-[#fbfaf7]">
       {/* Header Bar */}
@@ -39,7 +38,7 @@ export const TransparencyInsightScreen: React.FC<TransparencyInsightScreenProps>
           </View>
 
           <Text className="text-lg font-black text-slate-900 leading-snug">
-            {isDad ? "Dad's Health Review" : "Mom's Health Review"}
+            {personName}'s Health Review
           </Text>
           <Text className="text-xs text-slate-500 font-semibold leading-relaxed">
             Automatic background correlation between wearable telemetry, weather indexes, and
@@ -61,13 +60,10 @@ export const TransparencyInsightScreen: React.FC<TransparencyInsightScreenProps>
           <View className="bg-white border border-[#e2dfd9] rounded-3xl p-5 shadow-sm space-y-4">
             <View className="flex-row items-center gap-2">
               <ShieldAlert size={16} color="#ba1a1a" />
-              <Text className="text-xs font-black text-slate-800">
-                Elevated Blood Pressure spikes
-              </Text>
+              <Text className="text-xs font-black text-slate-800">{observation.title}</Text>
             </View>
             <Text className="text-xs text-slate-600 font-semibold leading-relaxed">
-              Dad's systolic blood pressure rose to an average of 140 mmHg over the last three days
-              during midday heat peaks.
+              {observation.highlightText}
             </Text>
 
             {/* Why am I seeing this? */}
@@ -76,7 +72,7 @@ export const TransparencyInsightScreen: React.FC<TransparencyInsightScreenProps>
                 Why am I seeing this?
               </Text>
               <Text className="text-xs text-slate-700 font-bold leading-relaxed">
-                “Based on 17 readings collected over 30 days.”
+                {observation.transparency.clinicalReasoning}
               </Text>
             </View>
           </View>
@@ -97,12 +93,11 @@ export const TransparencyInsightScreen: React.FC<TransparencyInsightScreenProps>
             <View className="flex-row items-center gap-2">
               <TrendingUp size={16} color="#2a14b4" />
               <Text className="text-xs font-black text-slate-800">
-                Midday Step Drop & Hydration Correlation
+                Data sources
               </Text>
             </View>
             <Text className="text-xs text-slate-600 font-semibold leading-relaxed">
-              Ramesh's daily activity index dropped 35% on days when the outdoor temperature index
-              in Chennai exceeded 36°C.
+              {observation.transparency.dataSources.map((source) => source.name).join(', ')}
             </Text>
 
             {/* Why am I seeing this? */}
@@ -156,7 +151,7 @@ export const TransparencyInsightScreen: React.FC<TransparencyInsightScreenProps>
         {/* Consulting interactive query chip */}
         <TouchableOpacity
           onPress={() =>
-            onAskFollowUp("Explain the correlation between heat peaks and Dad's BP rise.")
+            onAskFollowUp(`Explain the correlation between heat peaks and ${personName}'s BP rise.`)
           }
           className="w-full bg-[#2a14b4] py-4 rounded-2xl items-center justify-center shadow-md active:scale-98 mb-12"
         >

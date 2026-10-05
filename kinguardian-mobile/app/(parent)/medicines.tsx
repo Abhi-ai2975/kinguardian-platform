@@ -29,12 +29,16 @@ export default function ParentMedicinesRoute() {
           <Text className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">
             {context.currentUser?.name ? `${userName}'s Daily Checklist` : "Daily Medication Checklist"}
           </Text>
-          <Text className="text-2xl font-bold text-neutral-900 tracking-tight">
+          <Text
+            testID="parent-medicines-title"
+            accessibilityLabel="Today's Medicines"
+            className="text-2xl font-bold text-neutral-900 tracking-tight"
+          >
             Today's Medicines
           </Text>
         </View>
 
-        <ScrollView className="flex-1 p-5 space-y-5">
+        <ScrollView testID="parent-medicines-list" className="flex-1 p-5 space-y-5">
           {userMeds.some((m) => m.id === 'rec-5' && m.status !== 'taken') && (
             <View className="bg-orange-50 border border-orange-100/50 rounded-2xl p-4 mb-1.5 shadow-sm">
               <Text className="text-sm font-bold text-neutral-800">
@@ -56,7 +60,11 @@ export default function ParentMedicinesRoute() {
 
           <View className="space-y-4">
             {userMeds.length === 0 ? (
-              <View className="bg-white rounded-2xl p-8 items-center justify-center border border-neutral-100 shadow-sm">
+              <View
+                testID="parent-medicines-empty"
+                accessibilityLabel="No scheduled medications"
+                className="bg-white rounded-2xl p-8 items-center justify-center border border-neutral-100 shadow-sm"
+              >
                 <Text className="text-base font-bold text-neutral-700">No scheduled medications</Text>
                 <Text className="text-xs text-neutral-400 text-center mt-1">
                   All your medications are up to date and recorded in your care circle.
@@ -68,15 +76,21 @@ export default function ParentMedicinesRoute() {
               return (
                 <View
                   key={med.id}
+                  testID={`parent-medicines-item-${med.id}`}
+                  accessibilityLabel={`${med.name} ${med.dose} scheduled at ${med.scheduledTime}, ${isTaken ? 'taken' : 'upcoming'}`}
                   className={`bg-white rounded-2xl p-5 shadow-sm shadow-neutral-100 space-y-4 border-l-4 ${
                     isTaken ? 'border-[#34c759]' : 'border-[#ff9500]'
                   }`}
                 >
                   <View className="flex-row justify-between items-center">
-                    <Text className="text-xs font-semibold text-neutral-400">
+                    <Text
+                      testID={`parent-medicines-time-${med.id}`}
+                      className="text-xs font-semibold text-neutral-400"
+                    >
                       {med.scheduledTime}
                     </Text>
                     <View
+                      testID={`parent-medicines-status-${med.id}`}
                       className={`px-3 py-1 rounded-full ${isTaken ? 'bg-[#34c759]' : 'bg-orange-50'}`}
                     >
                       <Text
@@ -88,24 +102,41 @@ export default function ParentMedicinesRoute() {
                   </View>
 
                   <View className="space-y-1">
-                    <Text className="text-3xl font-bold text-neutral-800 leading-none">
+                    <Text
+                      testID={`parent-medicines-name-${med.id}`}
+                      className="text-3xl font-bold text-neutral-800 leading-none"
+                    >
                       {med.name}
                     </Text>
-                    <Text className="text-lg font-bold text-neutral-400 mt-1">{med.dose}</Text>
+                    <Text
+                      testID={`parent-medicines-dose-${med.id}`}
+                      className="text-lg font-bold text-neutral-400 mt-1"
+                    >
+                      {med.dose}
+                    </Text>
                   </View>
 
                   {!isTaken ? (
                     <TouchableOpacity
+                      testID={`parent-medicines-mark-taken-${med.id}`}
+                      accessible={true}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Mark ${med.name} ${med.dose} as taken`}
+                      accessibilityHint={`Confirms scheduled ${med.scheduledTime} dose of ${med.name}`}
                       onPress={() => {
                         context.markMedicationTaken(med.id);
                         context.showToast(`${med.name} dose checked off successfully.`);
                       }}
-                      className="w-full bg-[#007aff] py-3.5 rounded-xl items-center justify-center active:opacity-90 mt-2"
+                      className="w-full bg-[#007aff] py-3.5 rounded-xl items-center justify-center active:opacity-90 mt-2 min-h-[48px]"
                     >
                       <Text className="text-white font-bold text-sm">Mark as taken</Text>
                     </TouchableOpacity>
                   ) : (
-                    <View className="w-full py-3 bg-emerald-50 rounded-xl items-center justify-center flex-row gap-2 mt-2">
+                    <View
+                      testID={`parent-medicines-confirmed-${med.id}`}
+                      accessibilityLabel={`${med.name} dose logged in care circle`}
+                      className="w-full py-3 bg-emerald-50 rounded-xl items-center justify-center flex-row gap-2 mt-2 min-h-[44px]"
+                    >
                       <CheckCircle2 size={15} color="#34c759" />
                       <Text className="text-[#34c759] text-xs font-bold">
                         Dose logged in Care circle

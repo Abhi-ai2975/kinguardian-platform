@@ -149,10 +149,11 @@ async def setup_ram_family():
                 )
                 subject = subject_res.scalar_one_or_none()
                 if not subject:
+                    rel = "Father" if member_data["name"] == "Aniruddha" else ("Mother" if member_data["name"] == "Vandana" else "Parent")
                     subject = app.models.CareSubject(
                         family_id=family.id,
                         profile_id=member.id,
-                        external_patient_ref=f'{{"name":"{member_data['name']}","role":"parent","family":"Ram"}}',
+                        external_patient_ref=f'{{"name":"{member_data["name"]}","role":"parent","relationship":"{rel}","family":"Ram"}}',
                         preferred_timezone="Asia/Kolkata",
                         status="active"
                     )

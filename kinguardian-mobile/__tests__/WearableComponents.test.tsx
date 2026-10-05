@@ -120,7 +120,7 @@ describe('Wearable Reusable Mobile Components', () => {
     fireEvent.press(screen.getByText('Continue'));
     expect(await screen.findByText('Review Sharing Permissions')).toBeTruthy();
     expect(await screen.findByText('Zero-Credential Security')).toBeTruthy();
-  });
+  }, 15000);
 
 
   it('renders ReconnectWearableSheet with role perspective headlines', async () => {

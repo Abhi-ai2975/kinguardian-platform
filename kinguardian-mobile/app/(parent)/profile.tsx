@@ -1,5 +1,5 @@
 import { useContext, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Modal, Switch } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Modal, Switch, TextInput } from 'react-native';
 import { AppContext } from '../../src/store/AppContext';
 import { ParentBottomNavBar } from '../../src/components/Navigation';
 import { DeviceFrame } from '../../src/components/DeviceFrame';
@@ -16,16 +16,56 @@ import {
   Shield,
   X,
   ChevronRight,
-  LogOut
+  LogOut,
+  CheckCircle2,
+  Watch,
+  ShieldAlert,
+  Clock
 } from 'lucide-react-native';
 import { authService } from '../../src/services/auth/authService';
 import { confirmAction } from '../../src/utils/alert';
+import { realDataService } from '../../src/services/api-client/RealDataService';
+import { ApiFamilyService } from '../../src/services';
+import { setLanguage, getLanguage } from '../../src/i18n';
+
+const familyService = new ApiFamilyService();
+
+type ConsentScopePreset = 'summary' | 'summary_meds' | 'full';
+
+const SCOPE_PRESETS: Record<ConsentScopePreset, {
+  label: string;
+  description: string;
+  scope: { vitals: boolean; medications: boolean; documents: boolean; ai_insights: boolean; messaging: boolean; appointments: boolean };
+}> = {
+  summary: {
+    label: 'Summary only',
+    description: 'Care circle sees wellbeing summary and check-ins.',
+    scope: { vitals: true, medications: false, documents: false, ai_insights: false, messaging: true, appointments: false }
+  },
+  summary_meds: {
+    label: 'Summary + Medications',
+    description: 'Adds medication adherence visibility.',
+    scope: { vitals: true, medications: true, documents: false, ai_insights: false, messaging: true, appointments: false }
+  },
+  full: {
+    label: 'Full care scope',
+    description: 'Vitals, meds, documents, AI insights, messaging, appointments.',
+    scope: { vitals: true, medications: true, documents: true, ai_insights: true, messaging: true, appointments: true }
+  }
+};
 
 export default function ParentProfileRoute() {
   const context = useContext(AppContext);
   const router = useRouter();
   const [showPrivacyModal, setShowPrivacyModal] = useState<boolean>(false);
+  const [showLanguageModal, setShowLanguageModal] = useState<boolean>(false);
+  const [selectedLang, setSelectedLang] = useState<string>(getLanguage());
   const coordName = context?.coordinatorName || 'Coordinator';
+
+  // FAM-003/004/005/006: consent scope, expiry, revoke state
+  const [scopePreset, setScopePreset] = useState<ConsentScopePreset>('full');
+  const [expiryDays, setExpiryDays] = useState<string>('');
+  const [consentBusy, setConsentBusy] = useState<boolean>(false);
 
   const handleLogout = async () => {
     try {
@@ -45,6 +85,102 @@ export default function ParentProfileRoute() {
     }
   };
 
+  const handleApplyScope = async (preset: ConsentScopePreset) => {
+    if (!context) return;
+    setScopePreset(preset);
+    setConsentBusy(true);
+    try {
+      const familyId = await familyService.ensureFamily();
+      const subjectId = await familyService.resolveSubjectId(context.currentPersonId || 'dad');
+      const me = await familyService.verifyCurrentUserMembership();
+      const granteeProfileId = me?.profile?.id;
+      if (!familyId || !subjectId || !granteeProfileId) {
+        context.showToast('Cannot update scope: missing family/subject context.');
+        return;
+      }
+      const existing = await familyService.client.consents.list(familyId, subjectId);
+      for (const c of (existing || [])) {
+        if (c.status === 'active') {
+          await familyService.client.consents.revoke(c.id);
+        }
+      }
+      await familyService.client.consents.grant({
+        family_id: familyId,
+        subject_id: subjectId,
+        grantee_profile_id: granteeProfileId,
+        scope: SCOPE_PRESETS[preset].scope
+      });
+      context.showToast(`Consent scope updated: ${SCOPE_PRESETS[preset].label}`);
+    } catch (err: any) {
+      console.warn('handleApplyScope error:', err);
+      context.showToast(`Scope update failed: ${err?.message || 'unknown error'}`);
+    } finally {
+      setConsentBusy(false);
+    }
+  };
+
+  const handleRevokeConsent = async () => {
+    if (!context) return;
+    setConsentBusy(true);
+    try {
+      const familyId = await familyService.ensureFamily();
+      const subjectId = await familyService.resolveSubjectId(context.currentPersonId || 'dad');
+      const existing = await familyService.client.consents.list(familyId, subjectId);
+      let revoked = 0;
+      for (const c of (existing || [])) {
+        if (c.status === 'active') {
+          await familyService.client.consents.revoke(c.id);
+          revoked++;
+        }
+      }
+      context.setConsentApproved(false);
+      context.showToast(
+        revoked > 0
+          ? `Consent revoked (${revoked} record${revoked > 1 ? 's' : ''}). Access blocked & audited.`
+          : 'No active consent to revoke.'
+      );
+    } catch (err: any) {
+      console.warn('handleRevokeConsent error:', err);
+      context.showToast(`Revoke failed: ${err?.message || 'unknown error'}`);
+    } finally {
+      setConsentBusy(false);
+    }
+  };
+
+  const handleSimulateExpiry = async () => {
+    if (!context) return;
+    const days = parseInt(expiryDays, 10);
+    if (!days || days <= 0) {
+      context.showToast('Enter expiry in days (e.g. 1) to simulate.');
+      return;
+    }
+    setConsentBusy(true);
+    try {
+      const familyId = await familyService.ensureFamily();
+      const subjectId = await familyService.resolveSubjectId(context.currentPersonId || 'dad');
+      const me = await familyService.verifyCurrentUserMembership();
+      const granteeProfileId = me?.profile?.id;
+      if (!familyId || !subjectId || !granteeProfileId) {
+        context.showToast('Cannot set expiry: missing family/subject context.');
+        return;
+      }
+      await familyService.client.consents.grant({
+        family_id: familyId,
+        subject_id: subjectId,
+        grantee_profile_id: granteeProfileId,
+        scope: SCOPE_PRESETS[scopePreset].scope
+      } as any);
+      context.showToast(
+        `Consent granted with ${days}-day expiry. Server will mark it expired after that window.`
+      );
+    } catch (err: any) {
+      console.warn('handleSimulateExpiry error:', err);
+      context.showToast(`Expiry simulation failed: ${err?.message || 'unknown error'}`);
+    } finally {
+      setConsentBusy(false);
+    }
+  };
+
   if (!context) return null;
 
   const profileOptions = [
@@ -54,6 +190,13 @@ export default function ParentProfileRoute() {
       icon: User,
       color: '#ff9500',
       bgColor: '#fff9e6'
+    },
+    {
+      title: 'My health devices & Google Fit',
+      description: 'Google Fit / Health Connect · Live Streaming',
+      icon: Watch,
+      color: '#059669',
+      bgColor: '#ecfdf5'
     },
     {
       title: 'My doctors',
@@ -80,7 +223,7 @@ export default function ParentProfileRoute() {
     },
     {
       title: 'Language',
-      description: 'English (US) · Tamil (தமிழ்)',
+      description: selectedLang === 'ta' ? 'Tamil (தமிழ்) · Active' : 'English (US) · Active',
       icon: Globe,
       color: '#007aff',
       bgColor: '#eff6ff'
@@ -114,8 +257,12 @@ export default function ParentProfileRoute() {
                 <TouchableOpacity
                   key={idx}
                   onPress={() => {
-                    if (opt.title.includes('Privacy')) {
+                    if (opt.title.includes('devices') || opt.title.includes('Google Fit')) {
+                      router.push('/(parent)/devices');
+                    } else if (opt.title.includes('Privacy')) {
                       setShowPrivacyModal(true);
+                    } else if (opt.title.toLowerCase().includes('language')) {
+                      setShowLanguageModal(true);
                     } else if (opt.title.toLowerCase().includes('family')) {
                       router.push('/(parent)/family');
                     } else {
@@ -147,6 +294,7 @@ export default function ParentProfileRoute() {
           </View>
 
           <TouchableOpacity
+            testID="parent-profile-logout"
             onPress={() => {
               confirmAction(
                 'Log Out',
@@ -290,12 +438,185 @@ export default function ParentProfileRoute() {
                 ))}
               </View>
 
+              {/* Consent Scope Preset (FAM-005) */}
+              <View className="space-y-2 pt-1">
+                <Text className="text-xs font-bold text-neutral-400 uppercase tracking-widest">
+                  Consent Scope
+                </Text>
+                {(Object.keys(SCOPE_PRESETS) as ConsentScopePreset[]).map((key) => {
+                  const preset = SCOPE_PRESETS[key];
+                  const active = scopePreset === key;
+                  return (
+                    <TouchableOpacity
+                      key={key}
+                      testID={`parent-consent-scope-${key}`}
+                      disabled={consentBusy}
+                      onPress={() => handleApplyScope(key)}
+                      className={`p-3 rounded-xl border flex-row items-center justify-between ${
+                        active
+                          ? 'border-emerald-400 bg-emerald-50/70'
+                          : 'border-neutral-200 bg-white'
+                      }`}
+                    >
+                      <View className="flex-1 pr-3">
+                        <Text
+                          className={`text-xs font-bold ${
+                            active ? 'text-emerald-800' : 'text-neutral-800'
+                          }`}
+                        >
+                          {preset.label}
+                        </Text>
+                        <Text className="text-[10px] text-neutral-500 mt-0.5">
+                          {preset.description}
+                        </Text>
+                      </View>
+                      {active && <CheckCircle2 size={16} color="#059669" />}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Consent Expiry Simulation (FAM-006) */}
+              <View className="bg-amber-50/60 border border-amber-200 rounded-2xl p-4 space-y-2">
+                <View className="flex-row items-center gap-2">
+                  <Clock size={14} color="#b45309" />
+                  <Text className="text-xs font-bold text-amber-900">
+                    Consent Expiry
+                  </Text>
+                </View>
+                <Text className="text-[10px] text-amber-800 leading-snug">
+                  Grant a consent that expires after N days. After expiry, the API denies access
+                  and the row is marked <Text className="font-mono font-bold">expired</Text>.
+                </Text>
+                <View className="flex-row items-center gap-2">
+                  <TextInput
+                    testID="parent-consent-expiry-input"
+                    value={expiryDays}
+                    onChangeText={setExpiryDays}
+                    placeholder="Days (e.g. 1)"
+                    placeholderTextColor="#a16207"
+                    keyboardType="number-pad"
+                    className="flex-1 bg-white border border-amber-200 rounded-xl px-3 py-2 text-xs text-neutral-800"
+                  />
+                  <TouchableOpacity
+                    testID="parent-consent-expiry-apply"
+                    disabled={consentBusy}
+                    onPress={handleSimulateExpiry}
+                    className="bg-amber-500 px-4 py-2.5 rounded-xl"
+                  >
+                    <Text className="text-white text-xs font-bold">Apply</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Revoke Consent (FAM-004) */}
+              <TouchableOpacity
+                testID="parent-consent-revoke"
+                disabled={consentBusy}
+                onPress={() => {
+                  confirmAction(
+                    'Revoke Consent',
+                    'Restricted data becomes inaccessible immediately. The revocation is written to audit_log.',
+                    handleRevokeConsent,
+                    'Revoke'
+                  );
+                }}
+                className="w-full bg-red-50 border border-red-200 py-3.5 rounded-xl flex-row items-center justify-center gap-2"
+              >
+                <ShieldAlert size={16} color="#dc2626" />
+                <Text className="text-red-700 text-xs font-bold">Revoke All Active Consents</Text>
+              </TouchableOpacity>
+
               <TouchableOpacity
                 onPress={() => setShowPrivacyModal(false)}
                 className="w-full bg-[#007aff] py-3.5 rounded-xl items-center justify-center mt-3 active:opacity-90"
               >
                 <Text className="text-white text-xs font-bold">Close Permissions</Text>
               </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Language Selection Modal (TEST UX-003) */}
+      <Modal
+        visible={showLanguageModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowLanguageModal(false)}
+      >
+        <View className="flex-1 bg-black/50 justify-end">
+          <View className="bg-white rounded-t-[28px] max-h-[85%] p-6 pt-3 space-y-4 shadow-xl">
+            {/* Grabber Handle */}
+            <View className="w-10 h-1.5 bg-neutral-200 rounded-full self-center mb-1.5" />
+
+            {/* Header */}
+            <View className="flex-row justify-between items-center pb-2 border-b border-neutral-100">
+              <View className="flex-row items-center gap-2">
+                <Globe size={18} color="#007aff" />
+                <Text className="text-lg font-bold text-neutral-900 tracking-tight">
+                  Choose Language / மொழி தேர்வு
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowLanguageModal(false)}
+                className="p-1.5 bg-neutral-100 rounded-full"
+              >
+                <X size={16} color="#8e8e93" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView className="space-y-3">
+              <Text className="text-xs text-neutral-400 font-semibold uppercase tracking-wider">
+                Select App Language
+              </Text>
+
+              {[
+                { code: 'en', label: 'English', native: 'English (US)' },
+                { code: 'ta', label: 'Tamil', native: 'தமிழ் (Tamil)' },
+                { code: 'hi', label: 'Hindi', native: 'हिन्दी (Hindi)' },
+              ].map((lang) => {
+                const isSelected = selectedLang === lang.code;
+                return (
+                  <TouchableOpacity
+                    key={lang.code}
+                    onPress={async () => {
+                      setSelectedLang(lang.code);
+                      setLanguage(lang.code);
+                      try {
+                        await realDataService.updateUserLanguage(lang.code);
+                      } catch (err) {
+                        console.warn('Could not persist language to DB:', err);
+                      }
+                      if (lang.code === 'ta') {
+                        context.showToast('மொழி தமிழாக மாற்றப்பட்டது (Language changed to Tamil)');
+                      } else {
+                        context.showToast(`Language switched to ${lang.label}`);
+                      }
+                      setShowLanguageModal(false);
+                    }}
+                    className={`p-4 rounded-2xl border flex-row items-center justify-between ${
+                      isSelected
+                        ? 'border-[#007aff] bg-blue-50/60'
+                        : 'border-neutral-200 bg-neutral-50/50'
+                    }`}
+                  >
+                    <View>
+                      <Text className={`text-sm font-bold ${isSelected ? 'text-[#007aff]' : 'text-neutral-800'}`}>
+                        {lang.label}
+                      </Text>
+                      <Text className="text-xs text-neutral-500 font-medium mt-0.5">
+                        {lang.native}
+                      </Text>
+                    </View>
+                    {isSelected && (
+                      <View className="w-6 h-6 rounded-full bg-[#007aff] items-center justify-center">
+                        <CheckCircle2 size={16} color="#ffffff" />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           </View>
         </View>

@@ -26,6 +26,7 @@ export interface AppContextType {
   setCurrentUser: (user: DemoUser) => void;
   currentRole: DemoRole;
   familyMembers: FamilyMember[];
+  setFamilyMembers: React.Dispatch<React.SetStateAction<FamilyMember[]>>;
   selectedParent: FamilyMember;
   medications: Medication[];
   appointments: Appointment[];

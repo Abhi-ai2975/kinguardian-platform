@@ -57,6 +57,14 @@ export class ApiDocumentService implements DocumentService {
         const members = await this.familyService.getFamilyMembers();
         subjectId = members[0]?.backendSubjectId || '';
       }
+      if (!subjectId && familyId) {
+        try {
+          const subjects = await this.client.subjects.list(familyId);
+          if (subjects && subjects.length > 0) {
+            subjectId = subjects[0].id;
+          }
+        } catch {}
+      }
 
       if (subjectId) {
         const sanitizedName = (newDoc.name || 'medical_report').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 180);

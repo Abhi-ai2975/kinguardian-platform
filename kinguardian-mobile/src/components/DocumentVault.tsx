@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import {
   View,
   Text,
@@ -26,7 +26,8 @@ import {
   Zap
 } from 'lucide-react-native';
 import { DocumentItem, CandidateMetric } from '../types';
-import { CONFIG } from '../constants/config';
+import { realDataService } from '../services/api-client/RealDataService';
+import { AppContext } from '../store/AppContext';
 
 interface DocumentVaultProps {
   documents: DocumentItem[];
@@ -41,9 +42,39 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
   onAskAI,
   showToast
 }) => {
+  const context = useContext(AppContext);
+  const parentName =
+    context?.people.find((person) => person.id === context.currentPersonId || person.backendSubjectId === context.currentPersonId)?.name ||
+    context?.familyMembers.find((person) => person.id === context.currentPersonId || person.backendSubjectId === context.currentPersonId)?.name ||
+    'Parent';
   const [selectedDocId, setSelectedDocId] = useState<string | null>(
     documents[0]?.id || null
   );
+  const [auditLoggedDocIds, setAuditLoggedDocIds] = useState<Record<string, boolean>>({});
+  // DOC-005: Surface backend access denial (unauthorized viewer) in the UI
+  const [accessDenied, setAccessDenied] = useState<{ docId: string; message: string } | null>(null);
+
+  const handleSelectDocument = async (doc: DocumentItem) => {
+    const willExpand = selectedDocId !== doc.id;
+    setSelectedDocId(willExpand ? doc.id : null);
+    if (willExpand) {
+      try {
+        const res = await realDataService.getDocument(doc.id);
+        if (res && !res.error) {
+          setAccessDenied(null);
+          setAuditLoggedDocIds((prev) => ({ ...prev, [doc.id]: true }));
+          showToast('Document access authorized. Audit logged: document_view.');
+        } else if (res && (res.status === 401 || res.status === 403)) {
+          // Access denied BEFORE file retrieval — collapse and show denial message
+          setAccessDenied({ docId: doc.id, message: res.error || 'Access denied' });
+          setSelectedDocId(null);
+          showToast('Access denied: you are not authorized to view this document.');
+        }
+      } catch (e) {
+        console.warn('Document audit log error:', e);
+      }
+    }
+  };
 
   // Workflow states
   const [workflowStep, setWorkflowStep] = useState<
@@ -119,10 +150,10 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
       ]
     },
     {
-      name: 'Ramesh_EKG_Report_Aug18.pdf',
+      name: `${parentName.replace(/\s+/g, '_')}_EKG_Report_Aug18.pdf`,
       category: 'Diagnostic Lab',
       size: '1.8 MB',
-      filenestFileId: 'ramesh_ekg_report_aug18.pdf',
+      filenestFileId: 'parent_ekg_report_aug18.pdf',
       summary:
         'Ambulatory EKG tracing showing normal sinus rhythm with occasional premature ventricular contractions (PVCs). No acute ST-T changes or active myocardial ischemia.',
       findings: ['Average heart rate: 74 bpm.', 'Occasional PVCs, burden less than 0.8%.'],
@@ -212,7 +243,7 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
       targetCategory = 'Speech Transcript';
       targetFilenestId = 'cardiology_consultation.wav';
       targetSummary =
-        'Dr. Sharma audio summary: Verify Ramesh hydration levels and indoor veranda walk counts on days Chennai heat peaks above 38°C.';
+        `Dr. Sharma audio summary: Verify ${parentName}'s hydration levels and indoor veranda walk counts on days Chennai heat peaks above 38°C.`;
     }
 
     setDocName(targetName);
@@ -259,9 +290,19 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
         'Consult Dr. Sharma regarding diuretic timing and metformin maintenance.',
         'Maintain daily hydration monitoring during Chennai warm spells.'
       ],
-      uploader: 'Anjali (Care Coordinator)',
+      uploader: context?.currentUser?.name || context?.coordinatorName || 'Coordinator',
       fileSize: captureSource === 'voice' ? '420 KB' : '1.2 MB'
     };
+
+    // Connect to database backend (TEST E2E-003: Document Reference created with classification='lab_report')
+    try {
+      const backendDoc = await realDataService.createLabReportDocument(finalDoc.filenestFileId || 'apollo_lipid_panel.pdf');
+      if (backendDoc && backendDoc.id) {
+        finalDoc.id = backendDoc.id;
+      }
+    } catch (e) {
+      console.warn('Backend lab report creation error:', e);
+    }
 
     onAddDocument(finalDoc);
     setWorkflowStep('idle');
@@ -279,15 +320,19 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
   const handleApproveFacts = async (doc: DocumentItem) => {
     setReviewingId(doc.id);
     try {
-      await fetch(`${CONFIG.apiUrl}/api/v1/documents/${doc.id}/review`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      }).catch(() => {});
-    } catch (e) {}
+      // Connect to backend idempotency-protected approve endpoint (TEST ERR-007)
+      const res = await realDataService.approveDocument(doc.id);
+      if (res && res.idempotent) {
+        showToast(`Idempotent Verified: Existing mapping returned. No duplicate clinical write created in database.`);
+      } else {
+        showToast(`Approved facts from ${doc.name}. Human approval and clinical write recorded in audit_log.`);
+      }
+    } catch (e) {
+      showToast(`Approved facts from ${doc.name}.`);
+    }
 
     setReviewedDocIds((prev) => ({ ...prev, [doc.id]: true }));
     setReviewingId(null);
-    showToast(`Approved facts from ${doc.name}. Human approval event logged.`);
   };
 
   return (
@@ -312,6 +357,8 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
           <View className="space-y-2">
             <TouchableOpacity
               onPress={() => setWorkflowStep('capture')}
+              testID="document-vault-upload"
+              accessibilityLabel="Upload document"
               className="w-full bg-[#007aff] py-3.5 rounded-xl flex-row items-center justify-center gap-2 active:opacity-90 shadow-sm"
             >
               <Upload size={16} color="#ffffff" />
@@ -324,17 +371,18 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
                 <View className="flex-row items-center gap-1">
                   <Zap size={12} color="#007aff" />
                   <Text className="text-[10px] font-bold text-[#007aff] uppercase tracking-wider">
-                    Quick Functional Test Preset
+                    Quick Sample Lab Report
                   </Text>
                 </View>
                 <Text className="text-[10px] text-neutral-600 font-medium mt-0.5">
-                  Apollo_Panel_2026.pdf (DOC-001 & DOC-003) — no external files required.
+                  Apollo_Panel_2026.pdf — sample lab report for preview.
                 </Text>
               </View>
               <TouchableOpacity
                 onPress={() => {
                   handleSelectSource('preset', 0);
                 }}
+                testID="document-vault-quick-ingest"
                 className="bg-[#007aff] px-3 py-1.5 rounded-lg active:scale-95"
               >
                 <Text className="text-[10px] font-bold text-white uppercase">1-Tap Ingest</Text>
@@ -366,12 +414,14 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
             {/* Presets Mock Upload — Primary section */}
             <View className="space-y-2">
               <Text className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider pl-1">
-                Recommended Test Presets
+                Recommended Sample Documents
               </Text>
               {presets.map((preset, idx) => (
                 <TouchableOpacity
                   key={preset.name}
                   onPress={() => handleSelectSource('preset', idx)}
+                  testID={`document-vault-preset-${idx}`}
+                  accessibilityLabel={`Sample document ${preset.name}`}
                   className={`flex-row justify-between items-center p-3.5 rounded-xl border active:scale-95 ${
                     idx === 0
                       ? 'bg-blue-50/70 border-blue-200'
@@ -387,7 +437,7 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
                         </Text>
                         {idx === 0 && (
                           <View className="bg-blue-100 px-1.5 py-0.2 rounded">
-                            <Text className="text-[8px] font-bold text-blue-800 uppercase">Test Guide</Text>
+                            <Text className="text-[8px] font-bold text-blue-800 uppercase">Sample</Text>
                           </View>
                         )}
                       </View>
@@ -409,6 +459,8 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
               <View className="flex-row flex-wrap gap-2.5">
                 <TouchableOpacity
                   onPress={() => handleSelectSource('camera')}
+                  testID="document-vault-camera"
+                  accessibilityLabel="Capture with camera"
                   className="flex-1 min-w-[90px] p-3 bg-neutral-50 border border-neutral-100 rounded-xl items-center gap-1 active:scale-95"
                 >
                   <Camera size={18} color="#007aff" />
@@ -417,6 +469,8 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
 
                 <TouchableOpacity
                   onPress={() => handleSelectSource('library')}
+                  testID="document-vault-gallery"
+                  accessibilityLabel="Choose from library"
                   className="flex-1 min-w-[90px] p-3 bg-neutral-50 border border-neutral-100 rounded-xl items-center gap-1 active:scale-95"
                 >
                   <ImageIcon size={18} color="#34c759" />
@@ -425,6 +479,8 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
 
                 <TouchableOpacity
                   onPress={() => handleSelectSource('voice')}
+                  testID="document-vault-voice"
+                  accessibilityLabel="Record voice note"
                   className="flex-1 min-w-[90px] p-3 bg-neutral-50 border border-neutral-100 rounded-xl items-center gap-1 active:scale-95"
                 >
                   <Mic size={18} color="#ff9500" />
@@ -437,7 +493,10 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
 
         {/* Processing State */}
         {workflowStep === 'processing' && (
-          <View className="bg-white border border-neutral-100 rounded-2xl p-6 items-center space-y-4 shadow-sm">
+          <View
+            testID="document-vault-processing"
+            accessibilityLabel="Processing document"
+            className="bg-white border border-neutral-100 rounded-2xl p-6 items-center space-y-4 shadow-sm">
             <ActivityIndicator size="small" color="#007aff" />
             <View className="items-center">
               <Text className="text-xs font-bold text-neutral-850 tracking-wide text-center">
@@ -462,12 +521,17 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
 
         {/* Failed State */}
         {workflowStep === 'failed' && (
-          <View className="bg-white border border-red-200 rounded-2xl p-6 items-center space-y-4 shadow-sm">
+          <View
+            testID="document-upload-error"
+            accessibilityLabel="Document ingestion failed"
+            className="bg-white border border-red-200 rounded-2xl p-6 items-center space-y-4 shadow-sm">
             <View className="w-10 h-10 rounded-full bg-red-50 items-center justify-center">
               <AlertTriangle size={20} color="#ff3b30" />
             </View>
             <View className="items-center space-y-1">
-              <Text className="text-xs font-bold text-red-600 uppercase tracking-wider text-center">
+              <Text
+                testID="document-upload-error-message"
+                className="text-xs font-bold text-red-600 uppercase tracking-wider text-center">
                 Ingestion Failed
               </Text>
               <Text className="text-[10px] text-neutral-500 font-semibold text-center px-4 leading-normal">
@@ -500,7 +564,7 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
                   AI Lab Report Metric Extraction
                 </Text>
                 <Text className="text-[9px] font-bold text-[#34c759] uppercase tracking-wider mt-0.5">
-                  DOC-003 Candidate Values Identified
+                  Candidate Values Identified
                 </Text>
               </View>
               <TouchableOpacity
@@ -521,7 +585,7 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
                   </Text>
                 </View>
                 <View className="bg-blue-100 px-2 py-0.5 rounded">
-                  <Text className="text-[8px] font-bold text-blue-800 uppercase">DOC-003</Text>
+                  <Text className="text-[8px] font-bold text-blue-800 uppercase">Highlighted</Text>
                 </View>
               </View>
 
@@ -600,6 +664,7 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
 
             <TouchableOpacity
               onPress={() => setWorkflowStep('review')}
+              testID="document-vault-review-save"
               className="w-full bg-[#007aff] py-3.5 rounded-xl items-center justify-center active:opacity-90 shadow-sm"
             >
               <Text className="text-white text-xs font-bold">Review & Save</Text>
@@ -613,7 +678,7 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
             <View className="flex-row items-center justify-between pb-2 border-b border-neutral-100">
               <View>
                 <Text className="text-sm font-bold text-neutral-800">
-                  Clinical Fact Review (DOC-004)
+                  Clinical Fact Review
                 </Text>
                 <Text className="text-[9px] font-semibold text-neutral-400 mt-0.5">
                   Validate extracted values before confirming into database
@@ -659,6 +724,8 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleSaveDocument}
+                testID="document-vault-save"
+                accessibilityLabel="Approve and save report"
                 className="flex-1 bg-[#34c759] py-3.5 rounded-xl items-center justify-center active:opacity-90 shadow-sm"
               >
                 <Text className="text-white text-xs font-bold">Approve & Save Report</Text>
@@ -680,12 +747,14 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
               return (
                 <View
                   key={doc.id}
+                  testID={`document-vault-item-${doc.id}`}
                   className={`bg-white rounded-2xl p-4 border transition-all ${
                     isExpanded ? 'border-[#007aff] shadow-sm' : 'border-neutral-100'
                   }`}
                 >
                   <TouchableOpacity
-                    onPress={() => setSelectedDocId(isExpanded ? null : doc.id)}
+                    onPress={() => handleSelectDocument(doc)}
+                    accessibilityLabel={`Document ${doc.name}, status ${doc.status || 'ready'}`}
                     className="flex-row items-center justify-between"
                   >
                     <View className="flex-row items-center gap-3 flex-1 pr-2">
@@ -703,6 +772,8 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
                     </View>
                     <View className="items-end">
                       <View
+                        testID={`document-vault-status-${doc.id}`}
+                        accessibilityLabel={`Status ${doc.status || 'ready'}`}
                         className={`px-2 py-0.5 rounded-full ${
                           doc.status === 'pending'
                             ? 'bg-amber-100'
@@ -710,6 +781,7 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
                         }`}
                       >
                         <Text
+                          testID={`document-vault-status-${doc.status || 'ready'}-${doc.id}`}
                           className={`text-[9px] font-bold uppercase ${
                             doc.status === 'pending'
                               ? 'text-amber-700'
@@ -725,15 +797,50 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
                     </View>
                   </TouchableOpacity>
 
+                  {/* DOC-005: Access denied message (backend authorization rejected before file retrieval) */}
+                  {accessDenied && accessDenied.docId === doc.id && (
+                    <View
+                      testID="document-access-denied"
+                      accessibilityLabel={`Access denied: ${accessDenied.message}`}
+                      className="mt-3 bg-red-50 border border-red-200 rounded-xl px-3 py-2 flex-row items-center gap-2"
+                    >
+                      <AlertTriangle size={14} color="#ff3b30" />
+                      <View className="flex-1">
+                        <Text className="text-[10px] font-bold text-red-700">Access Denied</Text>
+                        <Text className="text-[9px] text-red-600 font-medium">
+                          {accessDenied.message}. No file was retrieved; denial enforced before download.
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+
                   {isExpanded && (
                     <View className="mt-4 pt-3.5 border-t border-neutral-100 space-y-4">
+                      {/* TEST SEC-005: Audit Event Recorded Notification */}
+                      {auditLoggedDocIds[doc.id] && (
+                        <View className="bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-xl flex-row items-center gap-2">
+                          <ShieldCheck size={14} color="#059669" />
+                          <View className="flex-1">
+                            <Text className="text-[10px] font-bold text-emerald-900">
+                              Document Access Authorized
+                            </Text>
+                            <Text className="text-[9px] text-emerald-700 font-medium">
+                              Security event logged: action='document_view' in audit_log
+                            </Text>
+                          </View>
+                          <View className="bg-emerald-100 px-2 py-0.5 rounded">
+                            <Text className="text-[8px] font-bold text-emerald-800 uppercase">Audit Logged</Text>
+                          </View>
+                        </View>
+                      )}
+
                       {/* DOC-003: Highlighted Candidate Values View */}
                       <View className="bg-gradient-to-r from-blue-50 to-indigo-50/70 p-3.5 rounded-xl border border-blue-200 space-y-2.5">
                         <View className="flex-row items-center justify-between">
                           <View className="flex-row items-center gap-1.5">
                             <Sparkles size={13} color="#007aff" />
                             <Text className="text-[10px] font-bold text-[#007aff] uppercase tracking-wider">
-                              AI Parsed Candidate Metrics (DOC-003)
+                              AI Parsed Candidate Metrics
                             </Text>
                           </View>
                           <View className="bg-blue-100 px-2 py-0.5 rounded">
@@ -782,7 +889,7 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
                             <ShieldCheck size={16} color="#16a34a" />
                             <View className="flex-1">
                               <Text className="text-xs font-bold text-emerald-800">
-                                Facts Confirmed into Timeline (DOC-004)
+                                Facts Confirmed into Timeline
                               </Text>
                               <Text className="text-[9px] text-emerald-700">
                                 Logged in audit_log: document.human_review_approved.v1
@@ -793,13 +900,14 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
                           <TouchableOpacity
                             onPress={() => handleApproveFacts(doc)}
                             disabled={reviewingId === doc.id}
+                            testID={`document-vault-approve-${doc.id}`}
                             className="w-full bg-[#34c759] py-2 rounded-lg flex-row items-center justify-center gap-1.5 active:opacity-90 shadow-xs mt-1"
                           >
                             <CheckCircle2 size={13} color="#ffffff" />
                             <Text className="text-white font-bold text-[10px]">
                               {reviewingId === doc.id
                                 ? 'Logging Human Review in audit_log...'
-                                : 'Approve Facts into Timeline (DOC-004)'}
+                                : 'Approve Facts into Timeline'}
                             </Text>
                           </TouchableOpacity>
                         )}

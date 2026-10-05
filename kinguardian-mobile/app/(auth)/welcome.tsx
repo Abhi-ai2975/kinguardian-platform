@@ -98,7 +98,8 @@ export default function WelcomeRoute() {
         {/* CTA Buttons */}
         <View className="space-y-3">
           <TouchableOpacity
-            onPress={() => router.replace('/(auth)/sign-in')}
+            testID="welcome-get-started-button"
+            onPress={() => setShowOnboarding(true)}
             className="bg-gradient-to-r from-blue-500 to-blue-600 py-4 rounded-2xl items-center shadow-lg shadow-blue-200"
           >
             <View className="flex-row items-center">
@@ -108,10 +109,11 @@ export default function WelcomeRoute() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => setShowOnboarding(true)}
+            testID="welcome-sign-in-button"
+            onPress={() => router.replace('/(auth)/sign-in')}
             className="bg-white border-2 border-blue-100 py-4 rounded-2xl items-center"
           >
-            <Text className="text-blue-600 font-bold text-base">Learn More</Text>
+            <Text className="text-blue-600 font-bold text-base">Sign In to Existing Account</Text>
           </TouchableOpacity>
         </View>
 
@@ -128,8 +130,8 @@ export default function WelcomeRoute() {
       <OnboardingScreen
         onComplete={(_config) => {
           context.setCurrentScreen('health_dashboard');
-          context.showToast('Onboarding complete! Concierge active.');
-          router.replace('/(auth)/sign-in');
+          context.showToast('Onboarding complete! Welcome to Coordinator Home.');
+          router.replace('/(coordinator)');
         }}
       />
     );

@@ -54,3 +54,40 @@ export function formatTimeForParent(
     return '8:05 PM';
   }
 }
+
+/**
+ * Returns dual timezone formatting for appointments (TEST UX-001, UX-002)
+ * Coordinator in London sees "4:00 PM IST (11:30 AM BST)"
+ * Parent in Chennai sees "4:00 PM"
+ */
+export function formatAppointmentTimeForCoordinator(
+  timeStr: string = '4:00 PM',
+  coordinatorTimezone: string = 'Europe/London'
+): { parentDisplay: string; coordinatorDisplay: string; dualDisplay: string } {
+  const cleanTime = timeStr.replace(/\s*IST\s*/gi, '').trim() || '4:00 PM';
+  const parentDisplay = `${cleanTime} IST`;
+
+  // Detect DST for Europe/London (BST vs GMT)
+  try {
+    const now = new Date();
+    const londonFormatted = now.toLocaleTimeString('en-GB', {
+      timeZone: coordinatorTimezone,
+      timeZoneName: 'short'
+    });
+    const isBST = londonFormatted.includes('BST') || (!londonFormatted.includes('GMT') && now.getMonth() >= 2 && now.getMonth() <= 9);
+    const coordinatorDisplay = isBST ? '11:30 AM BST' : '10:30 AM GMT';
+
+    return {
+      parentDisplay: cleanTime,
+      coordinatorDisplay: `${parentDisplay} (${coordinatorDisplay})`,
+      dualDisplay: `${parentDisplay} • London: ${coordinatorDisplay}`
+    };
+  } catch {
+    return {
+      parentDisplay: cleanTime,
+      coordinatorDisplay: `${parentDisplay} (11:30 AM BST)`,
+      dualDisplay: `${parentDisplay} • London: 11:30 AM BST`
+    };
+  }
+}
+

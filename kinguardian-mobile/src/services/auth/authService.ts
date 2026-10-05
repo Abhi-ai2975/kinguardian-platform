@@ -54,13 +54,56 @@ class AuthService {
     return CONFIG.apiUrl.replace(/\/+$/, '');
   }
 
-  public async getAccessToken(): Promise<string | null> {
-    if (this.inMemoryAccessToken) {
-      return this.inMemoryAccessToken;
+  private isTokenExpired(token: string): boolean {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return true;
+      let base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      while (base64.length % 4 !== 0) {
+        base64 += '=';
+      }
+      let jsonStr = '';
+      if (typeof atob === 'function') {
+        jsonStr = atob(base64);
+      } else if (typeof Buffer !== 'undefined') {
+        jsonStr = Buffer.from(base64, 'base64').toString('utf-8');
+      } else {
+        return false;
+      }
+      const payload = JSON.parse(jsonStr);
+      if (!payload.exp) return false;
+      // Expired if current time >= exp - 30 seconds buffer
+      return Date.now() >= payload.exp * 1000 - 30000;
+    } catch {
+      return true;
     }
-    const token = await AsyncStorage.getItem(STORAGE_KEY_ACCESS_TOKEN);
-    this.inMemoryAccessToken = token;
+  }
+
+  public async getAccessToken(): Promise<string | null> {
+    let token = this.inMemoryAccessToken;
+    if (!token) {
+      token = await AsyncStorage.getItem(STORAGE_KEY_ACCESS_TOKEN);
+      this.inMemoryAccessToken = token;
+    }
+    if (!token) {
+      return null;
+    }
+
+    if (this.isTokenExpired(token)) {
+      console.log('Access token has expired, refreshing...');
+      const newToken = await this.refreshToken();
+      return newToken;
+    }
+
     return token;
+  }
+
+  public async handle401(): Promise<string | null> {
+    const refreshed = await this.refreshToken();
+    if (!refreshed) {
+      await this.clearSession();
+    }
+    return refreshed;
   }
 
   public async getRefreshToken(): Promise<string | null> {
@@ -174,6 +217,31 @@ class AuthService {
       }
     } catch (err) {
       console.warn('Error during logout:', err);
+    } finally {
+      await this.clearSession();
+    }
+  }
+
+  public async revokeToken(): Promise<void> {
+    try {
+      const token = await this.getAccessToken();
+      if (token) {
+        try {
+          await fetch(`${this.getApiUrl()}/api/v1/auth/revoke`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+              Accept: 'application/json'
+            },
+            body: JSON.stringify({ token })
+          });
+        } catch (apiErr) {
+          console.warn('Backend revoke call failed, proceeding to clear local session:', apiErr);
+        }
+      }
+    } catch (err) {
+      console.warn('Error during token revocation:', err);
     } finally {
       await this.clearSession();
     }

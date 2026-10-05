@@ -120,3 +120,4 @@ async def test_subject_timeline_requires_authorization_and_returns_projection(fa
     assert unauthenticated.status_code == 401
     assert allowed.status_code == 200
     assert allowed.json()["subject_id"] == ctx["subject_id"]
+

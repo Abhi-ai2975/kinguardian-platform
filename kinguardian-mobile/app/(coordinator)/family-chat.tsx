@@ -110,13 +110,14 @@ export default function FamilyCommunicationRoute() {
         </View>
 
         {/* Chat Feed */}
-        <ScrollView className="flex-1 px-5 pt-4 space-y-4">
+        <ScrollView testID="family-chat-thread" accessibilityLabel="Family chat conversation" className="flex-1 px-5 pt-4 space-y-4">
           <View className="space-y-4 pb-28">
             {displayMessages.map((msg, idx) => {
               if (msg.isSystem) {
                 return (
                   <View
                     key={idx}
+                    testID={`family-chat-message-${msg.id}`}
                     className="bg-purple-50/70 border border-purple-100/50 rounded-2xl p-5 space-y-3 shadow-xs"
                   >
                     <View className="flex-row items-center gap-2">
@@ -133,7 +134,7 @@ export default function FamilyCommunicationRoute() {
                     {/* Special In-bubble CTA Buttons */}
                     <View className="flex-row gap-2 pt-1">
                       <TouchableOpacity
-                        onPress={() => router.push(`/parent/${context.currentPersonId || 'dad'}/summary` as any)}
+                        onPress={() => router.push(`/(coordinator)/parent/${context.currentPersonId || 'dad'}/summary` as any)}
                         className="flex-1 bg-white border border-neutral-200 py-2.5 rounded-xl flex-row items-center justify-center gap-1 active:opacity-90 shadow-xs"
                       >
                         <FileText size={10} color="#af52de" />
@@ -142,7 +143,7 @@ export default function FamilyCommunicationRoute() {
                         </Text>
                       </TouchableOpacity>
                       <TouchableOpacity
-                        onPress={() => router.push(`/parent/${context.currentPersonId || 'dad'}/prepare` as any)}
+                        onPress={() => router.push(`/(coordinator)/parent/${context.currentPersonId || 'dad'}/prepare` as any)}
                         className="flex-1 bg-white border border-neutral-200 py-2.5 rounded-xl flex-row items-center justify-center gap-1 active:opacity-90 shadow-xs"
                       >
                         <Calendar size={10} color="#af52de" />
@@ -159,6 +160,7 @@ export default function FamilyCommunicationRoute() {
               return (
                 <View
                   key={idx}
+                  testID={`family-chat-message-${msg.id}`}
                   className={`flex-row gap-3 ${isMe ? 'flex-row-reverse' : ''} items-start`}
                 >
                   {/* Avatar Circle */}
@@ -200,6 +202,8 @@ export default function FamilyCommunicationRoute() {
         {/* Chat input box at the bottom */}
         <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-neutral-200/80 p-4 pb-6 flex-row items-center gap-2">
           <TextInput
+            testID="family-chat-input"
+            accessibilityLabel="Family chat message input"
             placeholder="Message Care circle..."
             placeholderTextColor="#8e8e93"
             value={chatInput}
@@ -207,7 +211,10 @@ export default function FamilyCommunicationRoute() {
             className="flex-1 bg-neutral-100 border border-neutral-200/50 rounded-full px-4 py-2.5 text-xs text-neutral-800 font-semibold"
           />
           <TouchableOpacity
+            testID="family-chat-send"
+            accessibilityLabel="Send family message"
             onPress={handleSendMessage}
+            disabled={sending}
             className="w-9 h-9 rounded-full bg-[#007aff] items-center justify-center active:scale-95 shadow-sm"
           >
             <Send size={12} color="#ffffff" />

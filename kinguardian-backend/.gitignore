@@ -1,6 +1,19 @@
+# KinGuardian Backend - .gitignore
 .env
+.env.*
+!.env.example
+*.local
+*.log
+*.bak
 .venv/
+env/
+venv/
 .pytest_cache/
 __pycache__/
 *.py[cod]
 kinguardian.db
+*.db
+*.sqlite
+*.sqlite3
+.coverage
+htmlcov/

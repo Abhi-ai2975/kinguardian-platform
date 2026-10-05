@@ -18,10 +18,17 @@ import {
   RefreshCw,
   CheckCircle2,
   Layers,
-  GitBranch
+  GitBranch,
+  Home,
+  ArrowLeftRight
 } from 'lucide-react-native';
 import { authService } from '../../src/services/auth/authService';
 import { confirmAction } from '../../src/utils/alert';
+import { googleFitService } from '../../src/services/health/GoogleFitService';
+import { ApiFamilyService } from '../../src/services';
+import { CONFIG } from '../../src/constants/config';
+
+const familySwitcherService = new ApiFamilyService(CONFIG.apiUrl);
 
 const ER_DOMAINS = [
   {
@@ -97,6 +104,41 @@ export default function CoordinatorProfileRoute() {
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [loadingDb, setLoadingDb] = useState(false);
 
+  // FAM-009: Family switcher state
+  const [showFamilyModal, setShowFamilyModal] = useState(false);
+  const [families, setFamilies] = useState<any[]>([]);
+  const [activeFamilyId, setActiveFamilyId] = useState<string | null>(null);
+  const [loadingFamilies, setLoadingFamilies] = useState(false);
+
+  const loadFamilies = async () => {
+    setLoadingFamilies(true);
+    try {
+      const list = await familySwitcherService.client.families.list();
+      setFamilies(Array.isArray(list) ? list : []);
+      if (list && list.length > 0) {
+        setActiveFamilyId((prev) => prev || list[0].id);
+      }
+    } catch (err) {
+      console.warn('Failed to load families for switcher:', err);
+    } finally {
+      setLoadingFamilies(false);
+    }
+  };
+
+  const handleSwitchFamily = async (familyId: string, name: string) => {
+    setActiveFamilyId(familyId);
+    familySwitcherService.resetFamilyCache();
+    familySwitcherService.familyId = familyId;
+    if (context?.setFamilyName) context.setFamilyName(name);
+    setShowFamilyModal(false);
+    context?.showToast(`Switched family context to ${name}. Data, permissions and notifications are isolated.`);
+    try {
+      await context?.syncBackendData?.();
+    } catch (err) {
+      console.warn('Post-switch sync failed:', err);
+    }
+  };
+
   const loadDbData = async () => {
     if (!context) return;
     setLoadingDb(true);
@@ -147,13 +189,25 @@ export default function CoordinatorProfileRoute() {
 
         <ScrollView className="flex-1 px-5 pt-4 space-y-4">
           {/* User Profile Card */}
-          <View className="p-4 rounded-2xl border border-neutral-100 bg-white flex-row items-center gap-4 shadow-sm">
+          <View
+            testID="coordinator-profile-session-card"
+            className="p-4 rounded-2xl border border-neutral-100 bg-white flex-row items-center gap-4 shadow-sm"
+          >
             <View className="w-12 h-12 rounded-full bg-blue-50 items-center justify-center">
               <User size={22} color="#007aff" />
             </View>
             <View className="flex-1">
-              <Text className="text-base font-bold text-neutral-900 leading-none">
+              <Text
+                testID="coordinator-profile-display-name"
+                className="text-base font-bold text-neutral-900 leading-none"
+              >
                 {context.currentUser?.name || 'KinGuardian Coordinator'}
+              </Text>
+              <Text
+                testID="coordinator-profile-role-badge"
+                className="text-[10px] text-blue-600 font-bold tracking-wider mt-1"
+              >
+                {`${(context.currentUser?.role || 'coordinator')}`.replace(/^\w/, (c) => c.toUpperCase())}
               </Text>
               <Text className="text-xs text-neutral-400 mt-1 font-semibold">
                 {context.currentUser?.location || context.currentUser?.email || 'London, United Kingdom (BST)'}
@@ -259,6 +313,7 @@ export default function CoordinatorProfileRoute() {
           </View>
 
           <TouchableOpacity
+            testID="coordinator-profile-logout"
             onPress={() => {
               confirmAction(
                 'Log Out',
@@ -417,24 +472,24 @@ export default function CoordinatorProfileRoute() {
                   <View className="p-4 flex-row justify-between items-center">
                     <View>
                       <Text className="text-xs font-bold text-neutral-800">
-                        Apple Health (Steps)
+                        Google Fit (Real-Time Stream)
                       </Text>
                       <Text className="text-[9px] text-neutral-400 font-semibold mt-0.5">
-                        {context.people[0]?.name || 'Care Circle'} · Local Sync
+                        {context.people[0]?.name || 'Care Circle'} · Health Connect Live
                       </Text>
                     </View>
-                    <Text className="text-xs font-bold text-[#34c759]">Connected</Text>
+                    <Text className="text-xs font-bold text-[#34c759]">Live Active</Text>
                   </View>
                 </View>
 
                 <TouchableOpacity
                   onPress={() => {
-                    context.handleWearableSyncRefresh();
+                    googleFitService.openGoogleFitApp();
                     setShowDevicesModal(false);
                   }}
                   className="w-full bg-[#007aff] py-3.5 rounded-xl items-center justify-center mt-2 active:opacity-90"
                 >
-                  <Text className="text-white text-xs font-bold">Sync All Devices</Text>
+                  <Text className="text-white text-xs font-bold">Open Google Fit App ↗</Text>
                 </TouchableOpacity>
               </ScrollView>
             </View>
@@ -695,6 +750,100 @@ export default function CoordinatorProfileRoute() {
                   </Text>
                 </TouchableOpacity>
               </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Family Switcher Modal (FAM-009) */}
+        <Modal
+          visible={showFamilyModal}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setShowFamilyModal(false)}
+        >
+          <View className="flex-1 bg-black/50 justify-end">
+            <View className="bg-white rounded-t-[28px] p-6 pt-3 max-h-[80%] space-y-4 shadow-xl">
+              <View className="w-10 h-1.5 bg-neutral-200 rounded-full self-center mb-1.5" />
+
+              <View className="flex-row justify-between items-center pb-2 border-b border-neutral-100">
+                <View className="flex-row items-center gap-2">
+                  <Home size={18} color="#059669" />
+                  <Text className="text-lg font-bold text-neutral-900 tracking-tight">
+                    Switch Family Context
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  testID="family-switcher-close"
+                  onPress={() => setShowFamilyModal(false)}
+                  className="p-1.5 bg-neutral-100 rounded-full"
+                >
+                  <X size={16} color="#8e8e93" />
+                </TouchableOpacity>
+              </View>
+
+              <Text className="text-[11px] text-neutral-500 leading-relaxed">
+                Data, permissions and notifications are isolated per family. Switching refreshes
+                the active scope used by every subsequent API call.
+              </Text>
+
+              <ScrollView className="space-y-2" showsVerticalScrollIndicator={false}>
+                {loadingFamilies && families.length === 0 ? (
+                  <Text className="text-xs text-neutral-400 py-4 text-center">Loading families…</Text>
+                ) : families.length === 0 ? (
+                  <Text className="text-xs text-neutral-400 py-4 text-center">
+                    No additional families found for this user.
+                  </Text>
+                ) : (
+                  families.map((fam: any) => {
+                    const active = fam.id === activeFamilyId;
+                    return (
+                      <TouchableOpacity
+                        key={fam.id}
+                        testID={`family-switcher-item-${fam.id}`}
+                        onPress={() => handleSwitchFamily(fam.id, fam.name || 'Family')}
+                        className={`p-4 rounded-2xl border flex-row items-center justify-between ${
+                          active
+                            ? 'border-emerald-400 bg-emerald-50/70'
+                            : 'border-neutral-200 bg-white'
+                        }`}
+                      >
+                        <View className="flex-1 pr-3">
+                          <Text
+                            testID={`family-switcher-name-${fam.id}`}
+                            className={`text-sm font-bold ${
+                              active ? 'text-emerald-800' : 'text-neutral-800'
+                            }`}
+                          >
+                            {fam.name || 'Family'}
+                          </Text>
+                          <Text className="text-[10px] text-neutral-500 font-mono mt-0.5" numberOfLines={1}>
+                            {fam.id}
+                          </Text>
+                        </View>
+                        {active ? (
+                          <View className="bg-emerald-500 px-2.5 py-1 rounded-full">
+                            <Text className="text-[9px] font-bold text-white uppercase">Active</Text>
+                          </View>
+                        ) : (
+                          <ChevronRight size={16} color="#8e8e93" />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })
+                )}
+              </ScrollView>
+
+              <TouchableOpacity
+                testID="family-switcher-refresh"
+                onPress={loadFamilies}
+                disabled={loadingFamilies}
+                className="w-full bg-emerald-600 py-3 rounded-xl flex-row items-center justify-center gap-2"
+              >
+                <RefreshCw size={14} color="#ffffff" />
+                <Text className="text-white text-xs font-bold">
+                  {loadingFamilies ? 'Refreshing…' : 'Refresh Family List'}
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         </Modal>

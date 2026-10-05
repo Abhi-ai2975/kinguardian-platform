@@ -71,14 +71,14 @@ WEARABLE_PROVIDERS = [
     },
     {
         "id": "health_connect",
-        "name": "Google Fit & Health Connect",
+        "name": "Google Fit / Health Connect",
         "category": "mobile_sdk",
         "description": "Direct on-device Health Connect & Google Fit sync for Android.",
         "badge": "Native Android",
         "auth_type": "native",
         "status": "available",
         "supported_scopes": ["activity", "heart_rate", "sleep"],
-        "default_device": "Google Fit / Android Phone",
+        "default_device": "Google Fit / Health Connect",
         "default_device_id": "google_health_connect"
     },
     {
@@ -224,25 +224,41 @@ class DefaultWearableDataGateway:
         now = datetime.now(UTC)
         prov = resolve_provider(provider)
 
+        def _extract(key_list, nested_dict=None, nested_key=None, default=0):
+            for k in key_list:
+                if k in raw_payload and raw_payload[k] is not None:
+                    try:
+                        return int(raw_payload[k])
+                    except (ValueError, TypeError):
+                        pass
+            if nested_dict and nested_key and nested_dict in raw_payload:
+                sub = raw_payload.get(nested_dict)
+                if isinstance(sub, dict) and nested_key in sub and sub[nested_key] is not None:
+                    try:
+                        return int(sub[nested_key])
+                    except (ValueError, TypeError):
+                        pass
+            return default
+
         if prov == "garmin":
-            steps = raw_payload.get("steps") or raw_payload.get("daily_summary", {}).get("steps", 3420)
-            heart_rate = raw_payload.get("heart_rate") or raw_payload.get("restingHeartRateInBeatsPerMinute", 74)
-            sleep_mins = raw_payload.get("sleep_minutes") or raw_payload.get("durationInSeconds", 27000) // 60
+            steps = _extract(["steps"], "daily_summary", "steps", 0)
+            heart_rate = _extract(["heart_rate"], "daily_summary", "restingHeartRateInBeatsPerMinute", 0)
+            sleep_mins = _extract(["sleep_minutes"], "daily_summary", "sleep_minutes", 0)
             device_id = raw_payload.get("device_id", "garmin_venu_3")
         elif prov == "fitbit":
-            steps = raw_payload.get("steps") or raw_payload.get("summary", {}).get("steps", 3560)
-            heart_rate = raw_payload.get("heart_rate") or raw_payload.get("restingHeartRate", 72)
-            sleep_mins = raw_payload.get("sleep_minutes") or 430
+            steps = _extract(["steps"], "summary", "steps", 0)
+            heart_rate = _extract(["heart_rate"], "summary", "restingHeartRate", 0)
+            sleep_mins = _extract(["sleep_minutes"], "summary", "sleep_minutes", 0)
             device_id = raw_payload.get("device_id", "fitbit_charge_6")
         elif prov == "health_connect":
-            steps = raw_payload.get("steps") or raw_payload.get("summary", {}).get("steps", 4150)
-            heart_rate = raw_payload.get("heart_rate") or 70
-            sleep_mins = raw_payload.get("sleep_minutes") or 450
+            steps = _extract(["steps"], "summary", "steps", 0)
+            heart_rate = _extract(["heart_rate"], "summary", "heart_rate", 0)
+            sleep_mins = _extract(["sleep_minutes"], "summary", "sleep_minutes", 0)
             device_id = raw_payload.get("device_id", "google_health_connect")
         else:
-            steps = raw_payload.get("steps", 3420)
-            heart_rate = raw_payload.get("heart_rate", 72)
-            sleep_mins = raw_payload.get("sleep_minutes", 420)
+            steps = _extract(["steps", "HKQuantityTypeIdentifierStepCount"], default=0)
+            heart_rate = _extract(["heart_rate", "HKQuantityTypeIdentifierHeartRate"], default=0)
+            sleep_mins = _extract(["sleep_minutes"], default=0)
             device_id = raw_payload.get("device_id", "apple_watch_s9")
 
         return {

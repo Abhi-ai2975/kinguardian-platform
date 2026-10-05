@@ -129,7 +129,10 @@ export default function SignInRoute() {
 
           {/* Visual Error Message Banner */}
           {errorMessage && (
-            <View className="mb-4 p-3 bg-red-50 border border-red-200 rounded-2xl flex-row items-center">
+            <View
+              testID="auth-error-banner"
+              className="mb-4 p-3 bg-red-50 border border-red-200 rounded-2xl flex-row items-center"
+            >
               <AlertCircle size={18} color="#ef4444" className="mr-2" />
               <Text className="flex-1 ml-2 text-xs text-red-700 font-medium leading-tight">
                 {errorMessage}
@@ -143,6 +146,7 @@ export default function SignInRoute() {
               <View className="flex-row items-center bg-neutral-50 border border-neutral-200 rounded-2xl px-4 py-3.5">
                 <User size={18} color="#9ca3af" />
                 <TextInput
+                  testID="auth-name-input"
                   value={name}
                   onChangeText={(val) => {
                     setName(val);
@@ -157,52 +161,14 @@ export default function SignInRoute() {
             </View>
           )}
 
-          {/* Quick Demo Credentials */}
-          {!isRegistering && (
-            <View className="mb-5 p-3.5 bg-blue-50/70 border border-blue-100 rounded-2xl">
-              <Text className="text-[11px] font-semibold text-blue-900 mb-2">
-                Quick Test Accounts (tap to fill):
-              </Text>
-              <View className="flex-row flex-wrap gap-2">
-                <TouchableOpacity
-                  onPress={() => {
-                    setEmail('pranjalchirmade09326@gmail.com');
-                    setPassword('pranjal123');
-                    clearError();
-                  }}
-                  className="px-2.5 py-1.5 bg-white border border-blue-200 rounded-xl shadow-xs"
-                >
-                  <Text className="text-[11px] font-semibold text-blue-700">Pranjal (Coordinator)</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => {
-                    setEmail('ram123@gmail.com');
-                    setPassword('ram123');
-                    clearError();
-                  }}
-                  className="px-2.5 py-1.5 bg-white border border-blue-200 rounded-xl shadow-xs"
-                >
-                  <Text className="text-[11px] font-semibold text-blue-700">Ram (Coordinator)</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => {
-                    setEmail('vandana123@gmail.com');
-                    setPassword('vandana123');
-                    clearError();
-                  }}
-                  className="px-2.5 py-1.5 bg-white border border-emerald-200 rounded-xl shadow-xs"
-                >
-                  <Text className="text-[11px] font-semibold text-emerald-700">Vandana (Parent)</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
+
 
           <View className="mb-4">
             <Text className="text-xs font-semibold text-neutral-600 mb-2 ml-1">Email Address or Username</Text>
             <View className="flex-row items-center bg-neutral-50 border border-neutral-200 rounded-2xl px-4 py-3.5">
               <Mail size={18} color="#9ca3af" />
               <TextInput
+                testID="auth-email-input"
                 value={email}
                 onChangeText={(val) => {
                   setEmail(val);
@@ -222,6 +188,7 @@ export default function SignInRoute() {
             <View className="flex-row items-center bg-neutral-50 border border-neutral-200 rounded-2xl px-4 py-3.5">
               <Lock size={18} color="#9ca3af" />
               <TextInput
+                testID="auth-password-input"
                 value={password}
                 onChangeText={(val) => {
                   setPassword(val);
@@ -243,10 +210,11 @@ export default function SignInRoute() {
               <Text className="text-xs font-semibold text-neutral-600 mb-2 ml-1">I am a</Text>
               <View className="flex-row gap-3">
                 <TouchableOpacity
+                  testID="auth-role-coordinator"
                   onPress={() => setRole('coordinator')}
                   className={`flex-1 py-3.5 rounded-2xl items-center border-2 ${
-                    role === 'coordinator' 
-                      ? 'bg-blue-50 border-blue-500' 
+                    role === 'coordinator'
+                      ? 'bg-blue-50 border-blue-500'
                       : 'bg-neutral-50 border-neutral-200'
                   }`}
                 >
@@ -263,10 +231,11 @@ export default function SignInRoute() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
+                  testID="auth-role-parent"
                   onPress={() => setRole('parent')}
                   className={`flex-1 py-3.5 rounded-2xl items-center border-2 ${
-                    role === 'parent' 
-                      ? 'bg-emerald-50 border-emerald-500' 
+                    role === 'parent'
+                      ? 'bg-emerald-50 border-emerald-500'
                       : 'bg-neutral-50 border-neutral-200'
                   }`}
                 >
@@ -285,8 +254,9 @@ export default function SignInRoute() {
             </View>
           )}
 
-          <TouchableOpacity 
-            disabled={loading} 
+          <TouchableOpacity
+            testID={isRegistering ? 'auth-register-button' : 'auth-signin-button'}
+            disabled={loading}
             onPress={handleSubmit}
             className={`bg-gradient-to-r from-blue-500 to-blue-600 py-4 rounded-2xl items-center shadow-lg shadow-blue-200 ${loading ? 'opacity-70' : ''}`}
           >

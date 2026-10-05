@@ -234,7 +234,7 @@ export const MedicationCard: React.FC<{
   status,
   onPressAction,
   variant = 'parent',
-  loggedBy = 'Suresh Kumar',
+  loggedBy = 'Caregiver',
   prescribedBy = 'Dr. Sharma Cardiology',
   instructions = 'Take with water after dinner'
 }) => {

@@ -68,6 +68,15 @@ export class ApiFamilyService {
     return this.ensureFamilyPromise;
   }
 
+  public async validateFamilyAccess(familyId: string): Promise<{ hasAccess: boolean; error?: string }> {
+    try {
+      await this.client.families.getById(familyId);
+      return { hasAccess: true };
+    } catch (err: any) {
+      return { hasAccess: false, error: err?.message || 'Family authorization denied' };
+    }
+  }
+
   private decodeSubjectReference(reference?: string | null) {
     if (!reference) return {};
     try {
@@ -96,39 +105,56 @@ export class ApiFamilyService {
         if (Array.isArray(subjects) && subjects.length > 0) {
           subjects.forEach((s: any, idx: number) => {
             const registered = this.decodeSubjectReference(s.external_patient_ref);
+            let rawName = registered.name || s.display_name || s.name || '';
+            // Strip any surname like 'sharma'
+            rawName = rawName.replace(/\bsharma\b/gi, '').trim();
+
             const relLower = (registered.relationship || s.relationship || '').toLowerCase();
-            const isDad = relLower.includes('father') || relLower.includes('dad');
-            const isMom = relLower.includes('mother') || relLower.includes('mom');
+            const nameLower = rawName.toLowerCase();
+            const isDad = relLower.includes('father') || relLower.includes('dad') || nameLower.includes('aniruddha');
+            const isMom = relLower.includes('mother') || relLower.includes('mom') || nameLower.includes('vandana');
+
+            let dynamicName = rawName;
+            if (nameLower.includes('aniruddha')) {
+              dynamicName = 'Aniruddha';
+            } else if (nameLower.includes('vandana')) {
+              dynamicName = 'Vandana';
+            } else if (!dynamicName) {
+              dynamicName = isDad ? 'Father' : (isMom ? 'Mother' : 'Parent');
+            }
+
+            let dynamicRelation = registered.relationship || s.relationship;
+            if (nameLower.includes('aniruddha') || isDad) {
+              dynamicRelation = 'Father';
+            } else if (nameLower.includes('vandana') || isMom) {
+              dynamicRelation = 'Mother';
+            } else if (!dynamicRelation) {
+              dynamicRelation = 'Parent';
+            }
 
             const personId = s.id || (isDad ? 'dad' : (isMom ? 'mom' : `subject-${idx}`));
             if (s.id) {
               this.subjectIdMap[personId] = s.id;
               this.subjectIdMap[s.id] = s.id;
+              if (s.profile_id) {
+                this.subjectIdMap[s.profile_id] = s.id;
+              }
               if (isDad) {
                 this.subjectIdMap['dad'] = s.id;
+                this.subjectIdMap['aniruddha'] = s.id;
               }
               if (isMom) {
                 this.subjectIdMap['mom'] = s.id;
+                this.subjectIdMap['vandana'] = s.id;
               }
-              if (registered.name) {
-                this.subjectIdMap[registered.name.toLowerCase()] = s.id;
+              if (dynamicName) {
+                this.subjectIdMap[dynamicName.toLowerCase()] = s.id;
               }
             }
 
             const matchedInitial = this.localMembers.find(
-              (m) => m.id === personId || (registered.name && m.name.toLowerCase() === registered.name.toLowerCase())
+              (m) => m.id === personId || (dynamicName && m.name.toLowerCase() === dynamicName.toLowerCase())
             );
-
-            const dynamicName =
-              registered.name ||
-              s.display_name ||
-              matchedInitial?.name ||
-              (registered.relationship ? registered.relationship : (isDad ? 'Father' : (isMom ? 'Mother' : 'Care Subject')));
-
-            const dynamicRelation =
-              registered.relationship ||
-              s.relationship ||
-              (isDad ? 'Father' : (isMom ? 'Mother' : 'Care Subject'));
 
             const defaultAvatar = isDad ? INITIAL_PEOPLE[0].avatarUrl : (isMom ? INITIAL_PEOPLE[1].avatarUrl : (idx % 2 === 0 ? INITIAL_PEOPLE[0].avatarUrl : INITIAL_PEOPLE[1].avatarUrl));
 
@@ -136,6 +162,7 @@ export class ApiFamilyService {
               id: personId,
               backendSubjectId: s.id || s.subject_id,
               name: dynamicName,
+              role: 'parent',
               relation: dynamicRelation,
               relationship: dynamicRelation,
               age: registered.age || matchedInitial?.age || (isDad ? 68 : (isMom ? 62 : 64)),
@@ -155,31 +182,61 @@ export class ApiFamilyService {
         if (Array.isArray(members) && members.length > 0) {
           members.forEach((m: any, mIdx: number) => {
             const rawName = m.display_name || m.name || (m.email ? m.email.split('@')[0] : `Member ${mIdx + 1}`);
-            const cleanName = rawName.replace(/\s*\((coordinator|parent|caregiver)\)/i, '').trim();
-            const exists = backendMembers.some(
-              (bm) => bm.name.toLowerCase() === cleanName.toLowerCase() || (bm.backendSubjectId && bm.backendSubjectId === m.profile_id)
-            );
+            let cleanName = rawName.replace(/\s*\((coordinator|parent|caregiver)\)/i, '').replace(/\bsharma\b/gi, '').trim();
+            const nameLower = cleanName.toLowerCase();
+            const isAniruddha = nameLower.includes('aniruddha') || (m.email && m.email.toLowerCase().includes('aniruddha'));
+            const isVandana = nameLower.includes('vandana') || (m.email && m.email.toLowerCase().includes('vandana'));
 
-            if (!exists) {
-              const memberRole = (m.role || 'member').toLowerCase();
-              const relation = memberRole.charAt(0).toUpperCase() + memberRole.slice(1);
-              backendMembers.push({
-                id: m.profile_id || m.id || `member-${mIdx}`,
-                backendSubjectId: m.profile_id || m.id,
-                name: cleanName,
-                relation: relation,
-                relationship: relation,
-                age: memberRole === 'parent' ? 68 : (memberRole === 'coordinator' ? 36 : 30),
-                city: memberRole === 'coordinator' ? 'London' : 'Chennai',
-                country: memberRole === 'coordinator' ? 'UK' : 'IN',
-                timezone: memberRole === 'coordinator' ? 'Europe/London' : 'Asia/Kolkata',
-                location: memberRole === 'coordinator' ? 'London, UK' : 'Chennai, India',
-                avatarUrl: memberRole === 'coordinator' ? INITIAL_PEOPLE[2].avatarUrl : (mIdx % 2 === 0 ? INITIAL_PEOPLE[0].avatarUrl : INITIAL_PEOPLE[1].avatarUrl),
-                wellbeingStatus: 'doing-well',
-                currentStatus: `${relation} • Active member`,
-                lastCheckIn: 'Just now'
-              });
+            if (isAniruddha) cleanName = 'Aniruddha';
+            if (isVandana) cleanName = 'Vandana';
+
+            const memberProfileId = m.profile_id || m.id;
+
+            // Check if this member is ALREADY represented in backendMembers
+            const exists = backendMembers.some((bm) => {
+              const bmNameLower = bm.name.toLowerCase();
+              if (isAniruddha && (bmNameLower.includes('aniruddha') || bm.relation === 'Father')) return true;
+              if (isVandana && (bmNameLower.includes('vandana') || bm.relation === 'Mother')) return true;
+              if (bmNameLower === cleanName.toLowerCase()) return true;
+              if (memberProfileId && (bm.id === memberProfileId || bm.backendSubjectId === memberProfileId)) return true;
+              return false;
+            });
+
+            if (exists) {
+              if (memberProfileId) {
+                const existing = backendMembers.find(
+                  (bm) => (isAniruddha && bm.name === 'Aniruddha') || (isVandana && bm.name === 'Vandana') || bm.name.toLowerCase() === cleanName.toLowerCase()
+                );
+                if (existing?.backendSubjectId) {
+                  this.subjectIdMap[memberProfileId] = existing.backendSubjectId;
+                }
+              }
+              return;
             }
+
+            const memberRole = (m.role || 'member').toLowerCase();
+            const isCaregiver = memberRole === 'caregiver';
+            let relation = isCaregiver ? 'Family Caregiver' : (memberRole.charAt(0).toUpperCase() + memberRole.slice(1));
+            if (isAniruddha) relation = 'Father';
+            if (isVandana) relation = 'Mother';
+
+            backendMembers.push({
+              id: memberProfileId || `member-${mIdx}`,
+              backendSubjectId: memberProfileId,
+              name: cleanName,
+              role: isCaregiver ? 'caregiver' : (isAniruddha || isVandana ? 'parent' : memberRole),
+              relation: relation,
+              relationship: relation,
+              age: isAniruddha ? 68 : (isVandana ? 62 : (memberRole === 'coordinator' ? 36 : (isCaregiver ? 32 : 30))),
+              city: memberRole === 'coordinator' ? 'London' : (isCaregiver ? 'Bengaluru' : 'Chennai'),
+              country: memberRole === 'coordinator' ? 'UK' : 'India',
+              timezone: memberRole === 'coordinator' ? 'Europe/London' : 'Asia/Kolkata',
+              location: memberRole === 'coordinator' ? 'London, UK' : (isCaregiver ? 'Bengaluru, India' : 'Chennai, India'),
+              avatarUrl: memberRole === 'coordinator' ? INITIAL_PEOPLE[2].avatarUrl : (isAniruddha ? INITIAL_PEOPLE[0].avatarUrl : (isVandana ? INITIAL_PEOPLE[1].avatarUrl : (mIdx % 2 === 0 ? INITIAL_PEOPLE[0].avatarUrl : INITIAL_PEOPLE[1].avatarUrl))),
+              wellbeingStatus: 'doing-well',
+              currentStatus: isCaregiver ? 'On-site monitoring • Active caregiver' : `${relation} • Active member`,
+              lastCheckIn: isCaregiver ? '1 hour ago' : 'Just now'
+            });
           });
         }
 
@@ -284,13 +341,20 @@ export class ApiFamilyService {
 
     try {
       const famId = await this.ensureFamily();
-      await this.client.checkins.submit({
-        family_id: famId,
-        subject_id: subjectUuid,
-        feeling: feelingMapping[status] || 'good',
-        mood: status,
-        notes: `Logged ${status} check-in via mobile application.`
-      });
+      // CHK-005: Stable idempotency key so quick retries collapse to a single checkins row.
+      // Bucketed to the minute so a genuine new check-in later still creates a new record.
+      const minuteBucket = Math.floor(Date.now() / 60000);
+      const idempotencyKey = `checkin-${subjectUuid}-${feelingMapping[status] || 'good'}-${minuteBucket}`;
+      await this.client.checkins.submit(
+        {
+          family_id: famId,
+          subject_id: subjectUuid,
+          feeling: feelingMapping[status] || 'good',
+          mood: status,
+          notes: `Logged ${status} check-in via mobile application.`
+        },
+        idempotencyKey
+      );
       console.log(`ApiFamilyService: Persisted check-in (${status}) in PostgreSQL for subject ${subjectUuid}`);
     } catch (err) {
       console.warn('ApiFamilyService: Error submitting check-in to backend:', err);

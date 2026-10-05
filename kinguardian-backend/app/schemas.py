@@ -67,6 +67,8 @@ class MemberCreate(BaseModel):
     email: str | None = None
     name: str | None = None
     role: str = Field(pattern="^(coordinator|parent|caregiver|observer)$")
+    timezone: str | None = None
+    relationship: str | None = None
 
 
 class SubjectCreate(BaseModel):
@@ -98,7 +100,7 @@ class CheckInCreate(BaseModel):
     occurred_at: datetime
     mood: str = Field(min_length=1, max_length=24)
     note: str | None = Field(default=None, max_length=5000)
-    severity: str = Field(default="normal", pattern="^(normal|watch|urgent)$")
+    severity: str = Field(default="normal", pattern="^(normal|watch|urgent|high)$")
 
 
 class MessageCreate(BaseModel):
@@ -142,6 +144,8 @@ class AIMessageCreate(MessageCreate):
 
 class TaskComplete(BaseModel):
     completed_at: datetime = Field(default_factory=lambda: datetime.now(ZoneInfo("UTC")))
+    completion_note: str | None = Field(default=None, max_length=5000)
+    note: str | None = Field(default=None, max_length=5000)
 
 
 class MedicationConfirmPayload(BaseModel):

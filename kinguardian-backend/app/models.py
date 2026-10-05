@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import Uuid
@@ -10,10 +10,14 @@ def uid() -> uuid.UUID:
     return uuid.uuid4()
 
 
+def now_utc() -> datetime:
+    return datetime.now(timezone.utc)
+
+
 class Timestamped(Base):
     __abstract__ = True
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, onupdate=now_utc, server_default=func.now(), nullable=False)
 
 
 class Profile(Timestamped):
@@ -110,8 +114,8 @@ class MedicationAdherence(Timestamped):
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uid)
     subject_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("care_subjects.id", ondelete="CASCADE"), index=True)
     medication_ref: Mapped[str] = mapped_column(String(255), index=True)
-    confirmed_by: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("profiles.id"))
-    taken_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    confirmed_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("profiles.id"), nullable=True)
+    taken_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     due_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     source: Mapped[str] = mapped_column(String(24), default="parent")
 
@@ -195,9 +199,9 @@ class WearableData(Timestamped):
     connection_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("wearable_connections.id", ondelete="SET NULL"), nullable=True)
     steps: Mapped[int] = mapped_column(Integer, default=0)
     heart_rate: Mapped[int] = mapped_column(Integer, default=72)
-    date: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    date: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, server_default=func.now(), index=True)
     source: Mapped[str] = mapped_column(String(64), default="garmin", index=True)
-    last_sync_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    last_sync_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, server_default=func.now())
     device_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     sleep_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
@@ -205,8 +209,8 @@ class WearableData(Timestamped):
 class AuditLog(Base):
     __tablename__ = "audit_log"
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uid)
-    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, server_default=func.now(), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, server_default=func.now(), index=True)
     actor_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("profiles.id", ondelete="SET NULL"))
     family_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("families.id", ondelete="SET NULL"), index=True)
     action: Mapped[str] = mapped_column(String(100), index=True)

@@ -15,16 +15,16 @@ Check docker version and running containers:
   docker start kinguardian-postgres
   docker start kinguardian-backend
 
+
+  docker exec -it kinguardian-postgres psql -U kinguardian -d kinguardian
+
+
 Check ports:
   docker port kinguardian-postgres   -> 0.0.0.0:5432
   docker port kinguardian-backend    -> 0.0.0.0:8000
 
 Health Check:
   curl http://localhost:8000/health
-  Response: {"status":"ok"}
+ 
 
-Swagger API Documentation:
-  http://localhost:8000/docs
-
-Connect to PostgreSQL Database CLI:
-  docker exec -it kinguardian-postgres psql -U kinguardian -d kinguardian
+ 

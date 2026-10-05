@@ -6,6 +6,15 @@ import { DeviceFrame } from '../../src/components/DeviceFrame';
 import { SimulatorControls } from '../../src/components/SimulatorControls';
 import { useRouter } from 'expo-router';
 import { Calendar, Clock, MapPin, Plus, X, Sparkles, TrendingUp, CheckCircle2, Pill, ShieldCheck, WifiOff } from 'lucide-react-native';
+import { formatTimeForParent } from '../../src/utils/timezone';
+
+// APT-002: Render ISO/backend timestamps in the parent's local timezone.
+// Plain display strings (e.g. "10:30 AM") pass through unchanged.
+const formatParentAppointmentTime = (raw?: string): string => {
+  if (!raw) return '';
+  const isIsoLike = /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(raw);
+  return isIsoLike ? formatTimeForParent(raw) : raw;
+};
 
 export default function AppointmentsRoute() {
   const context = useContext(AppContext);
@@ -84,6 +93,8 @@ export default function AppointmentsRoute() {
 
           <TouchableOpacity
             onPress={() => setModalOpen(true)}
+            testID="parent-appointments-add"
+            accessibilityLabel="Add appointment"
             className="flex-row items-center gap-1.5 bg-[#007aff] px-3.5 py-2 rounded-xl shadow-xs"
           >
             <Plus size={14} color="#ffffff" strokeWidth={2.5} />
@@ -160,14 +171,20 @@ export default function AppointmentsRoute() {
           {apptList.map((appt) => (
             <View
               key={appt.id}
+              testID={`parent-appointments-item-${appt.id}`}
+              accessibilityLabel={`Appointment with ${appt.doctorName}, ${appt.specialty}`}
               className="bg-white rounded-2xl p-5 shadow-sm shadow-neutral-100 space-y-4 border-l-4 border-[#007aff]"
             >
               <View className="flex-row justify-between items-start">
                 <View className="space-y-0.5">
-                  <Text className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
+                  <Text
+                    testID={`parent-appointments-specialty-${appt.id}`}
+                    className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
                     {appt.specialty}
                   </Text>
-                  <Text className="text-xl font-bold text-neutral-900 tracking-tight">
+                  <Text
+                    testID={`parent-appointments-doctor-${appt.id}`}
+                    className="text-xl font-bold text-neutral-900 tracking-tight">
                     {appt.doctorName}
                   </Text>
                 </View>
@@ -180,6 +197,7 @@ export default function AppointmentsRoute() {
                 >
                   {isOfflineCopy && <WifiOff size={9} color="#b45309" />}
                   <Text
+                    testID={`parent-appointments-status-${appt.id}`}
                     className={`text-[10px] font-bold uppercase ${
                       isOfflineCopy ? 'text-amber-800' : 'text-[#007aff]'
                     }`}
@@ -206,7 +224,12 @@ export default function AppointmentsRoute() {
                   </View>
                   <View>
                     <Text className="text-[9px] font-bold text-neutral-400 uppercase">Time</Text>
-                    <Text className="text-xs font-semibold text-neutral-800">{appt.time}</Text>
+                    <Text
+                      testID={`parent-appointments-time-${appt.id}`}
+                      accessibilityLabel={`Appointment time ${appt.time}`}
+                      className="text-xs font-semibold text-neutral-800">
+                      {formatParentAppointmentTime(appt.time)}
+                    </Text>
                   </View>
                 </View>
 
@@ -216,7 +239,9 @@ export default function AppointmentsRoute() {
                   </View>
                   <View>
                     <Text className="text-[9px] font-bold text-neutral-400 uppercase">Clinic location</Text>
-                    <Text className="text-xs font-semibold text-neutral-800 leading-snug">
+                    <Text
+                      testID={`parent-appointments-location-${appt.id}`}
+                      className="text-xs font-semibold text-neutral-800 leading-snug">
                       {appt.location || 'Apollo Hospital Chennai'}
                     </Text>
                   </View>
@@ -228,6 +253,8 @@ export default function AppointmentsRoute() {
                   setSelectedPrepAppt(appt);
                   setPrepModalOpen(true);
                 }}
+                testID={`parent-appointments-prep-${appt.id}`}
+                accessibilityLabel="View preparation details"
                 className="w-full bg-[#007aff] py-3 rounded-xl items-center justify-center active:scale-95 shadow-xs mt-1"
               >
                 <Text className="text-white font-bold text-xs">View preparation details</Text>
@@ -307,6 +334,8 @@ export default function AppointmentsRoute() {
 
                 <TouchableOpacity
                   onPress={handleCreateAppointment}
+                  testID="parent-appointments-save"
+                  accessibilityLabel="Save appointment"
                   className="w-full bg-[#007aff] py-3.5 rounded-xl items-center justify-center active:scale-95 shadow-sm mt-2"
                 >
                   <Text className="text-white font-bold text-sm">Save Appointment</Text>

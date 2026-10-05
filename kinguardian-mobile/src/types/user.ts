@@ -10,7 +10,7 @@ export interface User {
   avatar?: string;
 }
 
-export type DemoRole = 'coordinator' | 'parent';
+export type DemoRole = 'coordinator' | 'parent' | 'caregiver';
 
 export interface DemoUser {
   id: string;

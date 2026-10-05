@@ -114,6 +114,11 @@ export class ApiMedicationService implements MedicationService {
           subjectId = members[0]?.backendSubjectId || '';
         }
 
+        // MED-006: stable minute-bucketed idempotency key so rapid duplicate
+        // "take" requests collapse to a single adherence event server-side.
+        const minuteBucket = Math.floor(Date.now() / 60000);
+        const idempotencyKey = `medtake-${med.id}-${minuteBucket}`;
+
         await this.client.medications.confirm({
           family_id: familyId,
           subject_id: subjectId || undefined,
@@ -121,7 +126,7 @@ export class ApiMedicationService implements MedicationService {
           medication_id: med.id,
           taken: status === 'taken',
           source: 'parent'
-        });
+        }, idempotencyKey);
         console.log(`ApiMedicationService: Persisted medication adherence (${status}) for ${med.name} in PostgreSQL`);
         return { ...med, status, persisted: true };
       } catch (err) {
@@ -145,18 +150,12 @@ export class ApiMedicationService implements MedicationService {
 
   async sendReminder(medicationId: string): Promise<void> {
     try {
-      const familyId = await this.familyService.ensureFamily();
       const medName = medicationId === 'rec-5' || medicationId.toLowerCase().includes('atorva') ? 'Atorvastatin 20mg' : medicationId;
-      await this.client.notifications.create(familyId, {
-        event_type: 'reminder',
-        payload: {
-          title: `Medication Reminder: ${medName}`,
-          message: `Take evening dose of ${medName}`,
-          recipient: 'parent',
-          medication_id: medicationId
-        }
+      await this.client.medications.remind(medicationId, {
+        medication_id: medicationId,
+        medication_ref: medName
       });
-      console.log(`ApiMedicationService: Persisted medication reminder notification in DB`);
+      console.log(`ApiMedicationService: Persisted medication reminder notification in DB via /remind endpoint`);
     } catch (err) {
       console.warn('ApiMedicationService: Error dispatching reminder to backend:', err);
     }

@@ -47,7 +47,7 @@ export default function CoordinatorParentsRoute() {
     <DeviceFrame>
       <View className="flex-1 relative bg-[#f2f2f7]">
         {/* Header */}
-        <View className="px-6 py-5 border-b border-neutral-100 bg-white flex-row items-center justify-between">
+        <View className="px-6 py-6 border-b border-neutral-100 bg-white flex-row items-center justify-between">
           <View>
             <Text className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">
               Connected Profiles
@@ -58,9 +58,9 @@ export default function CoordinatorParentsRoute() {
           <TouchableOpacity
             onPress={() => setAddModalOpen(true)}
             activeOpacity={0.8}
-            className="flex-row items-center gap-1.5 bg-[#007aff] px-3.5 py-2 rounded-xl shadow-xs"
+            className="flex-row items-center gap-1.5 bg-gradient-to-r from-[#007aff] to-[#0055ff] px-4 py-2.5 rounded-xl shadow-lg shadow-blue-500/30"
           >
-            <Plus size={14} color="#ffffff" strokeWidth={2.5} />
+            <Plus size={15} color="#ffffff" strokeWidth={2.5} />
             <Text className="text-white text-xs font-bold">Add Parent</Text>
           </TouchableOpacity>
         </View>
@@ -103,9 +103,9 @@ export default function CoordinatorParentsRoute() {
                   router.push('/(coordinator)');
                 }}
                 activeOpacity={0.8}
-                className={`bg-white rounded-2xl p-5 border ${
-                  isActive ? 'border-[#007aff]' : 'border-neutral-100'
-                } shadow-sm flex-row items-start gap-4`}
+                className={`bg-white rounded-3xl p-5 border-2 ${
+                  isActive ? 'border-[#007aff] shadow-lg shadow-blue-100/50' : 'border-neutral-200 shadow-md'
+                } flex-row items-start gap-4`}
               >
                 <View className="relative">
                   <Image
@@ -116,10 +116,10 @@ export default function CoordinatorParentsRoute() {
                           ? 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e'
                           : 'https://images.unsplash.com/photo-1544005313-94ddf0286df2')
                     }}
-                    className="w-12 h-12 rounded-full"
+                    className="w-14 h-14 rounded-full border-2 border-white shadow-md"
                   />
                   <View
-                    className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
+                    className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white shadow-sm ${
                       isUnwell ? 'bg-[#ff3b30]' : 'bg-[#34c759]'
                     }`}
                   />
@@ -172,6 +172,55 @@ export default function CoordinatorParentsRoute() {
                         Next: {nextAppt}
                       </Text>
                     </View>
+                  </View>
+
+                  {/* FHIR Clinical Quick Links */}
+                  <View className="flex-row flex-wrap gap-2 pt-3 border-t border-neutral-100">
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        router.push(`/(coordinator)/parent/${p.id}/profile` as any);
+                      }}
+                      className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 px-3 py-1.5 rounded-xl active:scale-95 shadow-sm"
+                    >
+                      <Text className="text-[10px] font-bold text-blue-700">FHIR Profile</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        router.push(`/(coordinator)/parent/${p.id}/vitals` as any);
+                      }}
+                      className="bg-gradient-to-r from-rose-50 to-rose-100 border border-rose-200 px-3 py-1.5 rounded-xl active:scale-95 shadow-sm"
+                    >
+                      <Text className="text-[10px] font-bold text-rose-700">Vitals</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        router.push(`/(coordinator)/parent/${p.id}/conditions` as any);
+                      }}
+                      className="bg-gradient-to-r from-indigo-50 to-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-xl active:scale-95 shadow-sm"
+                    >
+                      <Text className="text-[10px] font-bold text-indigo-700">Conditions</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        router.push(`/(coordinator)/parent/${p.id}/medications` as any);
+                      }}
+                      className="bg-gradient-to-r from-amber-50 to-amber-100 border border-amber-200 px-3 py-1.5 rounded-xl active:scale-95 shadow-sm"
+                    >
+                      <Text className="text-[10px] font-bold text-amber-700">Meds</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        router.push(`/(coordinator)/parent/${p.id}/labs` as any);
+                      }}
+                      className="bg-gradient-to-r from-emerald-50 to-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-xl active:scale-95 shadow-sm"
+                    >
+                      <Text className="text-[10px] font-bold text-emerald-700">Labs</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
 

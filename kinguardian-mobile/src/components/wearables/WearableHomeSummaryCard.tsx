@@ -39,7 +39,7 @@ export const DEFAULT_MEANINGFUL_METRICS: MeaningfulWearableMetric[] = [
 ];
 
 export const WearableHomeSummaryCard: React.FC<WearableHomeSummaryProps> = ({
-  personName = 'Dad',
+  personName = 'Parent',
   statusHeadline = 'Doing well',
   meaningfulMetrics = DEFAULT_MEANINGFUL_METRICS,
   onPressCard,

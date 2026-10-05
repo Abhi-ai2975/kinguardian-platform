@@ -132,7 +132,7 @@ export class InsightService {
       next_steps: [
         'Check in with Dad via voice call',
         'Ask about hydration and verify indoor air conditioning',
-        'Verify with caregiver Priya that evening walks are scheduled after sunset'
+        'Verify with the assigned caregiver that evening walks are scheduled after sunset'
       ],
       status: 'active'
     };

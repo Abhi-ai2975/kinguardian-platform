@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 120
     refresh_token_expire_days: int = 14
+    ehrbase_url: str = "http://localhost:8080/ehrbase/rest/openehr/v1"
+    ehrbase_auth_user: str = "ehrbase-user"
+    ehrbase_auth_password: str = "SuperSecretPassword"
 
 
 settings = Settings()

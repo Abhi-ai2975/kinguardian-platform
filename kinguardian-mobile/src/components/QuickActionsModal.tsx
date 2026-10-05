@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { View, Text, TouchableOpacity, Modal, TextInput } from 'react-native';
 import { X, Heart, Sparkles, MessageSquare, Upload, Activity, Calendar, CheckSquare } from 'lucide-react-native';
 import { CareTask } from '../types';
+import { AppContext } from '../store/AppContext';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -44,7 +45,13 @@ export const QuickActionsModal: React.FC<QuickActionsModalProps> = ({
   >('menu');
   const [systolic, setSystolic] = useState('');
   const [diastolic, setDiastolic] = useState('');
-  const [medPerson] = useState('Dad (Ramesh)');
+  const context = useContext(AppContext);
+  const fatherPerson =
+    context?.people?.find(p => p.id === 'dad' || p.relationship?.toLowerCase().includes('father') || p.relation?.toLowerCase().includes('father')) ||
+    context?.familyMembers?.find(m => m.id === 'dad' || m.relationship?.toLowerCase().includes('father') || m.relation?.toLowerCase().includes('father')) ||
+    context?.people?.[0];
+  const fatherName = fatherPerson?.name ? (fatherPerson.name.charAt(0).toUpperCase() + fatherPerson.name.slice(1)) : 'Father';
+  const medPerson = `${fatherName} (${fatherPerson?.relation || 'Dad'})`;
   const [contextNote, setContextNote] = useState('');
 
   // Task states
@@ -208,7 +215,7 @@ export const QuickActionsModal: React.FC<QuickActionsModalProps> = ({
                   <View className="flex-row items-center gap-3">
                     <Heart size={16} color="#ff3b30" fill="#ff3b30" />
                     <Text className="text-sm font-semibold text-neutral-800">
-                      Log Blood Pressure (Dad)
+                      Log Blood Pressure ({fatherName})
                     </Text>
                   </View>
                   <Text className="text-xs text-neutral-400 font-bold">&rarr;</Text>
@@ -272,7 +279,7 @@ export const QuickActionsModal: React.FC<QuickActionsModalProps> = ({
           {subAction === 'log_bp' && (
             <View className="space-y-4">
               <Text className="text-xs font-semibold text-neutral-500 uppercase tracking-wider pl-1">
-                Log Dad's Blood Pressure
+                Log {fatherName}'s Blood Pressure
               </Text>
               <View className="flex-row gap-3">
                 <TextInput
@@ -410,7 +417,7 @@ export const QuickActionsModal: React.FC<QuickActionsModalProps> = ({
               <TextInput
                 value={contextNote}
                 onChangeText={setContextNote}
-                placeholder="e.g. Checked Ramesh sir, took walk inside verandas today."
+                placeholder={`e.g. Checked ${fatherName}, took walk inside verandas today.`}
                 placeholderTextColor="#8e8e93"
                 multiline
                 className="w-full bg-neutral-50 border border-neutral-200 p-3.5 rounded-xl text-sm text-neutral-800 h-20"
@@ -440,7 +447,7 @@ export const QuickActionsModal: React.FC<QuickActionsModalProps> = ({
                 <TextInput
                   value={taskAssignee}
                   onChangeText={setTaskAssignee}
-                  placeholder="Assignee (e.g. Suresh Kumar)"
+                  placeholder="Assignee name"
                   placeholderTextColor="#8e8e93"
                   className="flex-1 bg-neutral-50 border border-neutral-200 p-3.5 rounded-xl text-sm text-neutral-800"
                 />

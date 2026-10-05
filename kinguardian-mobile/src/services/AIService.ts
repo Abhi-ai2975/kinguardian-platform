@@ -146,7 +146,7 @@ export class MockAIService implements AIService {
     ) {
       return {
         answer:
-          "⚠️ **Access Limitation Notice**: You do not currently have authorized access permissions to view health records or clinical updates for Vandana / Lakshmi (Mother). In accordance with patient privacy regulations, unauthorized health data cannot be disclosed. Please contact the primary coordinator to request a care grant.",
+          '⚠️ **Access Limitation Notice**: You do not currently have authorized access permissions to view health records or clinical updates for this family member. In accordance with patient privacy regulations, unauthorized health data cannot be disclosed. Please contact the primary coordinator to request a care grant.',
         citations: ['Consent Enforcement Engine', 'Care Grant Registry (PostgreSQL)'],
         accessRestricted: true
       };
@@ -166,11 +166,11 @@ export class MockAIService implements AIService {
     ) {
       return {
         answer:
-          "I've verified your coordinator permissions and created the care task for you:\n\n📋 **Task:** Pick up Dad's lab report\n⚡ **Priority:** High\n📌 **Status:** Open\n📅 **Due:** Within 24 hours\n\nThe task has been recorded in the family care registry and an audit trail has been logged in PostgreSQL.",
+          "I've verified your coordinator permissions and created the care task for you:\n\n📋 **Task:** Pick up the parent's lab report\n⚡ **Priority:** High\n📌 **Status:** Open\n📅 **Due:** Within 24 hours\n\nThe task has been recorded in the family care registry and an audit trail has been logged in PostgreSQL.",
         citations: ['KinGuardian Policy Engine', 'Apollo Health Records', 'Care Task Registry (PostgreSQL)'],
         task: {
           id: `task-${Date.now()}`,
-          title: "Pick up Dad's lab report",
+          title: "Pick up the parent's lab report",
           priority: 'high',
           status: 'open',
           due_at: new Date(Date.now() + 86400000).toISOString()
@@ -199,8 +199,8 @@ export class MockAIService implements AIService {
     ) {
       return {
         answer:
-          "Hello Ramesh ji! 😊\n\nTonight at **8:00 PM** with dinner, please take your **Atorvastatin 20mg** tablet with a full glass of water.\n\nYour morning blood pressure medicine (**Amlodipine 5mg**) was already taken at 8:15 AM. Sleep well and stay hydrated!",
-        citations: ['Apollo Pharmacy Adherence Sync', 'Caregiver Priya Morning Logs', 'Medication Adherence Registry (PostgreSQL)']
+          "Tonight at **8:00 PM** with dinner, please take your **Atorvastatin 20mg** tablet with a full glass of water.\n\nYour morning blood pressure medicine (**Amlodipine 5mg**) was already taken at 8:15 AM. Sleep well and stay hydrated!",
+        citations: ['Apollo Pharmacy Adherence Sync', 'Caregiver Medication Logs', 'Medication Adherence Registry (PostgreSQL)']
       };
     }
 
@@ -228,8 +228,8 @@ export class MockAIService implements AIService {
     ) {
       return {
         answer:
-          "I checked Dad's (Ramesh) medication adherence records:\n\n✅ **Morning Medication:** Amlodipine 5mg was confirmed taken by parent at 8:15 AM IST.\n⏰ **Evening Medication:** Atorvastatin 20mg is scheduled for 8:00 PM IST tonight with dinner.\n\nDad's overall medication compliance is at **92%** this week. All entries have been logged and verified in the adherence registry.",
-        citations: ['Pillbox Sensor Sync', 'Caregiver Priya Adherence Log', 'Medication Adherence Registry (PostgreSQL)']
+          "I checked the parent's medication adherence records:\n\n✅ **Morning Medication:** Amlodipine 5mg was confirmed taken at 8:15 AM IST.\n⏰ **Evening Medication:** Atorvastatin 20mg is scheduled for 8:00 PM IST tonight with dinner.\n\nMedication compliance is at **92%** this week. All entries have been logged and verified in the adherence registry.",
+        citations: ['Pillbox Sensor Sync', 'Caregiver Adherence Log', 'Medication Adherence Registry (PostgreSQL)']
       };
     }
 
@@ -237,32 +237,28 @@ export class MockAIService implements AIService {
     if (
       qLower.includes('how is dad doing') ||
       qLower.includes('how is father doing') ||
-      qLower.includes('how is ramesh doing') ||
       qLower.includes('how is dad') ||
-      qLower.includes('how is ramesh') ||
       qLower.includes('dad status') ||
       qLower.includes('parent status') ||
       qLower.includes('health summary') ||
       qLower.includes('daily summary') ||
       qLower.includes('how is he doing') ||
+      qLower.includes('how is') ||
       qLower.includes('how is he') ||
       qLower.includes('father doing') ||
       qLower.includes("dad's health") ||
-      qLower.includes("ramesh's health") ||
       qLower.includes('how is dad today') ||
       qLower.includes('health update') ||
       qLower.includes('status update') ||
       qLower.includes('well-being') ||
       qLower.includes("today's update") ||
       qLower.includes('tell me about dad') ||
-      qLower.includes('tell me about ramesh') ||
       qLower.includes('dad doing') ||
-      qLower.includes('ramesh doing') ||
       qLower.includes('summary')
     ) {
       return {
         answer:
-          "Here is Dad's (Ramesh) current clinical summary for today:\n\n🩺 **Vitals & Well-being:** Morning check-in recorded a positive mood with stable vitals (normal). Evening blood pressure showed a mild systolic variance (138/88 mmHg, pulse 74 bpm), which correlates with today's midday heatwave index in Chennai (39°C).\n\n💊 **Medication Compliance (92%):** Amlodipine 5mg was confirmed taken at 8:15 AM IST. Evening Atorvastatin 20mg is scheduled for 8:00 PM IST.\n\n🚶 **Activity:** 3,420 steps logged today, continuing a steady gradual recovery pattern.\n\n📋 **Next Steps:** Routine cardiology consultation with Dr. Sharma (Apollo Hospital) is upcoming. No critical anomalies detected.",
+          "Here is the parent's current clinical summary for today:\n\n🩺 **Vitals & Well-being:** Morning check-in recorded a positive mood with stable vitals (normal). Evening blood pressure showed a mild systolic variance (138/88 mmHg, pulse 74 bpm), which correlates with today's midday heatwave index in Chennai (39°C).\n\n💊 **Medication Compliance (92%):** Amlodipine 5mg was confirmed taken at 8:15 AM IST. Evening Atorvastatin 20mg is scheduled for 8:00 PM IST.\n\n🚶 **Activity:** 3,420 steps logged today, continuing a steady gradual recovery pattern.\n\n📋 **Next Steps:** Routine cardiology consultation with Dr. Sharma (Apollo Hospital) is upcoming. No critical anomalies detected.",
         citations: [
           'Omron Blood Pressure Hub (12 readings)',
           'Chennai Meteorological Index',
@@ -283,7 +279,7 @@ export class MockAIService implements AIService {
     ) {
       return {
         answer:
-          "I've synthesized Dad's clinical data for your upcoming consultation with Dr. Sharma:\n\n1. **Blood Pressure Variance:** Evening readings show systolic elevation to 138/88 mmHg (baseline 126/80 mmHg), correlating with Chennai midday peak temperatures (39°C).\n2. **Mobility Correlation:** Daily activity averages 3,420 steps (35% drop during peak temperature hours).\n3. **Medication Continuity:** Amlodipine 5mg adherence is 100% in mornings; Atorvastatin 20mg maintained at night.\n\n💡 **Recommended Question for Dr. Sharma:** *'Should we adjust the timing of Dad's afternoon hydration or dosage during high heat index days to mitigate evening blood pressure spikes?'*",
+          "I've synthesized the parent's clinical data for your upcoming consultation with Dr. Sharma:\n\n1. **Blood Pressure Variance:** Evening readings show systolic elevation to 138/88 mmHg (baseline 126/80 mmHg), correlating with Chennai midday peak temperatures (39°C).\n2. **Mobility Correlation:** Daily activity averages 3,420 steps (35% drop during peak temperature hours).\n3. **Medication Continuity:** Amlodipine 5mg adherence is 100% in mornings; Atorvastatin 20mg maintained at night.\n\n💡 **Recommended Question for Dr. Sharma:** *'Should we adjust the timing of the parent's afternoon hydration or dosage during high heat index days to mitigate evening blood pressure spikes?'*",
         citations: ['Apollo Hospital Portal Integration', 'Omron Blood Pressure Hub', 'Chennai Meteorological Index']
       };
     }
@@ -292,7 +288,7 @@ export class MockAIService implements AIService {
     if (qLower.includes('blood pressure') || qLower.includes('bp') || qLower.includes('systolic') || qLower.includes('vitals')) {
       return {
         answer:
-          "I noticed Dad's evening blood pressure shows a slight systolic variance (138/88 mmHg). The data shows this is different from Dad's usual pattern. This correlates with the current Chennai midday heatwave index (39°C). You may want to discuss this with his doctor.",
+          "I noticed the parent's evening blood pressure shows a slight systolic variance (138/88 mmHg). The data shows this is different from the usual pattern. This correlates with the current Chennai midday heatwave index (39°C). You may want to discuss this with their doctor.",
         citations: ['Omron Blood Pressure Hub (12 readings)', 'Chennai Meteorological Index']
       };
     }
@@ -301,14 +297,14 @@ export class MockAIService implements AIService {
     if (qLower.includes('steps') || qLower.includes('activity') || qLower.includes('walk') || qLower.includes('wearable')) {
       return {
         answer:
-          "Dad has logged 3,420 steps today through his connected wearable sensors. This represents steady recovery mobility, with a normal pause during peak afternoon Chennai heat.",
+          "The parent has logged 3,420 steps today through connected wearable sensors. This represents steady recovery mobility, with a normal pause during peak afternoon Chennai heat.",
         citations: ['Connected Health Step Logs', 'Fitbit / Apple Health Telemetry']
       };
     }
 
     return {
       answer:
-        "I reviewed Dad's (Ramesh) primary care records:\n\n• **Check-ins:** Morning check-in recorded normal and calm.\n• **Medications:** Morning dose taken; evening dose on schedule.\n• **Sensors:** Live wearable streams active with no critical alerts.\n• Daily adherence and caregiver notes remain available on your family circle dashboard.",
+        "I reviewed the parent's primary care records:\n\n• **Check-ins:** Morning check-in recorded normal and calm.\n• **Medications:** Morning dose taken; evening dose on schedule.\n• **Sensors:** Live wearable streams active with no critical alerts.\n• Daily adherence and caregiver notes remain available on your family circle dashboard.",
       citations: ['Connected Health Step Logs', 'Dexcom Glycemic CGM Stream', 'Check-in Registry (PostgreSQL)']
     };
   }
@@ -334,11 +330,11 @@ export class MockAIService implements AIService {
       appointmentId,
       preparations: [
         'Print or share the recent Apollo Hospital Chennai Cardiac Metabolic Panel summary.',
-        'Record Ramesh sir fasting blood pressure logs for 3 consecutive days prior to appointment.',
+        "Record the parent's fasting blood pressure logs for 3 consecutive days prior to appointment.",
         'Keep Amlodipine and Atorvastatin pill packets handy during telehealth video review.'
       ],
       questionsToAsk: [
-        'Should we adjust Dad’s afternoon diuretic timing on days when Chennai heat peaks above 38°C?',
+        "Should we adjust the parent's afternoon diuretic timing on days when Chennai heat peaks above 38°C?",
         'Does the recent 35% steps activity decline correlate with his evening blood pressure spikes?'
       ]
     };
@@ -349,7 +345,7 @@ export class MockAIService implements AIService {
     return {
       documentId,
       summaryText:
-        "I noticed 6 key metabolic lab results from Metropolis Labs Chennai. The data shows glucose is optimal, but creatinine has a slight elevation from Ramesh sir's usual baseline. You may want to discuss this with his doctor.",
+        "I noticed 6 key metabolic lab results from Metropolis Labs Chennai. The data shows glucose is optimal, but creatinine has a slight elevation from the parent's usual baseline. You may want to discuss this with their doctor.",
       extractedMetrics: [
         { key: 'HbA1c', value: '6.4%' },
         { key: 'eGFR', value: '78 mL/min' },

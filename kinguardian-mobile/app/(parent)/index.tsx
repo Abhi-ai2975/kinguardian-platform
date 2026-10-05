@@ -27,6 +27,13 @@ export default function ParentDashboardRoute() {
       try {
         const session = await authService.getStoredSession();
         if (session && (session.user.role === 'parent' || session.user.role === 'coordinator')) {
+          const validToken = await authService.getAccessToken();
+          if (!validToken) {
+            setIsAuthenticated(false);
+            router.replace('/(auth)/sign-in');
+            return;
+          }
+
           setIsAuthenticated(true);
           
           // Load real user data
@@ -34,13 +41,21 @@ export default function ParentDashboardRoute() {
           if (profile) {
             // Update context with real user data
             if (context?.setCurrentUser) {
+              let rawName = profile.display_name || profile.email?.split('@')[0] || 'Parent';
+              rawName = rawName.replace(/\bsharma\b/gi, '').trim();
+              const nameLower = rawName.toLowerCase();
+              const isAni = nameLower.includes('aniruddha');
+              const isVan = nameLower.includes('vandana');
+              const cleanName = isAni ? 'Aniruddha' : (isVan ? 'Vandana' : rawName);
+              const parentRelation = isAni ? 'Father' : (isVan ? 'Mother' : 'Parent');
+
               context.setCurrentUser({
                 id: profile.id,
-                name: profile.display_name,
-                age: 30,
+                name: cleanName,
+                age: isAni ? 68 : (isVan ? 62 : 30),
                 location: profile.timezone || 'Asia/Kolkata',
-                role: (profile.role === 'coordinator' ? 'coordinator' : 'parent'),
-                relation: profile.role === 'coordinator' ? 'Coordinator' : 'Parent',
+                role: profile.role === 'coordinator' ? 'coordinator' : (profile.role === 'caregiver' ? 'caregiver' : 'parent'),
+                relation: profile.role === 'coordinator' ? 'Coordinator' : (profile.role === 'caregiver' ? 'Caregiver' : parentRelation),
                 avatarUrl: ''
               });
             }
@@ -52,43 +67,82 @@ export default function ParentDashboardRoute() {
 
           if (families && families.length > 0) {
             try {
-              const members = await realDataService.getFamilyMembers(families[0].id);
-              const subjects = await realDataService.getFamilySubjects(families[0].id);
+              // Prefer a family containing the signed-in user's care subject.
+              let targetFamily = families[0];
+              let subjects: any[] = [];
+              for (const f of families) {
+                try {
+                  const s = await realDataService.getFamilySubjects(f.id);
+                  if (s && s.length > 0) {
+                    const hasCurrentUser = s.some((sub: any) =>
+                      sub.id === profile?.id || sub.profile_id === profile?.id
+                    );
+                    if (hasCurrentUser || subjects.length === 0) {
+                      targetFamily = f;
+                      subjects = s;
+                      if (hasCurrentUser) break;
+                    }
+                  }
+                } catch {}
+              }
+
+              if (subjects.length === 0) {
+                subjects = await realDataService.getFamilySubjects(targetFamily.id);
+              }
+
+              const members = await realDataService.getFamilyMembers(targetFamily.id);
               
-              // Get first subject for check-ins and meds
-              const firstSubject = subjects.length > 0 ? subjects[0] : null;
+              // Prefer the signed-in user's care subject; otherwise use the family's first subject.
+              const activeSubject = subjects.find((s: any) =>
+                s.id === profile?.id || s.profile_id === profile?.id
+              ) || subjects[0];
               
-              const checkIns = await realDataService.getCheckIns(families[0].id, firstSubject?.id);
-              const meds = await realDataService.getMedicationAdherence(families[0].id, firstSubject?.id);
+              if (activeSubject && context?.setCurrentPersonId) {
+                context.setCurrentPersonId(activeSubject.id);
+              }
+
+              const checkIns = await realDataService.getCheckIns(targetFamily.id, activeSubject?.id);
+              const meds = await realDataService.getMedicationAdherence(targetFamily.id, activeSubject?.id);
               
               const coord = members?.find((m: any) => m.role === 'coordinator');
               if (coord) {
                 const rawName = coord.display_name || (coord as any).name || (coord.email ? coord.email.split('@')[0] : '');
                 if (rawName && context?.setCoordinatorName) {
-                  const cleanName = rawName.replace(/\s*\(coordinator\)/i, '').trim().split(' ')[0] || rawName.trim();
+                  const cleanName = rawName.replace(/\s*\(coordinator\)/i, '').trim() || rawName.trim();
                   context.setCoordinatorName(cleanName);
                 }
               }
               
               // Set family name
               if (context?.setFamilyName) {
-                context.setFamilyName(families[0].name);
+                context.setFamilyName(targetFamily.name);
               }
               
               // Update people with care subjects
               if (context?.setPeople && subjects && subjects.length > 0) {
-                context.setPeople(subjects.map((cs: any) => ({
-                  id: cs.id,
-                  name: JSON.parse(cs.external_patient_ref || '{}').name || 'Parent',
-                  role: 'parent',
-                  relationship: JSON.parse(cs.external_patient_ref || '{}').relationship || 'Family Member',
-                  location: cs.preferred_timezone || 'India',
-                  age: 60,
-                  city: cs.preferred_timezone || 'India',
-                  country: 'India',
-                  timezone: cs.preferred_timezone || 'Asia/Kolkata',
-                  wellbeingStatus: 'doing-well' as const
-                })));
+                context.setPeople(subjects.map((cs: any) => {
+                  let refName = cs.display_name || cs.name || 'Parent';
+                  let refRel = cs.relationship || 'Parent';
+                  try {
+                    const parsed = JSON.parse(cs.external_patient_ref || '{}');
+                    refName = parsed.name || refName;
+                    refRel = parsed.relationship || refRel;
+                  } catch {}
+                  return {
+                    id: cs.id,
+                    backendSubjectId: cs.id,
+                    name: refName,
+                    role: 'parent',
+                    relationship: refRel,
+                    relation: refRel,
+                    location: cs.preferred_timezone || 'Chennai, India',
+                    age: 68,
+                    city: 'Chennai',
+                    country: 'India',
+                    timezone: cs.preferred_timezone || 'Asia/Kolkata',
+                    wellbeingStatus: 'doing-well' as const
+                  };
+                }));
               }
               
               console.log('Care subjects:', subjects);
@@ -112,7 +166,7 @@ export default function ParentDashboardRoute() {
     };
 
     checkAuth();
-  }, [router, context]);
+  }, [router]);
 
   if (!context || !authChecked || !isAuthenticated) {
     return (
@@ -123,10 +177,13 @@ export default function ParentDashboardRoute() {
   }
 
   const isAtorvastatinTaken =
-    context.records
-      .find((r) => r.id === 'rec-5')
-      ?.status?.toLowerCase()
-      .includes('taken') || false;
+    context.medications.find((m) => m.id === 'rec-5')?.status === 'taken' ||
+    Boolean(
+      context.records
+        .find((r) => r.id === 'rec-5')
+        ?.status?.toLowerCase()
+        ?.match(/taken|confirmed/)
+    );
 
   const parentNotifications = context.notifications.filter((n) => n.recipient === 'parent');
   const unreadCount = parentNotifications.filter((n) => !n.read).length;
@@ -137,7 +194,7 @@ export default function ParentDashboardRoute() {
     context.people.find((p) => p.role === 'parent' || p.relationship === 'Father' || p.relationship === 'Mother') ||
     context.people[0];
 
-  const parentSubjectId = currentParentSubject?.id || 'dad';
+  const parentSubjectId = currentParentSubject?.backendSubjectId || currentParentSubject?.id || 'a8a8f689-6ae7-441f-bba3-262dfbfe022c';
 
   return (
     <DeviceFrame>
@@ -153,6 +210,7 @@ export default function ParentDashboardRoute() {
           isAtorvastatinTaken={isAtorvastatinTaken}
           onOpenNotifications={() => setNotificationsOpen(true)}
           unreadCount={unreadCount}
+          targetSubjectId={parentSubjectId}
         />
 
         <ParentVoiceModal

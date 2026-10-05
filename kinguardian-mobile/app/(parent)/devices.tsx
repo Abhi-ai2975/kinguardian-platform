@@ -15,7 +15,7 @@ export default function ParentDevicesRoute() {
 
   return (
     <DeviceFrame>
-      <View className="flex-1 relative bg-[#f8f9fa]">
+      <View testID="parent-devices-screen" className="flex-1 relative bg-[#f8f9fa]">
         <ParentDevicesScreen onBack={() => router.back()} />
         <ParentBottomNavBar
           activeTab="home"

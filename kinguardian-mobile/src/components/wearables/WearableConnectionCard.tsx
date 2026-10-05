@@ -33,7 +33,7 @@ export const WearableConnectionCard: React.FC<WearableConnectionCardProps> = ({
   isCoordinatorView = false
 }) => {
   const isErrorOrDelayed = device.status === 'error' || device.status === 'delayed';
-  const displayTitle = device.rolePerspectiveTitle || (isCoordinatorView ? `Dad's ${device.deviceName}` : device.deviceName);
+  const displayTitle = device.rolePerspectiveTitle || (isCoordinatorView ? `Parent's ${device.deviceName}` : device.deviceName);
 
 
   return (

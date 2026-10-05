@@ -1,9 +1,25 @@
-import { View, Text } from 'react-native';
+import { useContext } from 'react';
+import { View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { AppContext } from '../../src/store/AppContext';
+import { OnboardingScreen } from '../../src/components/OnboardingScreen';
 
 export default function LocationRoute() {
+  const router = useRouter();
+  const context = useContext(AppContext);
+
   return (
-    <View className="flex-1 items-center justify-center bg-white">
-      <Text className="text-slate-800 text-xs">Auth Location setup stub</Text>
+    <View className="flex-1 bg-white">
+      <OnboardingScreen
+        initialStep={2}
+        onComplete={(_config) => {
+          if (context) {
+            context.setCurrentScreen('health_dashboard');
+            context.showToast('Location and family setup complete! Welcome to Coordinator Home.');
+          }
+          router.replace('/(coordinator)');
+        }}
+      />
     </View>
   );
 }

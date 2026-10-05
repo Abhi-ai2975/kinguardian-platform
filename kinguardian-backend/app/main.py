@@ -19,9 +19,19 @@ app = FastAPI(title="KinGuardian Platform API", version="1.0.0", lifespan=lifesp
 # Add CORS middleware to allow frontend connections
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for development
+    allow_origin_regex=r"https?://.*",
+    allow_origins=[
+        "http://localhost:8081",
+        "http://localhost:8082",
+        "http://localhost:19006",
+        "http://localhost:8000",
+        "http://127.0.0.1:8081",
+        "http://127.0.0.1:8000",
+        "http://10.107.196.132:8081",
+        "http://10.107.196.132:8000",
+    ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
+    allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
 )

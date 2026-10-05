@@ -135,7 +135,7 @@ export default function CoordinatorAskRoute() {
     },
     {
       title: `Did ${subjectName} take scheduled medication?`,
-      prompt: `Did ${subjectName} take his evening medication?`,
+      prompt: `Did ${subjectName} take their evening medication?`,
       badge: 'Medication Adherence',
       desc: 'Checks compliance records, verified timestamps, and dose schedules.'
     },
@@ -145,12 +145,7 @@ export default function CoordinatorAskRoute() {
       badge: 'Parent Prescription Guide',
       desc: 'Provides clear, parent-friendly instructions for tonight’s dosage.'
     },
-    {
-      title: 'Family Scope & Consent Verification',
-      prompt: 'How is Mom doing?',
-      badge: 'Access Policy Guard',
-      desc: 'Enforces care grants, family boundaries, and patient privacy.'
-    },
+
     {
       title: 'Create Care Task',
       prompt: `Create care task: Pick up ${subjectName}'s lab report`,
@@ -170,6 +165,8 @@ export default function CoordinatorAskRoute() {
       desc: 'Demonstrates graceful fallback to locally stored telemetry.'
     }
   ];
+
+  const lastAiMessageId = [...messages].reverse().find((m) => m.sender === 'kinguardian')?.id;
 
   return (
     <DeviceFrame>
@@ -261,6 +258,8 @@ export default function CoordinatorAskRoute() {
                   className={`flex-row ${isUser ? 'justify-end' : 'justify-start'} w-full`}
                 >
                   <View
+                    testID={!isUser && msg.id === lastAiMessageId ? 'coordinator-ask-answer' : undefined}
+                    accessibilityLabel={!isUser && msg.id === lastAiMessageId ? 'KinGuardian AI answer' : undefined}
                     className={`max-w-[88%] rounded-2xl p-4 shadow-xs ${
                       isUser
                         ? 'bg-purple-600 rounded-tr-xs'
@@ -294,7 +293,7 @@ export default function CoordinatorAskRoute() {
 
                     {/* Task Card */}
                     {!isUser && msg.task && (
-                      <View className="bg-purple-50/70 border border-purple-200 rounded-xl p-3 space-y-2 mt-2">
+                      <View testID="ai-action-proposal" className="bg-purple-50/70 border border-purple-200 rounded-xl p-3 space-y-2 mt-2">
                         <View className="flex-row items-center justify-between">
                           <View className="flex-row items-center gap-1.5">
                             <ListTodo size={14} color="#7c3aed" />
@@ -315,7 +314,7 @@ export default function CoordinatorAskRoute() {
 
                     {/* Security Blocked Alert */}
                     {!isUser && msg.securityBlocked && (
-                      <View className="bg-rose-50 border border-rose-200 rounded-xl p-3 space-y-1 my-1">
+                      <View testID="ai-security-blocked" className="bg-rose-50 border border-rose-200 rounded-xl p-3 space-y-1 my-1">
                         <View className="flex-row items-center gap-1.5">
                           <Shield size={14} color="#e11d48" />
                           <Text className="text-xs font-black text-rose-900">Security Policy Protected</Text>
@@ -328,7 +327,7 @@ export default function CoordinatorAskRoute() {
 
                     {/* Access Restricted Alert */}
                     {!isUser && msg.accessRestricted && (
-                      <View className="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-1 my-1">
+                      <View testID="ai-access-limitation" className="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-1 my-1">
                         <View className="flex-row items-center gap-1.5">
                           <Shield size={14} color="#d97706" />
                           <Text className="text-xs font-black text-amber-900">Family Privacy & Care Scope Protected</Text>
@@ -341,7 +340,7 @@ export default function CoordinatorAskRoute() {
 
                     {/* Safe Fallback Alert */}
                     {!isUser && msg.aiUnavailable && (
-                      <View className="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-1 my-1">
+                      <View testID="ai-fallback-message" className="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-1 my-1">
                         <View className="flex-row items-center gap-1.5">
                           <Clock size={14} color="#d97706" />
                           <Text className="text-xs font-black text-amber-900">Offline Resilience Mode Active</Text>
@@ -354,8 +353,10 @@ export default function CoordinatorAskRoute() {
 
                     {/* AI Expandable Sources Transparency */}
                     {!isUser && msg.sources && msg.sources.length > 0 && (
-                      <View className="pt-2 border-t border-slate-100">
+                      <View testID="coordinator-ask-sources" className="pt-2 border-t border-slate-100">
                         <TouchableOpacity
+                          testID="coordinator-ask-sources-toggle"
+                          accessibilityLabel="Toggle sources and citations"
                           onPress={() =>
                             setExpandedMessageId(isExpanded ? null : msg.id)
                           }
@@ -379,6 +380,11 @@ export default function CoordinatorAskRoute() {
                             {msg.sources.map((src, sIdx) => (
                               <View
                                 key={sIdx}
+                                testID={
+                                  src.title.toLowerCase().includes('medication')
+                                    ? 'coordinator-ask-citation-medication'
+                                    : `coordinator-ask-source-${sIdx}`
+                                }
                                 className="bg-slate-50 p-2 rounded-lg border border-slate-150"
                               >
                                 <Text className="text-[11px] font-bold text-purple-950">{src.title}</Text>
@@ -460,6 +466,8 @@ export default function CoordinatorAskRoute() {
           <View className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-3 mt-2">
             <View className="flex-row items-center bg-slate-100 border border-slate-200 rounded-xl px-3 py-1">
               <TextInput
+                testID="coordinator-ask-input"
+                accessibilityLabel="Ask KinGuardian a medical question"
                 value={query}
                 onChangeText={setQuery}
                 placeholder="Ask KinGuardian a medical question…"
@@ -468,6 +476,8 @@ export default function CoordinatorAskRoute() {
                 onSubmitEditing={() => handleAsk()}
               />
               <TouchableOpacity
+                testID="coordinator-ask-send"
+                accessibilityLabel="Send question to KinGuardian AI"
                 onPress={() => handleAsk()}
                 disabled={loading || !query.trim()}
                 className={`p-2 rounded-lg ${query.trim() ? 'bg-purple-600' : 'bg-slate-300'}`}
@@ -487,7 +497,7 @@ export default function CoordinatorAskRoute() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  onPress={() => handleAsk(`Did ${subjectName} take his evening medication?`)}
+                  onPress={() => handleAsk(`Did ${subjectName} take their evening medication?`)}
                   className="flex-row items-center gap-1.5 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg active:scale-95"
                 >
                   <CheckCircle2 size={12} color="#059669" />
@@ -503,11 +513,11 @@ export default function CoordinatorAskRoute() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  onPress={() => handleAsk('How is Mom doing?')}
+                  onPress={() => handleAsk(`How is ${subjectName} doing?`)}
                   className="flex-row items-center gap-1.5 px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg active:scale-95"
                 >
                   <Shield size={12} color="#64748b" />
-                  <Text className="text-[10px] font-bold text-slate-800">Check Mom</Text>
+                  <Text className="text-[10px] font-bold text-slate-800">Check {subjectName}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity

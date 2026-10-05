@@ -40,6 +40,9 @@ export const AskKinGuardianModal: React.FC<AskKinGuardianModalProps> = ({
 }) => {
   const context = useContext(AppContext);
   const userName = context?.currentUser?.name || context?.coordinatorName || 'there';
+  const caregiverName = context?.familyMembers.find(
+    (member) => member.role === 'caregiver' || member.relation?.toLowerCase().includes('caregiver')
+  )?.name || 'Caregiver';
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -60,6 +63,8 @@ export const AskKinGuardianModal: React.FC<AskKinGuardianModalProps> = ({
   const [inputQuery, setInputQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+  
+
 
   useEffect(() => {
     if (initialQuery && isOpen) {
@@ -85,7 +90,35 @@ export const AskKinGuardianModal: React.FC<AskKinGuardianModalProps> = ({
     setLoading(true);
 
     try {
+      // Let the backend handle IAM/consent checks via response.securityBlocked
+      // Frontend no longer performs pre-checks to avoid false denials
       const response = await aiService.ask(text, [currentSubject]);
+
+      if (response.securityBlocked) {
+        const deniedMsg: ChatMessage = {
+          id: `ai-${Date.now()}`,
+          sender: 'ai',
+          senderName: 'KinGuardian Security Guard',
+          text: '⛔ Access Denied (HTTP 403 Forbidden): Consent has been revoked mid-workflow. Real-time enforcement active.',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          citations: ['IAM Security Guard', 'PostgreSQL audit_log']
+        };
+        setMessages((prev) => [...prev, deniedMsg]);
+        return;
+      }
+
+      if (response.aiUnavailable) {
+        const offlineMsg: ChatMessage = {
+          id: `ai-${Date.now()}`,
+          sender: 'ai',
+          senderName: 'KinGuardian AI (Offline Fallback)',
+          text: '⚠️ KinGuardian AI Service Temporarily Offline (503). Core care workflows (medications, appointments, care tasks) remain 100% operational from PostgreSQL.',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          citations: ['Offline Fallback Engine', 'PostgreSQL Local Cache']
+        };
+        setMessages((prev) => [...prev, offlineMsg]);
+        return;
+      }
 
       const aiMsg: ChatMessage = {
         id: `ai-${Date.now()}`,
@@ -98,13 +131,28 @@ export const AskKinGuardianModal: React.FC<AskKinGuardianModalProps> = ({
             ? 'Omron Blood Pressure Hub (12 readings)'
             : 'Dexcom G7 Bluetooth Stream',
           'Apple Health Steps & Activity log',
-          'Caregiver Suresh Kumar Manual entries'
+          `Caregiver ${caregiverName} Manual entries`
         ]
       };
 
       setMessages((prev) => [...prev, aiMsg]);
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Error querying AI service:', err);
+      const isConsentErr = err?.message?.includes('403') || err?.message?.toLowerCase().includes('consent');
+      const isAiOutage = err?.message?.includes('503') || err?.message?.toLowerCase().includes('unavailable');
+      const errAiMsg: ChatMessage = {
+        id: `ai-${Date.now()}`,
+        sender: 'ai',
+        senderName: isConsentErr ? 'KinGuardian Security Guard' : 'KinGuardian AI',
+        text: isConsentErr
+          ? '⛔ Access Denied (HTTP 403 Forbidden): Consent has been revoked by parent.'
+          : isAiOutage
+          ? '⚠️ KinGuardian AI Service Temporarily Offline (503). Core care workflows (meds, appts, care tasks) remain operational.'
+          : "I'm having trouble connecting right now. Core care workflows remain fully functional.",
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        citations: isConsentErr ? ['IAM Security Policy (PostgreSQL)'] : ['Local Cache Resilience']
+      };
+      setMessages((prev) => [...prev, errAiMsg]);
     } finally {
       setLoading(false);
     }
@@ -231,5 +279,4 @@ export const AskKinGuardianModal: React.FC<AskKinGuardianModalProps> = ({
     </Modal>
   );
 };
-
 

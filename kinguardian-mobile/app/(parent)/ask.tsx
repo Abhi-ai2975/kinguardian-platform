@@ -27,6 +27,7 @@ export default function ParentVoiceRoute() {
   const [aiReply, setAiReply] = useState<string | null>(null);
   const [responseSource, setResponseSource] = useState<'backend' | 'fallback' | null>(null);
   const [citations, setCitations] = useState<string[]>([]);
+  const [accessRestricted, setAccessRestricted] = useState(false);
 
   if (!context) return null;
 
@@ -62,6 +63,7 @@ export default function ParentVoiceRoute() {
     setAiReply(null);
     setResponseSource(null);
     setCitations([]);
+    setAccessRestricted(false);
     setTypedQuery('');
 
     try {
@@ -73,12 +75,14 @@ export default function ParentVoiceRoute() {
       );
       setResponseSource(res.source || 'backend');
       setCitations(res.citations || []);
+      setAccessRestricted(Boolean(res.accessRestricted));
       context.showToast('KinGuardian answered your question.');
     } catch (e) {
       setAiReply(
         `Hello ${userName} ji! Tonight at 8:00 PM with dinner, please take your Atorvastatin 20mg tablet with water.`
       );
       setResponseSource('fallback');
+      setAccessRestricted(false);
       context.showToast('KinGuardian answered your question.');
     } finally {
       setLoading(false);
@@ -91,6 +95,7 @@ export default function ParentVoiceRoute() {
     setAiReply(null);
     setResponseSource(null);
     setCitations([]);
+    setAccessRestricted(false);
     context.showToast(`Listening to ${userName}...`);
 
     setTimeout(async () => {
@@ -108,12 +113,14 @@ export default function ParentVoiceRoute() {
         );
         setResponseSource(res.source || 'backend');
         setCitations(res.citations || []);
+        setAccessRestricted(Boolean(res.accessRestricted));
         context.showToast('Answered your question.');
       } catch (e) {
         setAiReply(
           `Hello ${userName} ji! Tonight at 8:00 PM with dinner, please take your Atorvastatin 20mg tablet with water.`
         );
         setResponseSource('fallback');
+        setAccessRestricted(false);
         context.showToast('Answered your question.');
       } finally {
         setLoading(false);
@@ -171,14 +178,17 @@ export default function ParentVoiceRoute() {
                   <Text className="text-sm font-bold text-slate-900">"{transcript}"</Text>
                 </View>
                 {aiReply && (
-                  <View className="pt-3 border-t border-slate-100 space-y-1.5">
+                  <View testID="parent-ask-answer" accessibilityLabel="KinGuardian AI answer" className="pt-3 border-t border-slate-100 space-y-1.5">
                     <View className="flex-row items-center gap-1.5">
                       <Sparkles size={13} color="#059669" fill="#059669" />
                       <Text className="text-[10px] font-black text-emerald-700 uppercase tracking-wider">
                         KinGuardian AI
                       </Text>
                     </View>
-                    <View className={`self-start px-2 py-1 rounded-full border ${responseSource === 'backend' ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
+                    <View
+                      testID={responseSource === 'fallback' ? 'ai-fallback-message' : 'parent-ask-response-source'}
+                      className={`self-start px-2 py-1 rounded-full border ${responseSource === 'backend' ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}
+                    >
                       <Text className={`text-[10px] font-black uppercase tracking-wider ${responseSource === 'backend' ? 'text-emerald-700' : 'text-amber-700'}`}>
                         {responseSource === 'backend' ? 'Live backend response' : 'Offline fallback response'}
                       </Text>
@@ -187,9 +197,17 @@ export default function ParentVoiceRoute() {
                       {aiReply}
                     </Text>
                     {citations.length > 0 && (
-                      <Text className="text-[10px] text-slate-500 mt-1">
+                      <Text testID="parent-ask-sources" className="text-[10px] text-slate-500 mt-1">
                         Sources: {citations.join(', ')}
                       </Text>
+                    )}
+                    {accessRestricted && (
+                      <View testID="ai-access-limitation" className="bg-amber-50 border border-amber-200 rounded-xl p-3 mt-1">
+                        <Text className="text-[11px] font-black text-amber-900">Family Privacy & Care Scope Protected</Text>
+                        <Text className="text-[10px] font-medium text-amber-800 leading-relaxed mt-0.5">
+                          Unauthorized family member data was shielded in accordance with patient privacy regulations and care grant rules.
+                        </Text>
+                      </View>
                     )}
                   </View>
                 )}
@@ -237,6 +255,8 @@ export default function ParentVoiceRoute() {
             </Text>
             <View className="flex-row items-center bg-slate-100 border border-slate-200 rounded-xl px-3 py-1">
               <TextInput
+                testID="parent-ask-input"
+                accessibilityLabel="Type your question for KinGuardian"
                 value={typedQuery}
                 onChangeText={setTypedQuery}
                 placeholder='Type: "What medicine do I take tonight?"'
@@ -245,6 +265,8 @@ export default function ParentVoiceRoute() {
                 onSubmitEditing={() => handleSendQuery()}
               />
               <TouchableOpacity
+                testID="parent-ask-send"
+                accessibilityLabel="Send question to KinGuardian AI"
                 onPress={() => handleSendQuery()}
                 disabled={loading || !typedQuery.trim()}
                 className={`p-2 rounded-lg ${typedQuery.trim() ? 'bg-emerald-600' : 'bg-slate-300'}`}
@@ -257,6 +279,8 @@ export default function ParentVoiceRoute() {
           {/* Large Microphone Container */}
           <View className="items-center py-3">
             <TouchableOpacity
+              testID="parent-ask-mic"
+              accessibilityLabel="Tap microphone to speak your question"
               onPress={startRecord}
               disabled={recording || loading}
               activeOpacity={0.8}

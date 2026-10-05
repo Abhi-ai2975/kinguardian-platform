@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity } from 'react-native';
+import React, { useState, useMemo, useEffect, useCallback, useContext } from 'react';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import {
   ArrowLeft,
   Search,
@@ -15,6 +15,8 @@ import {
 } from 'lucide-react-native';
 import { HealthRecordItem, DocumentItem } from '../types';
 import { DocumentVault } from './DocumentVault';
+import { realDataService } from '../services/api-client/RealDataService';
+import { AppContext } from '../store/AppContext';
 
 interface SearchRecordsScreenProps {
   records: HealthRecordItem[];
@@ -44,7 +46,7 @@ const timelineData: TimelineItem[] = [
     dateGroup: 'Today',
     category: 'medication',
     title: 'Medication taken',
-    subtitle: 'Atorvastatin 20mg • Ramesh Kumar',
+    subtitle: 'Atorvastatin 20mg • Parent',
     time: '8:05 AM'
   },
   {
@@ -93,11 +95,95 @@ export const SearchRecordsScreen: React.FC<SearchRecordsScreenProps> = ({
   onAddDocument,
   showToast
 }) => {
+  const context = useContext(AppContext);
+  const parentName =
+    context?.people.find((person) => person.id === context.currentPersonId || person.backendSubjectId === context.currentPersonId)?.name ||
+    context?.familyMembers.find((person) => person.id === context.currentPersonId || person.backendSubjectId === context.currentPersonId)?.name ||
+    'Parent';
   const [activeSegment, setActiveSegment] = useState<'search' | 'vault'>('search');
   const [searchQuery, setSearchQuery] = useState('');
   const [timelineFilter, setTimelineFilter] = useState<
     'all' | 'medication' | 'lab' | 'vital' | 'appointment' | 'document' | 'symptom'
   >('all');
+
+  const [dbTimelineEvents, setDbTimelineEvents] = useState<TimelineItem[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [dbSearchResults, setDbSearchResults] = useState<any[]>([]);
+  const [isSearchingDb, setIsSearchingDb] = useState(false);
+
+  const fetchTimeline = useCallback(async (isInitial: boolean = false) => {
+    try {
+      if (!isInitial) setIsLoadingMore(true);
+      const cursorToUse = isInitial ? undefined : (nextCursor || undefined);
+      const res = await realDataService.getSubjectTimeline('dad', cursorToUse, 10);
+      if (res && res.events && res.events.length > 0) {
+        const mapped: TimelineItem[] = res.events.map((ev: any) => {
+          let cat: TimelineItem['category'] = 'vital';
+          if (ev.category === 'medication' || ev.event_type === 'medication_adherence') cat = 'medication';
+          else if (ev.category === 'checkin' || ev.event_type === 'checkin') cat = 'symptom';
+          else if (ev.category === 'task' || ev.event_type === 'care_task') cat = 'appointment';
+          else if (ev.category === 'document') cat = 'document';
+
+          const d = new Date(ev.occurred_at || ev.created_at || Date.now());
+          const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const dateStr = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+
+          return {
+            id: ev.id,
+            dateGroup: dateStr,
+            category: cat,
+            title: ev.title || (cat === 'medication' ? 'Medication adherence' : 'Check-in recorded'),
+            subtitle: ev.subtitle || (ev.details?.medication_ref ? `${ev.details.medication_ref} confirmed` : 'Care circle update'),
+            time: timeStr
+          };
+        });
+
+        if (isInitial) {
+          setDbTimelineEvents(mapped);
+        } else {
+          // Maintain stable ordering and ensure no duplicates
+          setDbTimelineEvents(prev => {
+            const seen = new Set(prev.map(p => p.id));
+            const fresh = mapped.filter(m => !seen.has(m.id));
+            return [...prev, ...fresh];
+          });
+        }
+        setNextCursor(res.next_cursor);
+        setHasMore(Boolean(res.has_more));
+      } else if (isInitial) {
+        setDbTimelineEvents(timelineData);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch real timeline:', err);
+      if (isInitial) setDbTimelineEvents(timelineData);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [nextCursor]);
+
+  useEffect(() => {
+    fetchTimeline(true);
+  }, []);
+
+  const handleSearch = async (text: string) => {
+    setSearchQuery(text);
+    const q = text.trim();
+    if (!q) {
+      setDbSearchResults([]);
+      return;
+    }
+    setIsSearchingDb(true);
+    try {
+      const res = await realDataService.search(q);
+      setDbSearchResults(res?.results || []);
+    } catch (err) {
+      console.warn('Search failed:', err);
+    } finally {
+      setIsSearchingDb(false);
+    }
+  };
 
   const timelineFilters = [
     { id: 'all', label: 'All' },
@@ -109,10 +195,16 @@ export const SearchRecordsScreen: React.FC<SearchRecordsScreenProps> = ({
     { id: 'symptom', label: 'Symptoms' }
   ] as const;
 
+  const currentTimelineData = dbTimelineEvents.length > 0 ? dbTimelineEvents : timelineData;
+  const displayTimelineData = useMemo(
+    () => currentTimelineData.map((item) => ({ ...item, subtitle: item.subtitle.replace(/\b(?:Parent|Dad)\b/g, parentName) })),
+    [currentTimelineData, parentName]
+  );
+
   const filteredTimeline = useMemo(() => {
-    if (timelineFilter === 'all') return timelineData;
-    return timelineData.filter((item) => item.category === timelineFilter);
-  }, [timelineFilter]);
+    if (timelineFilter === 'all') return displayTimelineData;
+    return displayTimelineData.filter((item) => item.category === timelineFilter);
+  }, [timelineFilter, displayTimelineData]);
 
   // Grouped timeline helper
   const groupedTimeline = useMemo(() => {
@@ -213,14 +305,16 @@ export const SearchRecordsScreen: React.FC<SearchRecordsScreenProps> = ({
         <View className="relative flex-row items-center bg-white rounded-xl px-4 py-0.5 border border-neutral-200 shadow-xs">
           <Search size={15} color="#8e8e93" />
           <TextInput
+            testID="records-search-input"
+            accessibilityLabel={`Search timeline and reports for ${parentName}`}
             value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Search timeline & reports..."
+            onChangeText={handleSearch}
+            placeholder={`Search timeline & reports (e.g. ${parentName} medication)...`}
             placeholderTextColor="#8e8e93"
             className="flex-1 px-3 py-3 text-xs text-neutral-800 font-semibold"
           />
           {searchQuery ? (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <TouchableOpacity onPress={() => handleSearch('')}>
               <X size={14} color="#ff3b30" />
             </TouchableOpacity>
           ) : (
@@ -231,6 +325,52 @@ export const SearchRecordsScreen: React.FC<SearchRecordsScreenProps> = ({
             </TouchableOpacity>
           )}
         </View>
+
+        {isSearchingDb && (
+          <View className="px-1 py-0.5">
+            <Text className="text-[10px] text-blue-500 font-semibold">Searching live care database...</Text>
+          </View>
+        )}
+
+        {/* Live Database Search Results (TEST SEC-001) */}
+        {dbSearchResults.length > 0 && (
+          <View testID="records-db-results" className="bg-white rounded-2xl p-4 border border-blue-200 shadow-sm space-y-3">
+            <View className="flex-row items-center justify-between border-b border-slate-100 pb-2">
+              <View className="flex-row items-center gap-1.5">
+                <Search size={14} color="#007aff" />
+                <Text testID="records-db-results-count" className="text-xs font-bold text-slate-800">
+                  Care Database Matches ({dbSearchResults.length})
+                </Text>
+              </View>
+              <View className="bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                <Text className="text-[9px] font-bold text-emerald-700">Verified DB</Text>
+              </View>
+            </View>
+
+            <View className="space-y-2">
+              {dbSearchResults.map((resItem, rIdx) => (
+                <View
+                  key={resItem.id || rIdx}
+                  testID={`records-db-result-${resItem.id || rIdx}`}
+                  className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex-row items-center justify-between"
+                >
+                  <View className="flex-row items-center gap-3 flex-1 pr-2">
+                    <View className="w-8 h-8 rounded-full bg-blue-100 items-center justify-center">
+                      <Pill size={14} color="#007aff" />
+                    </View>
+                    <View className="flex-1">
+                      <Text testID={`records-db-result-${resItem.id || rIdx}-title`} className="text-xs font-bold text-slate-900">{resItem.title}</Text>
+                      <Text testID={`records-db-result-${resItem.id || rIdx}-subtitle`} className="text-[10px] text-slate-500 font-medium">{resItem.subtitle}</Text>
+                    </View>
+                  </View>
+                  <View testID={`records-db-result-${resItem.id || rIdx}-category`} className="bg-white px-2 py-1 rounded border border-slate-200">
+                    <Text className="text-[9px] font-bold text-slate-600 uppercase">{resItem.category}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* Quick Document Vault Shortcut */}
         <TouchableOpacity
@@ -376,6 +516,7 @@ export const SearchRecordsScreen: React.FC<SearchRecordsScreenProps> = ({
                         return (
                           <View
                             key={item.id}
+                            testID={`records-timeline-item-${item.id}`}
                             className="bg-white rounded-2xl p-4 border border-neutral-100 flex-row items-center justify-between shadow-xs"
                           >
                             <View className="flex-row items-center gap-3.5">
@@ -411,6 +552,25 @@ export const SearchRecordsScreen: React.FC<SearchRecordsScreenProps> = ({
                   </View>
                 ))}
               </View>
+            )}
+
+            {/* Cursor Pagination Button (TEST SEC-002) */}
+            {hasMore && (
+              <TouchableOpacity
+                testID="records-load-more"
+                accessibilityLabel="Load more timeline events, cursor pagination"
+                onPress={() => fetchTimeline(false)}
+                disabled={isLoadingMore}
+                className="bg-white border border-blue-200 py-3 rounded-2xl items-center justify-center my-2 active:bg-blue-50 shadow-xs"
+              >
+                {isLoadingMore ? (
+                  <ActivityIndicator testID="records-load-more-spinner" size="small" color="#007aff" />
+                ) : (
+                  <Text className="text-xs font-bold text-[#007aff]">
+                    Load More Events (Cursor Pagination) &darr;
+                  </Text>
+                )}
+              </TouchableOpacity>
             )}
           </View>
         )}
